@@ -1,0 +1,237 @@
+---
+description: SaaS Template Development Rules - Educational, extensible, production-ready patterns
+---
+
+# SaaS Starter Template Development Rules
+
+## Project Context
+Building a fork-ready SaaS template with 7 testing sections:
+1. Configuration (API key management)
+2. Authentication & User Management (Auth.js + CRUD)
+3. Payments & Billing (Stripe + database)
+4. Email System (Resend + React Email)
+5. AI Styling System (screenshot → design generation)
+6. AI Site Assistant (contextual help)
+7. Deployment & CI/CD (GitHub Actions + Vercel)
+
+## Tech Stack
+- Framework: Next.js 15 (App Router), TypeScript 5.0+, Tailwind CSS
+- Database: PostgreSQL + Drizzle ORM
+- Auth: Auth.js v5 (abstracted layer)
+- Payments: Stripe (abstracted layer)
+- Email: Resend + React Email (abstracted layer)
+- AI: OpenAI with Vercel AI SDK (abstracted layer)
+- Storage: Cloudflare R2 + Vercel Blob
+- Deployment: Vercel + GitHub Actions
+
+## Code Style & Structure
+- Write concise, technical TypeScript code with accurate examples
+- Use functional and declarative programming patterns; avoid classes
+- Prefer iteration and modularization over code duplication
+- Use descriptive variable names with auxiliary verbs (isLoading, hasError)
+- Use early returns to simplify logic
+- Implement proper component boundaries and single responsibility
+- Structure files: exported component → subcomponents → helpers → types
+- Avoid deeply nested ternaries or complex logic in JSX
+
+## TypeScript Standards
+- Use strict TypeScript with noImplicitAny and strictNullChecks
+- Prefer interfaces over types, avoid enums (use maps instead)
+- Use explicit return types for exported functions
+- Use const assertions for immutable data (as const)
+- Use template literal types for string unions and API endpoints
+- Leverage utility types (Pick, Omit, Partial, Record) for transformations
+- Use import type for type-only imports (better tree-shaking)
+- Implement proper discriminated unions for complex state
+- Use branded types for domain-specific values when needed
+- Create type guards and assertion functions for runtime safety
+
+## Next.js App Router Patterns
+- Minimize 'use client' usage; favor React Server Components by default
+- Only use 'use client' for Web API access in small, interactive components
+- Use proper page.tsx, layout.tsx, loading.tsx, error.tsx conventions
+- Implement proper metadata API for SEO
+- Use Next.js native data fetching with proper cache and revalidate options
+- Prefer server components for static content and initial data loading
+- Use nuqs for URL search parameter state management
+- Optimize Web Vitals (LCP, CLS, FID)
+
+## React Component Patterns
+- Use functional components with TypeScript interfaces
+- Use PascalCase for components and favor named exports
+- Event functions use "handle" prefix (handleClick, handleKeyDown)
+- Use compound components for complex UI (Modal.Trigger, Modal.Content)
+- Use React.forwardRef for components needing DOM access
+- Create custom hooks for reusable stateful logic
+- Use error boundaries for graceful error handling in component trees
+- Use useOptimistic for optimistic updates in forms/interactions
+- Implement startTransition for non-urgent state updates
+- Minimize useEffect usage; prefer derived state and event handlers
+
+## Service Abstraction Patterns
+Create abstracted service layers for swappable components:
+
+```typescript
+// Auth service abstraction
+export const authService = {
+  async getCurrentUser() {
+    const session = await getServerSession(authConfig)
+    return session?.user || null
+  },
+  async signOut() {
+    await signOut()
+  }
+}
+
+// Payment service abstraction
+export const paymentService = {
+  async createCheckout(amount: number) {
+    if (!config.stripe.enabled) {
+      return { success: true, data: { id: 'mock-123', url: '/dev/payments?mock=success' } }
+    }
+    // Real Stripe implementation
+  }
+}
+
+// Components use abstractions, never direct imports
+import { authService } from '@/lib/auth/service'
+```
+
+## Database & API Patterns
+- Abstract database operations into service layers
+- Use standardized API responses: { success: boolean, data?: any, error?: any }
+- Validate all inputs with Zod schemas
+- Include proper error handling in all API routes
+- Create reusable query patterns with Drizzle
+
+## Mock-First Development
+Every feature works immediately without API keys:
+
+```typescript
+export const config = {
+  stripe: {
+    enabled: !!process.env.STRIPE_SECRET_KEY,
+    publicKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_mock'
+  }
+}
+
+export const emailService = {
+  async sendWelcome(to: string, data: any) {
+    if (!config.email.enabled) {
+      return { success: true, data: { id: 'mock-email-123' } }
+    }
+    // Real email implementation
+  }
+}
+```
+
+## Error Handling Standards
+- Prioritize error handling and edge cases
+- Use early returns for error conditions
+- Implement guard clauses for preconditions and invalid states
+- Use custom error types for consistent error handling
+- Provide actionable error messages to users
+- Never throw unhandled errors in user-facing code
+- Include retry mechanisms for transient failures
+
+## File Organization
+- Organize by domain/feature (features/auth/, features/payments/)
+- Use lowercase with dashes for directories (utils/string-helpers)
+- Use barrel exports (index.ts) for clean imports from features
+- Import ordering: external libs → internal modules → relative imports
+- Prefer named exports over default exports
+- Group related exports and use descriptive export names
+
+## Database Schema Patterns
+```typescript
+// Example table schema with Drizzle
+export const users = pgTable('users', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  name: text('name'),
+  avatarUrl: text('avatar_url'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+})
+
+// Service layer for database operations
+export const userService = {
+  async create(userData: InsertUser) {
+    return await db.insert(users).values(userData).returning()
+  },
+  async findById(id: string) {
+    return await db.query.users.findFirst({
+      where: eq(users.id, id)
+    })
+  }
+}
+```
+
+## Template-Specific Requirements
+- Build for educational value - code will be studied and copied
+- Include helpful comments explaining architectural decisions
+- Create reusable patterns others can copy and extend
+- Demonstrate best practices consistently
+- Include comprehensive error handling and loading states
+- Show clear status indicators (✅ Connected, ❌ Invalid, ⚠️ Not configured)
+- Provide copy/paste code artifacts for easy customization
+
+## Security Practices
+- Implement proper input validation with Zod schemas
+- Never store secrets in client-side code
+- Escape dynamic content to prevent injection attacks
+- Validate all inputs on both client and server
+- Use proper CSRF protection and secure headers
+- Implement rate limiting on sensitive endpoints
+- Use HTTPS-only cookies for secure auth flows
+
+## Performance Guidelines
+- Wrap critical client components in Suspense with fallback
+- Use dynamic loading for non-critical components
+- Use next/image with proper width, height, and priority for LCP
+- Optimize images: use WebP format, include size data
+- Use React Query for server state, React Context for client UI state only
+- Implement proper caching strategies with Next.js
+
+## Component Architecture Examples
+```typescript
+// Compound component pattern
+export const Modal = {
+  Root: ({ children, ...props }) => <dialog {...props}>{children}</dialog>,
+  Trigger: ({ children, ...props }) => <button {...props}>{children}</button>,
+  Content: ({ children, ...props }) => <div role="dialog" {...props}>{children}</div>
+}
+
+// Usage
+<Modal.Root>
+  <Modal.Trigger>Open Modal</Modal.Trigger>
+  <Modal.Content>Modal content here</Modal.Content>
+</Modal.Root>
+
+// Service hook pattern
+export function usePayments() {
+  return {
+    createCheckout: useMutation({
+      mutationFn: paymentService.createCheckout,
+      onSuccess: (data) => {
+        if (data.success) {
+          window.location.href = data.data.url
+        }
+      }
+    })
+  }
+}
+```
+
+## Development Section Standards
+Each /dev section should include:
+- Clear status indicators for service connectivity
+- Mock mode that works without API keys
+- Real mode that activates with proper credentials
+- Comprehensive testing of the feature
+- Educational comments explaining the implementation
+- Copy/paste code examples for customization
+- Error handling and loading states
+- Integration with database when applicable
+
+Remember: This template will be forked and extended by other developers. Prioritize clarity, educational value, and extensibility over clever optimizations.
