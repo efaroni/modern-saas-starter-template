@@ -48,9 +48,14 @@ test.describe('Configuration Page - Streamlined Tests', () => {
     expect(addResult.success).toBe(true);
   });
 
-  test('validation error handling', async () => {
+  test('validation error handling', async ({ page }) => {
     // Test invalid OpenAI key format
     await configPage.fillOpenAIKey(MockApiKeys.openai.invalid);
-    await configPage.expectErrorMessage('OpenAI keys must start with sk-');
+    
+    // Try to submit the form
+    await page.locator('div:has(h3:text("OpenAI")) button:has-text("Test Key")').click();
+    
+    // Check for form validation error (not API response error)
+    await expect(page.locator('text=OpenAI keys must start with sk-')).toBeVisible({ timeout: 5000 });
   });
 });

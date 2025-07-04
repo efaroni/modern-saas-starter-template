@@ -16,6 +16,7 @@ const customJestConfig = {
   testEnvironment: 'node',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   testMatch: ['**/__tests__/**/*.(ts|tsx|js)', '**/*.(test|spec).(ts|tsx|js)'],
+  testPathIgnorePatterns: ['<rootDir>/e2e/', '<rootDir>/node_modules/'],
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',
     'app/**/*.{ts,tsx}',

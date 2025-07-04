@@ -10,7 +10,7 @@ export class ConfigurationPageHelper {
   async expectPageLoaded() {
     await expect(this.page).toHaveTitle(/Modern SaaS Starter Template/);
     await expect(this.page.locator('h1')).toContainText('API Configuration');
-    await expect(this.page.locator('text=Running in mock mode')).toBeVisible();
+    await expect(this.page.locator('text=Running in mock mode - database not connected')).toBeVisible();
   }
 
   async fillOpenAIKey(key: string) {
@@ -20,12 +20,14 @@ export class ConfigurationPageHelper {
   }
 
   async testOpenAIKey() {
-    await this.page.locator('button:has-text("Test Key")').click();
+    // Use more specific selector for OpenAI section
+    await this.page.locator('div:has(h3:text("OpenAI")) button:has-text("Test Key")').click();
     return await this.waitForResponse();
   }
 
   async addOpenAIKey() {
-    await this.page.locator('button:has-text("Add Key")').click();
+    // Use more specific selector for OpenAI section
+    await this.page.locator('div:has(h3:text("OpenAI")) button:has-text("Add Key")').click();
     return await this.waitForResponse();
   }
 
@@ -41,12 +43,12 @@ export class ConfigurationPageHelper {
   }
 
   async testStripeKey() {
-    await this.page.locator('button:has-text("Test Secret Key")').click();
+    await this.page.locator('div:has(h3:text("Stripe")) button:has-text("Test Secret Key")').click();
     return await this.waitForResponse();
   }
 
   async addStripeConfig() {
-    await this.page.locator('button:has-text("Add Configuration")').click();
+    await this.page.locator('div:has(h3:text("Stripe")) button:has-text("Add Configuration")').click();
     return await this.waitForResponse();
   }
 
@@ -88,12 +90,12 @@ export class ConfigurationPageHelper {
   }
 
   async testResendKey() {
-    await this.page.locator('button:has-text("Test Key"):has-text("Resend")').click();
+    await this.page.locator('div:has(h3:text("Resend")) button:has-text("Test Key")').click();
     return await this.waitForResponse();
   }
 
   async addResendKey() {
-    await this.page.locator('button:has-text("Add Key"):has-text("Resend")').click();
+    await this.page.locator('div:has(h3:text("Resend")) button:has-text("Add Key")').click();
     return await this.waitForResponse();
   }
 

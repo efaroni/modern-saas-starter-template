@@ -13,7 +13,7 @@ test.describe('Configuration Page', () => {
     await expect(page.locator('h1')).toContainText('API Configuration');
     
     // Check for mock mode indicator
-    await expect(page.locator('text=Running in mock mode')).toBeVisible();
+    await expect(page.locator('text=Running in mock mode - database not connected')).toBeVisible();
   });
 
   test('should display user integration keys section', async ({ page }) => {
@@ -50,14 +50,14 @@ test.describe('Configuration Page', () => {
     // Enter a mock API key
     await openaiInput.fill('sk-mock-test-key-for-e2e-testing');
     
-    // Click the test button
-    await page.locator('button:has-text("Test Key")').click();
+    // Click the test button (specific to OpenAI section)
+    await page.locator('div:has(h3:text("OpenAI")) button:has-text("Test Key")').click();
     
     // Wait for success message
     await expect(page.locator('text=Mock API key - validation skipped')).toBeVisible({ timeout: 10000 });
     
-    // Click the add button
-    await page.locator('button:has-text("Add Key")').click();
+    // Click the add button (specific to OpenAI section)
+    await page.locator('div:has(h3:text("OpenAI")) button:has-text("Add Key")').click();
     
     // Wait for success message
     await expect(page.locator('text=OpenAI API key added successfully')).toBeVisible({ timeout: 10000 });
@@ -76,14 +76,14 @@ test.describe('Configuration Page', () => {
     await secretKeyInput.fill('sk_test_mock_secret_key_for_testing');
     await publicKeyInput.fill('pk_test_mock_public_key_for_testing');
     
-    // Click the test button
-    await page.locator('button:has-text("Test Secret Key")').click();
+    // Click the test button (specific to Stripe section)
+    await page.locator('div:has(h3:text("Stripe")) button:has-text("Test Secret Key")').click();
     
     // Wait for response (could be success or error depending on validation)
     await page.waitForSelector('.bg-green-50, .bg-red-50', { timeout: 10000 });
     
-    // Click the add button
-    await page.locator('button:has-text("Add Configuration")').click();
+    // Click the add button (specific to Stripe section)
+    await page.locator('div:has(h3:text("Stripe")) button:has-text("Add Configuration")').click();
     
     // Wait for response
     await page.waitForSelector('.bg-green-50, .bg-red-50', { timeout: 10000 });
@@ -136,14 +136,14 @@ test.describe('Configuration Page', () => {
     // Enter a mock API key
     await resendInput.fill('re_mock_resend_key_for_testing');
     
-    // Click the test button
-    await page.locator('button:has-text("Test Key"):has-text("Resend")').click();
+    // Click the test button (specific to Resend section)
+    await page.locator('div:has(h3:text("Resend")) button:has-text("Test Key")').click();
     
     // Wait for response
     await page.waitForSelector('.bg-green-50, .bg-red-50', { timeout: 10000 });
     
-    // Click the add button
-    await page.locator('button:has-text("Add Key"):has-text("Resend")').click();
+    // Click the add button (specific to Resend section)
+    await page.locator('div:has(h3:text("Resend")) button:has-text("Add Key")').click();
     
     // Wait for response
     await page.waitForSelector('.bg-green-50, .bg-red-50', { timeout: 10000 });
@@ -154,8 +154,8 @@ test.describe('Configuration Page', () => {
     const openaiInput = page.locator('input[placeholder="sk-..."]');
     await openaiInput.fill('invalid-key-format');
     
-    // Try to submit
-    await page.locator('button:has-text("Test Key")').click();
+    // Try to submit (specific to OpenAI section)
+    await page.locator('div:has(h3:text("OpenAI")) button:has-text("Test Key")').click();
     
     // Should show validation error
     await expect(page.locator('text=OpenAI keys must start with sk-')).toBeVisible({ timeout: 5000 });
@@ -166,8 +166,8 @@ test.describe('Configuration Page', () => {
     const openaiInput = page.locator('input[placeholder="sk-..."]');
     await openaiInput.fill('sk-invalid-format-that-should-fail');
     
-    // Click test button
-    await page.locator('button:has-text("Test Key")').click();
+    // Click test button (specific to OpenAI section)
+    await page.locator('div:has(h3:text("OpenAI")) button:has-text("Test Key")').click();
     
     // Should handle error gracefully (either validation error or server error)
     await page.waitForSelector('.bg-red-50, .bg-green-50', { timeout: 10000 });
