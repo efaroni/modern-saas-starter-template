@@ -15,7 +15,7 @@ type OpenAIFormData = z.infer<typeof openaiSchema>
 export function OpenAIConfig() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string; details?: any } | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
 
   const {
     register,
@@ -67,14 +67,12 @@ export function OpenAIConfig() {
       if (result.success) {
         setMessage({ 
           type: 'success', 
-          text: result.message || 'OpenAI API key is valid!',
-          details: result.details
+          text: result.message || 'OpenAI API key is valid!'
         })
       } else {
         setMessage({ 
           type: 'error', 
-          text: result.error || 'API key validation failed',
-          details: result.details
+          text: result.error || 'API key validation failed'
         })
       }
     } catch (error) {
@@ -123,17 +121,7 @@ export function OpenAIConfig() {
                 : 'bg-blue-50 text-blue-800'
             }`}
           >
-            <div>{message.text}</div>
-            {message.details && message.type === 'success' && (
-              <div className="mt-2 text-sm">
-                {message.details.modelsAvailable && (
-                  <p>• Models available: {message.details.modelsAvailable}</p>
-                )}
-                {message.details.hasGPT4 !== undefined && (
-                  <p>• GPT-4 access: {message.details.hasGPT4 ? 'Yes' : 'No'}</p>
-                )}
-              </div>
-            )}
+            {message.text}
           </div>
         )}
 

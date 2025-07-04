@@ -16,7 +16,7 @@ type StripeFormData = z.infer<typeof stripeSchema>
 export function StripeConfig() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string; details?: any } | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
 
   const {
     register,
@@ -69,14 +69,12 @@ export function StripeConfig() {
       if (result.success) {
         setMessage({ 
           type: 'success', 
-          text: result.message || 'Stripe secret key is valid!',
-          details: result.details
+          text: result.message || 'Stripe secret key is valid!'
         })
       } else {
         setMessage({ 
           type: 'error', 
-          text: result.error || 'API key validation failed',
-          details: result.details
+          text: result.error || 'API key validation failed'
         })
       }
     } catch (error) {
@@ -141,20 +139,7 @@ export function StripeConfig() {
                 : 'bg-blue-50 text-blue-800'
             }`}
           >
-            <div>{message.text}</div>
-            {message.details && message.type === 'success' && (
-              <div className="mt-2 text-sm">
-                {message.details.accountName && (
-                  <p>• Account: {message.details.accountName}</p>
-                )}
-                {message.details.isTestMode !== undefined && (
-                  <p>• Mode: {message.details.isTestMode ? 'Test' : 'Live'}</p>
-                )}
-                {message.details.country && (
-                  <p>• Country: {message.details.country}</p>
-                )}
-              </div>
-            )}
+            {message.text}
           </div>
         )}
 

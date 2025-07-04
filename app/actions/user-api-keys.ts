@@ -37,8 +37,7 @@ export async function createUserApiKey(data: {
       if (!validation.isValid) {
         return { 
           success: false, 
-          error: validation.error || 'API key validation failed',
-          validationDetails: validation.details
+          error: validation.error || 'API key validation failed'
         }
       }
     }
@@ -80,24 +79,12 @@ export async function deleteUserApiKey(id: string) {
 
 export async function testUserApiKey(provider: string, privateKey: string) {
   try {
-    // Basic format validation first
-    if (provider === 'openai' && !privateKey.startsWith('sk-')) {
-      return { success: false, error: 'OpenAI keys must start with sk-' }
-    }
-    if (provider === 'stripe' && !privateKey.startsWith('sk_')) {
-      return { success: false, error: 'Stripe secret keys must start with sk_' }
-    }
-    if (provider === 'resend' && !privateKey.startsWith('re_')) {
-      return { success: false, error: 'Resend keys must start with re_' }
-    }
-
     // Skip real validation for mock keys
     if (privateKey.includes('mock')) {
       return {
         success: true,
         isMock: true,
-        message: 'Mock API key - validation skipped',
-        details: { isMock: true }
+        message: 'Mock API key - validation skipped'
       }
     }
 
@@ -107,14 +94,12 @@ export async function testUserApiKey(provider: string, privateKey: string) {
     if (validation.isValid) {
       return {
         success: true,
-        message: 'API key is valid and working!',
-        details: validation.details
+        message: 'API key is valid and working!'
       }
     } else {
       return {
         success: false,
-        error: validation.error || 'API key validation failed',
-        details: validation.details
+        error: validation.error || 'API key validation failed'
       }
     }
   } catch (error: any) {

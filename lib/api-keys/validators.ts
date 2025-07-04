@@ -5,7 +5,6 @@ import { Resend } from 'resend'
 export type ValidationResult = {
   isValid: boolean
   error?: string
-  details?: any
 }
 
 // Validate OpenAI API key by making a minimal API call
@@ -17,11 +16,7 @@ export async function validateOpenAIKey(apiKey: string): Promise<ValidationResul
     const models = await openai.models.list()
     
     return {
-      isValid: true,
-      details: {
-        modelsAvailable: models.data.length,
-        hasGPT4: models.data.some(m => m.id.includes('gpt-4')),
-      }
+      isValid: true
     }
   } catch (error: any) {
     return {
@@ -40,13 +35,7 @@ export async function validateStripeKey(apiKey: string): Promise<ValidationResul
     const account = await stripe.accounts.retrieve()
     
     return {
-      isValid: true,
-      details: {
-        accountId: account.id,
-        accountName: account.business_profile?.name || account.settings?.dashboard?.display_name,
-        isTestMode: apiKey.startsWith('sk_test_'),
-        country: account.country,
-      }
+      isValid: true
     }
   } catch (error: any) {
     return {
@@ -65,10 +54,7 @@ export async function validateResendKey(apiKey: string): Promise<ValidationResul
     const apiKeys = await resend.apiKeys.list()
     
     return {
-      isValid: true,
-      details: {
-        keyCount: apiKeys.data?.length || 0,
-      }
+      isValid: true
     }
   } catch (error: any) {
     // Resend returns specific error codes
@@ -91,8 +77,7 @@ export async function validateApiKey(serviceType: string, apiKey: string): Promi
   // Skip validation for mock keys
   if (apiKey.includes('mock')) {
     return {
-      isValid: true,
-      details: { isMock: true }
+      isValid: true
     }
   }
 
@@ -105,15 +90,6 @@ export async function validateApiKey(serviceType: string, apiKey: string): Promi
     
     case 'resend':
       return validateResendKey(apiKey)
-    
-    case 'github':
-    case 'google':
-    case 'custom':
-      // For these, we'll just do basic format validation
-      return {
-        isValid: apiKey.length > 10,
-        error: apiKey.length <= 10 ? 'API key seems too short' : undefined
-      }
     
     default:
       return {
