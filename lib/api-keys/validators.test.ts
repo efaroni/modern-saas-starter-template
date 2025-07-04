@@ -1,4 +1,4 @@
-import { validateApiKey, validateOpenAIKey, validateStripeKey, validateResendKey } from './validators'
+import { validateApiKey, validateOpenAIKey, validateResendKey } from './validators'
 
 // Mock the external services
 jest.mock('openai', () => ({
@@ -43,29 +43,6 @@ describe('API Key Validators', () => {
       }))
 
       const result = await validateOpenAIKey('sk-bad-key')
-      
-      expect(result.isValid).toBe(false)
-      expect(result.error).toBeDefined()
-    })
-  })
-
-  describe('validateStripeKey', () => {
-    test('should return valid for good key', async () => {
-      const result = await validateStripeKey('sk_test_valid')
-      
-      expect(result.isValid).toBe(true)
-      expect(result.error).toBeUndefined()
-    })
-
-    test('should return invalid when API throws error', async () => {
-      const Stripe = require('stripe')
-      Stripe.mockImplementationOnce(() => ({
-        accounts: {
-          retrieve: jest.fn().mockRejectedValue(new Error('Invalid API key'))
-        }
-      }))
-
-      const result = await validateStripeKey('sk_test_bad')
       
       expect(result.isValid).toBe(false)
       expect(result.error).toBeDefined()

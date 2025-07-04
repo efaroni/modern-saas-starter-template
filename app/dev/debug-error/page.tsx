@@ -81,11 +81,8 @@ export default function DebugErrorPage() {
   const testComponents = async () => {
     try {
       log('Testing component imports...')
-      const { OpenAIConfig } = await import('@/components/services/openai-config')
-      const { StripeConfig } = await import('@/components/services/stripe-config')
-      const { ResendConfig } = await import('@/components/services/resend-config')
-      const { OAuthConfig } = await import('@/components/services/oauth-config')
-      log('All components imported successfully')
+      const { ServiceApiKeyInput } = await import('@/components/services/service-api-key-input')
+      log('ServiceApiKeyInput component imported successfully')
     } catch (error: any) {
       log(`Component error: ${error.message}`)
     }

@@ -1,5 +1,4 @@
 import { OpenAI } from 'openai'
-import Stripe from 'stripe'
 import { Resend } from 'resend'
 
 export type ValidationResult = {
@@ -26,24 +25,6 @@ export async function validateOpenAIKey(apiKey: string): Promise<ValidationResul
   }
 }
 
-// Validate Stripe API key by retrieving account info
-export async function validateStripeKey(apiKey: string): Promise<ValidationResult> {
-  try {
-    const stripe = new Stripe(apiKey, { apiVersion: '2025-06-30.basil' })
-    
-    // Get account details - this is a free API call
-    const account = await stripe.accounts.retrieve()
-    
-    return {
-      isValid: true
-    }
-  } catch (error: any) {
-    return {
-      isValid: false,
-      error: error.message || 'Invalid Stripe API key'
-    }
-  }
-}
 
 // Validate Resend API key
 export async function validateResendKey(apiKey: string): Promise<ValidationResult> {
@@ -84,9 +65,6 @@ export async function validateApiKey(serviceType: string, apiKey: string): Promi
   switch (serviceType) {
     case 'openai':
       return validateOpenAIKey(apiKey)
-    
-    case 'stripe':
-      return validateStripeKey(apiKey)
     
     case 'resend':
       return validateResendKey(apiKey)

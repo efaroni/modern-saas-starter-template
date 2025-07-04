@@ -24,9 +24,6 @@ export async function createUserApiKey(data: {
     if (data.provider === 'openai' && !data.privateKey.startsWith('sk-')) {
       return { success: false, error: 'OpenAI keys must start with sk-' }
     }
-    if (data.provider === 'stripe' && !data.privateKey.startsWith('sk_')) {
-      return { success: false, error: 'Stripe secret keys must start with sk_' }
-    }
     if (data.provider === 'resend' && !data.privateKey.startsWith('re_')) {
       return { success: false, error: 'Resend keys must start with re_' }
     }
