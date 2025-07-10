@@ -6,17 +6,11 @@ export type ValidationResult = {
   error?: string
 }
 
-// Validate OpenAI API key by making a minimal API call
 export async function validateOpenAIKey(apiKey: string): Promise<ValidationResult> {
   try {
     const openai = new OpenAI({ apiKey })
-    
-    // Use the models endpoint - it's free and doesn't consume tokens
-    const models = await openai.models.list()
-    
-    return {
-      isValid: true
-    }
+    await openai.models.list()
+    return { isValid: true }
   } catch (error: any) {
     return {
       isValid: false,
@@ -26,14 +20,11 @@ export async function validateOpenAIKey(apiKey: string): Promise<ValidationResul
 }
 
 
-// Validate Resend API key
 export async function validateResendKey(apiKey: string): Promise<ValidationResult> {
   try {
     const resend = new Resend(apiKey)    
-    // Get API key info - this is a free API call
     const apiKeys = await resend.apiKeys.list()
     
-    // Resend returns { data, error } instead of throwing
     if (apiKeys.error) {
       return {
         isValid: false,
@@ -41,11 +32,8 @@ export async function validateResendKey(apiKey: string): Promise<ValidationResul
       }
     }
     
-    return {
-      isValid: true
-    }
+    return { isValid: true }
   } catch (error: any) {
-    // Keep catch block for any unexpected errors
     return {
       isValid: false,
       error: error.message || 'Failed to validate Resend API key'
@@ -53,19 +41,19 @@ export async function validateResendKey(apiKey: string): Promise<ValidationResul
   }
 }
 
-// Main validation function that routes to the appropriate validator
 export async function validateApiKey(serviceType: string, apiKey: string): Promise<ValidationResult> {
-  // Mock keys only allowed in development
-  if (apiKey.includes('mock')) {
-    if (process.env.NODE_ENV !== 'development') {
-      return {
-        isValid: false,
-        error: 'Mock API keys are not allowed in production'
-      }
-    }
+  const isMockKey = apiKey.includes('mock')
+  const isProductionEnvironment = process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test'
+  
+  if (isMockKey && isProductionEnvironment) {
     return {
-      isValid: true
+      isValid: false,
+      error: 'Mock API keys are not allowed in production'
     }
+  }
+  
+  if (isMockKey) {
+    return { isValid: true }
   }
 
   switch (serviceType) {

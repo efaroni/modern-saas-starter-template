@@ -49,9 +49,18 @@ This project includes a pre-commit hook that automatically runs unit tests befor
 To manually set up git hooks (if they weren't set up during `npm install`):
 
 ```bash
-npm run prepare
+# First make the setup script executable
+chmod +x setup-git-hooks.sh
+
+# Then run it
+./setup-git-hooks.sh
 # or
-sh setup-git-hooks.sh
+npm run prepare
+```
+
+If you get a warning about the hook not being executable, run:
+```bash
+chmod +x .git/hooks/pre-commit
 ```
 
 The pre-commit hook will:

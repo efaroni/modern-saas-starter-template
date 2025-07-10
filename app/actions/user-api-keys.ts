@@ -20,24 +20,24 @@ export async function createUserApiKey(data: {
   publicKey?: string
 }) {
   try {
-    // Validate the private key format first
     if (data.provider === 'openai' && !data.privateKey.startsWith('sk-')) {
       return { success: false, error: 'OpenAI keys must start with sk-' }
     }
+    
     if (data.provider === 'resend' && !data.privateKey.startsWith('re_')) {
       return { success: false, error: 'Resend keys must start with re_' }
     }
 
-    // Mock keys only allowed in development
     const isMockKey = data.privateKey.includes('mock')
-    if (isMockKey && process.env.NODE_ENV !== 'development') {
+    const isProductionEnvironment = process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test'
+    
+    if (isMockKey && isProductionEnvironment) {
       return { 
         success: false, 
         error: 'Mock API keys are not allowed in production'
       }
     }
 
-    // Real API validation (skip for mock keys in development)
     if (!isMockKey) {
       const validation = await validateApiKey(data.provider, data.privateKey)
       if (!validation.isValid) {
@@ -48,7 +48,6 @@ export async function createUserApiKey(data: {
       }
     }
 
-    // Check if user already has a key for this provider
     const existing = await userApiKeyService.getByProvider(data.provider)
     if (existing) {
       return { 
@@ -85,16 +84,16 @@ export async function deleteUserApiKey(id: string) {
 
 export async function testUserApiKey(provider: string, privateKey: string) {
   try {
-    // Mock keys only allowed in development
     const isMockKey = privateKey.includes('mock')
-    if (isMockKey && process.env.NODE_ENV !== 'development') {
+    const isProductionEnvironment = process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test'
+    
+    if (isMockKey && isProductionEnvironment) {
       return { 
         success: false, 
         error: 'Mock API keys are not allowed in production'
       }
     }
 
-    // Skip real validation for mock keys in development
     if (isMockKey) {
       return {
         success: true,
@@ -103,19 +102,18 @@ export async function testUserApiKey(provider: string, privateKey: string) {
       }
     }
 
-    // Real API validation
     const validation = await validateApiKey(provider, privateKey)
     
-    if (validation.isValid) {
-      return {
-        success: true,
-        message: 'API key is valid and working!'
-      }
-    } else {
+    if (!validation.isValid) {
       return {
         success: false,
         error: validation.error || 'API key validation failed'
       }
+    }
+    
+    return {
+      success: true,
+      message: 'API key is valid and working!'
     }
   } catch (error: any) {
     console.error('Error testing user API key:', error)
