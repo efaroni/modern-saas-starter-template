@@ -55,8 +55,14 @@ export async function validateResendKey(apiKey: string): Promise<ValidationResul
 
 // Main validation function that routes to the appropriate validator
 export async function validateApiKey(serviceType: string, apiKey: string): Promise<ValidationResult> {
-  // Skip validation for mock keys
+  // Mock keys only allowed in development
   if (apiKey.includes('mock')) {
+    if (process.env.NODE_ENV !== 'development') {
+      return {
+        isValid: false,
+        error: 'Mock API keys are not allowed in production'
+      }
+    }
     return {
       isValid: true
     }

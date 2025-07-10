@@ -28,8 +28,17 @@ export async function createUserApiKey(data: {
       return { success: false, error: 'Resend keys must start with re_' }
     }
 
-    // Real API validation (skip for mock keys)
-    if (!data.privateKey.includes('mock')) {
+    // Mock keys only allowed in development
+    const isMockKey = data.privateKey.includes('mock')
+    if (isMockKey && process.env.NODE_ENV !== 'development') {
+      return { 
+        success: false, 
+        error: 'Mock API keys are not allowed in production'
+      }
+    }
+
+    // Real API validation (skip for mock keys in development)
+    if (!isMockKey) {
       const validation = await validateApiKey(data.provider, data.privateKey)
       if (!validation.isValid) {
         return { 
@@ -76,8 +85,17 @@ export async function deleteUserApiKey(id: string) {
 
 export async function testUserApiKey(provider: string, privateKey: string) {
   try {
-    // Skip real validation for mock keys
-    if (privateKey.includes('mock')) {
+    // Mock keys only allowed in development
+    const isMockKey = privateKey.includes('mock')
+    if (isMockKey && process.env.NODE_ENV !== 'development') {
+      return { 
+        success: false, 
+        error: 'Mock API keys are not allowed in production'
+      }
+    }
+
+    // Skip real validation for mock keys in development
+    if (isMockKey) {
       return {
         success: true,
         isMock: true,
