@@ -29,23 +29,23 @@ export async function validateOpenAIKey(apiKey: string): Promise<ValidationResul
 // Validate Resend API key
 export async function validateResendKey(apiKey: string): Promise<ValidationResult> {
   try {
-    const resend = new Resend(apiKey)
-    
+    const resend = new Resend(apiKey)    
     // Get API key info - this is a free API call
     const apiKeys = await resend.apiKeys.list()
+    
+    // Resend returns { data, error } instead of throwing
+    if (apiKeys.error) {
+      return {
+        isValid: false,
+        error: apiKeys.error.message || 'Invalid Resend API key'
+      }
+    }
     
     return {
       isValid: true
     }
   } catch (error: any) {
-    // Resend returns specific error codes
-    if (error.message?.includes('Invalid API Key')) {
-      return {
-        isValid: false,
-        error: 'Invalid Resend API key'
-      }
-    }
-    
+    // Keep catch block for any unexpected errors
     return {
       isValid: false,
       error: error.message || 'Failed to validate Resend API key'
