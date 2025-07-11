@@ -2,7 +2,14 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies and set up git hooks:
+
+```bash
+npm install
+# This will automatically set up pre-commit hooks that run tests
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
@@ -34,3 +41,29 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Git Hooks
+
+This project includes a pre-commit hook that automatically runs unit tests before each commit. This ensures code quality by preventing commits with failing tests.
+
+To manually set up git hooks (if they weren't set up during `npm install`):
+
+```bash
+# First make the setup script executable
+chmod +x setup-git-hooks.sh
+
+# Then run it
+./setup-git-hooks.sh
+# or
+npm run prepare
+```
+
+If you get a warning about the hook not being executable, run:
+```bash
+chmod +x .git/hooks/pre-commit
+```
+
+The pre-commit hook will:
+- Run all unit tests with `npm test`
+- Block the commit if any tests fail
+- Show a success message if all tests pass
