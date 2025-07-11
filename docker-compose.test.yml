@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  test-db:
+    image: postgres:16-alpine
+    container_name: saas-template-test-db
+    environment:
+      POSTGRES_DB: saas_template_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    tmpfs:
+      - /var/lib/postgresql/data  # In-memory for speed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d saas_template_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5 

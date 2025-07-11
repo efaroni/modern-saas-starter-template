@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, uuid } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, jsonb, uuid, unique } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 
 // Users table (will be expanded in Section 2)
@@ -20,7 +20,9 @@ export const userApiKeys = pgTable('user_api_keys', {
   metadata: jsonb('metadata').$type<Record<string, any>>().default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+}, table => ({
+  uniqueUserProvider: unique().on(table.userId, table.provider)
+}))
 
 // Zod schemas for validation
 export const insertUserApiKeySchema = createInsertSchema(userApiKeys)

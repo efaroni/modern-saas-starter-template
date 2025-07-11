@@ -27,8 +27,8 @@ jest.mock('resend', () => ({
 
 describe('API Key Validators', () => {
   describe('validateOpenAIKey', () => {
-    test('should return valid for good key', async () => {
-      const result = await validateOpenAIKey('sk-valid-key')
+    it('should return valid for good key', async () => {
+      const result = await validateOpenAIKey('sk-test-valid-key')
       
       expect(result.isValid).toBe(true)
       expect(result.error).toBeUndefined()
@@ -50,8 +50,8 @@ describe('API Key Validators', () => {
   })
 
   describe('validateResendKey', () => {
-    test('should return valid for good key', async () => {
-      const result = await validateResendKey('re_valid_key')
+    it('should return valid for good key', async () => {
+      const result = await validateResendKey('re_test_valid_key')
       
       expect(result.isValid).toBe(true)
       expect(result.error).toBeUndefined()

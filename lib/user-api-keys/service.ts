@@ -5,6 +5,12 @@ import { encrypt, decrypt, maskApiKey } from '@/lib/encryption'
 
 // Lazy load db to avoid connection issues during import
 const getDb = async () => {
+  // Use test database in test environment
+  if (process.env.NODE_ENV === 'test') {
+    const { testDb } = await import('@/lib/db/test')
+    return testDb
+  }
+  
   const { db } = await import('@/lib/db')
   return db
 }
@@ -34,7 +40,9 @@ const mockUserApiKeys: SelectUserApiKey[] = [
 ]
 
 // For development, we'll use a mock user ID since auth isn't implemented yet
-const MOCK_USER_ID = 'mock-user-1'
+const MOCK_USER_ID = process.env.NODE_ENV === 'test'
+  ? '00000000-0000-0000-0000-000000000001'
+  : 'mock-user-1'
 
 export const userApiKeyService = {
   async list(userId?: string): Promise<SelectUserApiKey[]> {
@@ -103,8 +111,16 @@ export const userApiKeyService = {
         privateKeyEncrypted: maskApiKey(data.privateKeyEncrypted),
         publicKey: data.publicKey ? maskApiKey(data.publicKey) : null,
       }
-    } catch (error) {
-      console.error('Database error:', error)
+    } catch (error: any) {
+      // Check for unique constraint violation (Postgres error code 23505)
+      // Handle both direct PostgreSQL errors and DrizzleQueryError with cause
+      const postgresError = error.cause || error
+      if (postgresError.code === '23505' || 
+          error.message?.includes('duplicate key value') ||
+          postgresError.message?.includes('duplicate key value')) {
+        throw new Error('API_KEY_DUPLICATE')
+      }
+      
       throw new Error('Failed to create API key')
     }
   },
@@ -130,7 +146,6 @@ export const userApiKeyService = {
       
       if (!deleted) throw new Error('API key not found')
     } catch (error) {
-      console.error('Database error:', error)
       throw new Error('Failed to delete API key')
     }
   },

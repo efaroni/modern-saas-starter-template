@@ -9,7 +9,6 @@ export async function getUserApiKeys() {
     const apiKeys = await userApiKeyService.list()
     return { success: true, data: apiKeys }
   } catch (error) {
-    console.error('Error fetching user API keys:', error)
     return { success: false, error: 'Failed to fetch API keys' }
   }
 }
@@ -18,6 +17,7 @@ export async function createUserApiKey(data: {
   provider: string
   privateKey: string
   publicKey?: string
+  metadata?: Record<string, any>
 }) {
   try {
     if (data.provider === 'openai' && !data.privateKey.startsWith('sk-')) {
@@ -52,7 +52,8 @@ export async function createUserApiKey(data: {
     if (existing) {
       return { 
         success: false, 
-        error: `You already have a ${data.provider} API key configured. Delete the existing one first.`
+        error: `You already have a ${data.provider} API key configured. Delete the existing one first.`,
+        errorCode: 'API_KEY_DUPLICATE'
       }
     }
 
@@ -60,13 +61,20 @@ export async function createUserApiKey(data: {
       provider: data.provider,
       privateKeyEncrypted: data.privateKey,
       publicKey: data.publicKey || null,
-      metadata: {},
+      metadata: data.metadata || {},
     })
 
     revalidatePath('/dev/configuration')
     return { success: true, data: created }
-  } catch (error) {
-    console.error('Error creating user API key:', error)
+  } catch (error: any) {
+    if (error.message === 'API_KEY_DUPLICATE') {
+      return { 
+        success: false, 
+        error: 'API key already exists for this provider',
+        errorCode: 'API_KEY_DUPLICATE'
+      }
+    }
+    
     return { success: false, error: 'Failed to create API key' }
   }
 }
@@ -77,7 +85,6 @@ export async function deleteUserApiKey(id: string) {
     revalidatePath('/dev/configuration')
     return { success: true }
   } catch (error) {
-    console.error('Error deleting user API key:', error)
     return { success: false, error: 'Failed to delete API key' }
   }
 }
@@ -116,7 +123,6 @@ export async function testUserApiKey(provider: string, privateKey: string) {
       message: 'API key is valid and working!'
     }
   } catch (error: any) {
-    console.error('Error testing user API key:', error)
     return { 
       success: false, 
       error: error.message || 'Failed to test API key' 

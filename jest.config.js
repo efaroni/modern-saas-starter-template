@@ -16,7 +16,12 @@ const customJestConfig = {
   testEnvironment: 'jsdom',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   testMatch: ['**/__tests__/**/*.(ts|tsx|js)', '**/*.(test|spec).(ts|tsx|js)'],
-  testPathIgnorePatterns: ['<rootDir>/e2e/', '<rootDir>/node_modules/'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/scripts/',
+    'drizzle.config.test.ts',
+    'drizzle.config.ts',
+  ],
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',
     'app/**/*.{ts,tsx}',
