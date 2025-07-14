@@ -1,12 +1,29 @@
 import { AuthProvider, AuthResult, SignInRequest, SignUpRequest, SessionData, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest, ChangePasswordRequest, AvatarUploadResult, PasswordResetToken } from './types'
 import { uploadService } from '@/lib/upload/service'
 import { emailService } from '@/lib/email/service'
+import { createSessionStorage, type SessionStorage } from './session-storage'
 
 export class AuthService {
   private currentSession: SessionData | null = null
   private passwordResetTokens = new Map<string, PasswordResetToken>()
+  private sessionStorage: SessionStorage
 
-  constructor(private provider: AuthProvider) {}
+  constructor(private provider: AuthProvider, sessionStorage?: SessionStorage) {
+    this.sessionStorage = sessionStorage || createSessionStorage()
+    this.initializeSession()
+  }
+
+  private async initializeSession(): Promise<void> {
+    try {
+      const storedSession = await this.sessionStorage.getSession()
+      if (storedSession) {
+        this.currentSession = storedSession
+      }
+    } catch {
+      // If session initialization fails, start with no session
+      this.currentSession = null
+    }
+  }
 
   async signIn(credentials: SignInRequest): Promise<AuthResult> {
     const { email, password } = credentials
@@ -35,6 +52,9 @@ export class AuthService {
         user: result.user,
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
       }
+      
+      // Store session
+      await this.sessionStorage.setSession(this.currentSession)
     }
 
     return result
@@ -49,6 +69,9 @@ export class AuthService {
         user: result.user,
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       }
+      
+      // Store session
+      await this.sessionStorage.setSession(this.currentSession)
     }
 
     return result
@@ -56,12 +79,28 @@ export class AuthService {
 
   async signOut(): Promise<AuthResult> {
     this.currentSession = null
+    
+    // Remove stored session
+    await this.sessionStorage.removeSession()
+    
     return {
       success: true
     }
   }
 
   async getUser(): Promise<AuthResult> {
+    // Try to get session from storage if we don't have one in memory
+    if (!this.currentSession) {
+      try {
+        const storedSession = await this.sessionStorage.getSession()
+        if (storedSession) {
+          this.currentSession = storedSession
+        }
+      } catch {
+        // If session retrieval fails, continue with no session
+      }
+    }
+
     if (!this.currentSession) {
       return {
         success: true,
@@ -72,6 +111,7 @@ export class AuthService {
     // Check if session is expired
     if (this.currentSession.expires && new Date(this.currentSession.expires).getTime() < Date.now()) {
       this.currentSession = null
+      await this.sessionStorage.removeSession()
       return {
         success: true,
         user: null
@@ -97,6 +137,9 @@ export class AuthService {
         user: result.user,
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       }
+      
+      // Store session
+      await this.sessionStorage.setSession(this.currentSession)
     }
 
     return result
@@ -124,6 +167,7 @@ export class AuthService {
     // Update session if current user updated their profile
     if (result.success && result.user && this.currentSession?.user?.id === id) {
       this.currentSession.user = result.user
+      await this.sessionStorage.setSession(this.currentSession)
     }
     
     return result
@@ -135,6 +179,7 @@ export class AuthService {
     // Clear session if current user deleted their account
     if (result.success && this.currentSession?.user?.id === id) {
       this.currentSession = null
+      await this.sessionStorage.removeSession()
     }
     
     return result
@@ -146,6 +191,7 @@ export class AuthService {
     // Update session if current user verified their email
     if (result.success && result.user && this.currentSession?.user?.id === id) {
       this.currentSession.user = result.user
+      await this.sessionStorage.setSession(this.currentSession)
     }
     
     return result
@@ -209,6 +255,7 @@ export class AuthService {
 
     if (updateResult.success && updateResult.user && this.currentSession?.user?.id === id) {
       this.currentSession.user = updateResult.user
+      await this.sessionStorage.setSession(this.currentSession)
     }
 
     return {
@@ -252,6 +299,7 @@ export class AuthService {
 
     if (updateResult.success && updateResult.user && this.currentSession?.user?.id === id) {
       this.currentSession.user = updateResult.user
+      await this.sessionStorage.setSession(this.currentSession)
     }
 
     return updateResult
@@ -373,6 +421,37 @@ export class AuthService {
         this.passwordResetTokens.delete(token)
       }
     }
+  }
+
+  async refreshSession(): Promise<AuthResult> {
+    const currentUser = await this.getUser()
+    
+    if (!currentUser.success || !currentUser.user) {
+      return {
+        success: false,
+        error: 'No active session to refresh'
+      }
+    }
+
+    // Extend session expiration
+    this.currentSession = {
+      user: currentUser.user,
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+    }
+
+    // Store refreshed session
+    await this.sessionStorage.setSession(this.currentSession)
+
+    return {
+      success: true,
+      user: currentUser.user
+    }
+  }
+
+  async clearExpiredSessions(): Promise<void> {
+    // This would typically be called periodically by a background job
+    // For now, it just ensures the current session is valid
+    await this.getUser()
   }
 
   private generateResetToken(): string {

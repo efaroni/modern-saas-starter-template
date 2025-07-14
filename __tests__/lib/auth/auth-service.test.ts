@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { AuthService } from '@/lib/auth/service'
 import { MockAuthProvider } from '@/lib/auth/providers/mock'
+import { MemorySessionStorage } from '@/lib/auth/session-storage'
 
 describe('AuthService', () => {
   let authService: AuthService
@@ -8,7 +9,8 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     mockProvider = new MockAuthProvider()
-    authService = new AuthService(mockProvider)
+    const sessionStorage = new MemorySessionStorage()
+    authService = new AuthService(mockProvider, sessionStorage)
   })
 
   describe('signIn', () => {
