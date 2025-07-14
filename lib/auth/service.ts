@@ -2,14 +2,25 @@ import { AuthProvider, AuthResult, SignInRequest, SignUpRequest, SessionData, Au
 import { uploadService } from '@/lib/upload/service'
 import { emailService } from '@/lib/email/service'
 import { createSessionStorage, type SessionStorage } from './session-storage'
+import type { EmailService } from '@/lib/email/types'
+import type { UploadService } from '@/lib/upload/types'
 
 export class AuthService {
   private currentSession: SessionData | null = null
   private passwordResetTokens = new Map<string, PasswordResetToken>()
   private sessionStorage: SessionStorage
+  private emailService: EmailService
+  private uploadService: UploadService
 
-  constructor(private provider: AuthProvider, sessionStorage?: SessionStorage) {
+  constructor(
+    private provider: AuthProvider, 
+    sessionStorage?: SessionStorage, 
+    emailSvc?: EmailService,
+    uploadSvc?: UploadService
+  ) {
     this.sessionStorage = sessionStorage || createSessionStorage()
+    this.emailService = emailSvc || emailService
+    this.uploadService = uploadSvc || uploadService
     this.initializeSession()
   }
 
@@ -53,8 +64,16 @@ export class AuthService {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
       }
       
-      // Store session
-      await this.sessionStorage.setSession(this.currentSession)
+      // Store session (fail silently if storage fails)
+      try {
+        try {
+        await this.sessionStorage.setSession(this.currentSession)
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
     }
 
     return result
@@ -70,8 +89,16 @@ export class AuthService {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       }
       
-      // Store session
-      await this.sessionStorage.setSession(this.currentSession)
+      // Store session (fail silently if storage fails)
+      try {
+        try {
+        await this.sessionStorage.setSession(this.currentSession)
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
     }
 
     return result
@@ -81,7 +108,11 @@ export class AuthService {
     this.currentSession = null
     
     // Remove stored session
-    await this.sessionStorage.removeSession()
+    try {
+      await this.sessionStorage.removeSession()
+    } catch {
+      // If storage removal fails, we still cleared the memory session
+    }
     
     return {
       success: true
@@ -89,15 +120,22 @@ export class AuthService {
   }
 
   async getUser(): Promise<AuthResult> {
-    // Try to get session from storage if we don't have one in memory
-    if (!this.currentSession) {
-      try {
-        const storedSession = await this.sessionStorage.getSession()
-        if (storedSession) {
-          this.currentSession = storedSession
-        }
-      } catch {
-        // If session retrieval fails, continue with no session
+    // Always try to get session from storage first for cross-instance persistence
+    try {
+      const storedSession = await this.sessionStorage.getSession()
+      // Only update current session if we got something from storage
+      // This allows memory session to persist if storage is empty but we have a valid memory session
+      if (storedSession) {
+        this.currentSession = storedSession
+      } else if (!this.currentSession) {
+        // No stored session and no memory session
+        this.currentSession = null
+      }
+    } catch {
+      // If storage read fails, keep current session as fallback
+      // This handles the case where storage read fails but we have a valid memory session
+      if (!this.currentSession) {
+        this.currentSession = null
       }
     }
 
@@ -111,7 +149,11 @@ export class AuthService {
     // Check if session is expired
     if (this.currentSession.expires && new Date(this.currentSession.expires).getTime() < Date.now()) {
       this.currentSession = null
-      await this.sessionStorage.removeSession()
+      try {
+        await this.sessionStorage.removeSession()
+      } catch {
+        // If storage removal fails, we still cleared the memory session
+      }
       return {
         success: true,
         user: null
@@ -138,8 +180,16 @@ export class AuthService {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       }
       
-      // Store session
-      await this.sessionStorage.setSession(this.currentSession)
+      // Store session (fail silently if storage fails)
+      try {
+        try {
+        await this.sessionStorage.setSession(this.currentSession)
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
     }
 
     return result
@@ -167,7 +217,11 @@ export class AuthService {
     // Update session if current user updated their profile
     if (result.success && result.user && this.currentSession?.user?.id === id) {
       this.currentSession.user = result.user
-      await this.sessionStorage.setSession(this.currentSession)
+      try {
+        await this.sessionStorage.setSession(this.currentSession)
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
     }
     
     return result
@@ -191,7 +245,11 @@ export class AuthService {
     // Update session if current user verified their email
     if (result.success && result.user && this.currentSession?.user?.id === id) {
       this.currentSession.user = result.user
-      await this.sessionStorage.setSession(this.currentSession)
+      try {
+        await this.sessionStorage.setSession(this.currentSession)
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
     }
     
     return result
@@ -234,7 +292,7 @@ export class AuthService {
     }
 
     // Upload new avatar
-    const uploadResult = await uploadService.uploadFile(file, 'avatars')
+    const uploadResult = await this.uploadService.uploadFile(file, 'avatars')
     if (!uploadResult.success) {
       return {
         success: false,
@@ -244,7 +302,7 @@ export class AuthService {
 
     // Delete old avatar if it exists
     if (currentUser.user.image) {
-      await uploadService.deleteFile(currentUser.user.image)
+      await this.uploadService.deleteFile(currentUser.user.image)
       // We don't fail the upload if deletion fails
     }
 
@@ -255,7 +313,11 @@ export class AuthService {
 
     if (updateResult.success && updateResult.user && this.currentSession?.user?.id === id) {
       this.currentSession.user = updateResult.user
-      await this.sessionStorage.setSession(this.currentSession)
+      try {
+        await this.sessionStorage.setSession(this.currentSession)
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
     }
 
     return {
@@ -284,7 +346,7 @@ export class AuthService {
     }
 
     // Delete the avatar file
-    const deleteResult = await uploadService.deleteFile(currentUser.user.image)
+    const deleteResult = await this.uploadService.deleteFile(currentUser.user.image)
     if (!deleteResult.success) {
       return {
         success: false,
@@ -299,14 +361,18 @@ export class AuthService {
 
     if (updateResult.success && updateResult.user && this.currentSession?.user?.id === id) {
       this.currentSession.user = updateResult.user
-      await this.sessionStorage.setSession(this.currentSession)
+      try {
+        await this.sessionStorage.setSession(this.currentSession)
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
     }
 
     return updateResult
   }
 
   generateAvatarUrl(userId: string, extension: string): string {
-    return uploadService.generateUrl('avatars', `${userId}.${extension}`)
+    return this.uploadService.generateUrl('avatars', `${userId}.${extension}`)
   }
 
   async requestPasswordReset(email: string): Promise<AuthResult> {
@@ -344,7 +410,7 @@ export class AuthService {
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dev/auth/reset-password?token=${resetToken}`
 
     // Send reset email
-    const emailResult = await emailService.sendPasswordResetEmail(email, {
+    const emailResult = await this.emailService.sendPasswordResetEmail(email, {
       resetToken,
       resetUrl,
       user: {
@@ -440,7 +506,11 @@ export class AuthService {
     }
 
     // Store refreshed session
-    await this.sessionStorage.setSession(this.currentSession)
+    try {
+        await this.sessionStorage.setSession(this.currentSession)
+      } catch {
+        // Storage write failed, but we keep the session in memory
+      }
 
     return {
       success: true,

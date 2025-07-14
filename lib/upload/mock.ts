@@ -2,6 +2,7 @@ import { UploadService, UploadResult, DeleteResult } from './types'
 
 export class MockUploadService implements UploadService {
   private uploadedFiles = new Map<string, string>()
+  private shouldFail = false
   private config = {
     maxFileSize: 5 * 1024 * 1024, // 5MB
     allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
@@ -11,6 +12,14 @@ export class MockUploadService implements UploadService {
   async uploadFile(file: File, folder: string): Promise<UploadResult> {
     // Simulate upload delay
     await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Simulate failure if requested
+    if (this.shouldFail) {
+      return {
+        success: false,
+        error: 'Upload failed'
+      }
+    }
 
     // Validate file type
     if (!this.config.allowedTypes.includes(file.type)) {
@@ -72,5 +81,9 @@ export class MockUploadService implements UploadService {
 
   clearUploadedFiles(): void {
     this.uploadedFiles.clear()
+  }
+
+  setShouldFail(shouldFail: boolean): void {
+    this.shouldFail = shouldFail
   }
 }

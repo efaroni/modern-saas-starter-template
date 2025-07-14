@@ -120,7 +120,7 @@ export class MockAuthProvider implements AuthProvider {
 
   async signInWithOAuth(provider: string): Promise<OAuthResult> {
     // Simulate OAuth flow delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise(resolve => setTimeout(resolve, 100))
     
     // Mock OAuth providers
     const oauthUsers = {
