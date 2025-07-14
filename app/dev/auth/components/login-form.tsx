@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
+import { OAuthButtons } from './oauth-buttons'
 
 const loginSchema = z.object({
   email: z.string()
@@ -117,6 +118,9 @@ export function LoginForm({ onSuccess, onError }: LoginFormProps) {
           {isSubmitting ? 'Signing in...' : 'Sign in'}
         </button>
       </form>
+
+      {/* OAuth Buttons */}
+      <OAuthButtons onSuccess={onSuccess} onError={onError} />
 
       {/* Test Credentials for Mock */}
       {authConfig.provider === 'mock' && (

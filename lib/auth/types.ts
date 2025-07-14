@@ -28,10 +28,25 @@ export interface AuthConfiguration {
   oauthProviders: string[]
 }
 
+export interface OAuthProvider {
+  id: string
+  name: string
+  iconUrl?: string
+}
+
+export interface OAuthResult {
+  success: boolean
+  user?: AuthUser | null
+  error?: string
+  redirectUrl?: string
+}
+
 export interface AuthProvider {
   authenticateUser(email: string, password: string): Promise<AuthResult>
   createUser(userData: SignUpRequest): Promise<AuthResult>
   getUserById(id: string): Promise<AuthResult>
+  signInWithOAuth(provider: string): Promise<OAuthResult>
+  getAvailableOAuthProviders(): OAuthProvider[]
   isConfigured(): boolean
   getConfiguration(): AuthConfiguration
 }

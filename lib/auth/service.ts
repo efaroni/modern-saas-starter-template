@@ -1,4 +1,4 @@
-import { AuthProvider, AuthResult, SignInRequest, SignUpRequest, SessionData, AuthConfiguration } from './types'
+import { AuthProvider, AuthResult, SignInRequest, SignUpRequest, SessionData, AuthConfiguration, OAuthProvider, OAuthResult } from './types'
 
 export class AuthService {
   private currentSession: SessionData | null = null
@@ -83,6 +83,24 @@ export class AuthService {
 
   isConfigured(): boolean {
     return this.provider.isConfigured()
+  }
+
+  async signInWithOAuth(provider: string): Promise<OAuthResult> {
+    const result = await this.provider.signInWithOAuth(provider)
+
+    if (result.success && result.user) {
+      // Create session for OAuth user
+      this.currentSession = {
+        user: result.user,
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      }
+    }
+
+    return result
+  }
+
+  getAvailableOAuthProviders(): OAuthProvider[] {
+    return this.provider.getAvailableOAuthProviders()
   }
 
   getConfiguration(): AuthConfiguration {

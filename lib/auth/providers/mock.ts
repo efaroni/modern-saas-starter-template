@@ -1,4 +1,4 @@
-import { AuthProvider, AuthResult, AuthUser, SignUpRequest, AuthConfiguration } from '../types'
+import { AuthProvider, AuthResult, AuthUser, SignUpRequest, AuthConfiguration, OAuthProvider, OAuthResult } from '../types'
 
 export class MockAuthProvider implements AuthProvider {
   private mockUsers = new Map<string, AuthUser>([
@@ -83,6 +83,63 @@ export class MockAuthProvider implements AuthProvider {
 
   isConfigured(): boolean {
     return true
+  }
+
+  async signInWithOAuth(provider: string): Promise<OAuthResult> {
+    // Simulate OAuth flow delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Mock OAuth providers
+    const oauthUsers = {
+      google: {
+        id: 'google-user-id',
+        email: 'user@gmail.com',
+        name: 'Google User',
+        image: 'https://lh3.googleusercontent.com/a/default-user=s96-c',
+        emailVerified: new Date()
+      },
+      github: {
+        id: 'github-user-id',
+        email: 'user@github.com',
+        name: 'GitHub User',
+        image: 'https://avatars.githubusercontent.com/u/123456?v=4',
+        emailVerified: new Date()
+      }
+    }
+
+    const oauthUser = oauthUsers[provider as keyof typeof oauthUsers]
+    
+    if (!oauthUser) {
+      return {
+        success: false,
+        error: `OAuth provider "${provider}" not supported`
+      }
+    }
+
+    // Add user to mock store if not exists
+    if (!this.mockUsers.has(oauthUser.id)) {
+      this.mockUsers.set(oauthUser.id, oauthUser)
+    }
+
+    return {
+      success: true,
+      user: oauthUser
+    }
+  }
+
+  getAvailableOAuthProviders(): OAuthProvider[] {
+    return [
+      {
+        id: 'google',
+        name: 'Google',
+        iconUrl: 'https://developers.google.com/identity/images/g-logo.png'
+      },
+      {
+        id: 'github',
+        name: 'GitHub',
+        iconUrl: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'
+      }
+    ]
   }
 
   getConfiguration(): AuthConfiguration {
