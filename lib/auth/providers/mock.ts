@@ -99,6 +99,21 @@ export class MockAuthProvider implements AuthProvider {
     }
   }
 
+  async getUserByEmail(email: string): Promise<AuthResult> {
+    const user = Array.from(this.mockUsers.values()).find(u => u.email === email)
+    if (user) {
+      const { password: _, ...authUser } = user
+      return {
+        success: true,
+        user: authUser
+      }
+    }
+    return {
+      success: true,
+      user: null
+    }
+  }
+
   isConfigured(): boolean {
     return true
   }
@@ -283,6 +298,35 @@ export class MockAuthProvider implements AuthProvider {
     }
 
     // Update password
+    user.password = newPassword
+
+    // Return user without password
+    const { password: _, ...authUser } = user
+    return {
+      success: true,
+      user: authUser
+    }
+  }
+
+  async resetUserPassword(id: string, newPassword: string): Promise<AuthResult> {
+    const user = this.mockUsers.get(id)
+    
+    if (!user) {
+      return {
+        success: false,
+        error: 'User not found'
+      }
+    }
+
+    // Validate new password
+    if (newPassword.length < 8) {
+      return {
+        success: false,
+        error: 'Password must be at least 8 characters'
+      }
+    }
+
+    // Update password (no current password verification needed for reset)
     user.password = newPassword
 
     // Return user without password

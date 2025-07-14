@@ -1,8 +1,10 @@
-import { AuthProvider, AuthResult, SignInRequest, SignUpRequest, SessionData, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest, ChangePasswordRequest, AvatarUploadResult } from './types'
+import { AuthProvider, AuthResult, SignInRequest, SignUpRequest, SessionData, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest, ChangePasswordRequest, AvatarUploadResult, PasswordResetToken } from './types'
 import { uploadService } from '@/lib/upload/service'
+import { emailService } from '@/lib/email/service'
 
 export class AuthService {
   private currentSession: SessionData | null = null
+  private passwordResetTokens = new Map<string, PasswordResetToken>()
 
   constructor(private provider: AuthProvider) {}
 
@@ -68,7 +70,7 @@ export class AuthService {
     }
 
     // Check if session is expired
-    if (this.currentSession.expires && new Date(this.currentSession.expires) < new Date()) {
+    if (this.currentSession.expires && new Date(this.currentSession.expires).getTime() < Date.now()) {
       this.currentSession = null
       return {
         success: true,
@@ -257,5 +259,131 @@ export class AuthService {
 
   generateAvatarUrl(userId: string, extension: string): string {
     return uploadService.generateUrl('avatars', `${userId}.${extension}`)
+  }
+
+  async requestPasswordReset(email: string): Promise<AuthResult> {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return {
+        success: false,
+        error: 'Invalid email format'
+      }
+    }
+
+    // Check if user exists
+    const userResult = await this.provider.getUserByEmail(email)
+    if (!userResult.success || !userResult.user) {
+      // Return success even if user doesn't exist (security best practice)
+      return {
+        success: true
+      }
+    }
+
+    // Generate reset token
+    const resetToken = this.generateResetToken()
+    const expiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000) // 3 hours from now
+
+    // Store reset token
+    this.passwordResetTokens.set(resetToken, {
+      token: resetToken,
+      userId: userResult.user.id,
+      expiresAt,
+      used: false
+    })
+
+    // Generate reset URL
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dev/auth/reset-password?token=${resetToken}`
+
+    // Send reset email
+    const emailResult = await emailService.sendPasswordResetEmail(email, {
+      resetToken,
+      resetUrl,
+      user: {
+        email: userResult.user.email,
+        name: userResult.user.name
+      }
+    })
+
+    if (!emailResult.success) {
+      return {
+        success: false,
+        error: 'Failed to send reset email'
+      }
+    }
+
+    return {
+      success: true
+    }
+  }
+
+  async verifyPasswordResetToken(token: string): Promise<AuthResult> {
+    const resetToken = this.passwordResetTokens.get(token)
+    
+    if (!resetToken || resetToken.used || resetToken.expiresAt.getTime() < Date.now()) {
+      return {
+        success: false,
+        error: 'Invalid or expired reset token'
+      }
+    }
+
+    // Get user for the token
+    const userResult = await this.provider.getUserById(resetToken.userId)
+    
+    return {
+      success: true,
+      user: userResult.user
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<AuthResult> {
+    const resetToken = this.passwordResetTokens.get(token)
+    
+    if (!resetToken || resetToken.used || resetToken.expiresAt.getTime() < Date.now()) {
+      return {
+        success: false,
+        error: 'Invalid or expired reset token'
+      }
+    }
+
+    // Validate new password
+    if (newPassword.length < 8) {
+      return {
+        success: false,
+        error: 'Password must be at least 8 characters'
+      }
+    }
+
+    // Reset the password
+    const result = await this.provider.resetUserPassword(resetToken.userId, newPassword)
+    
+    if (result.success) {
+      // Mark token as used
+      resetToken.used = true
+    }
+
+    return result
+  }
+
+  async cleanupExpiredResetTokens(): Promise<void> {
+    const now = Date.now()
+    
+    for (const [token, resetToken] of this.passwordResetTokens.entries()) {
+      if (resetToken.expiresAt.getTime() < now || resetToken.used) {
+        this.passwordResetTokens.delete(token)
+      }
+    }
+  }
+
+  private generateResetToken(): string {
+    // Generate a secure random token
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    let token = ''
+    
+    for (let i = 0; i < 32; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    
+    return token
   }
 }

@@ -23,9 +23,10 @@ type LoginFormData = z.infer<typeof loginSchema>
 interface LoginFormProps {
   onSuccess: (user: AuthUser) => void
   onError: (error: string) => void
+  onForgotPassword: () => void
 }
 
-export function LoginForm({ onSuccess, onError }: LoginFormProps) {
+export function LoginForm({ onSuccess, onError, onForgotPassword }: LoginFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const authConfig = authService.getConfiguration()
 
@@ -107,6 +108,16 @@ export function LoginForm({ onSuccess, onError }: LoginFormProps) {
               {errors.password.message}
             </p>
           )}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onForgotPassword}
+            className="text-sm text-blue-600 hover:text-blue-500 focus:outline-none focus:underline"
+          >
+            Forgot your password?
+          </button>
         </div>
 
         <button

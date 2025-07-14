@@ -45,10 +45,12 @@ export interface AuthProvider {
   authenticateUser(email: string, password: string): Promise<AuthResult>
   createUser(userData: SignUpRequest): Promise<AuthResult>
   getUserById(id: string): Promise<AuthResult>
+  getUserByEmail(email: string): Promise<AuthResult>
   updateUser(id: string, data: UpdateProfileRequest): Promise<AuthResult>
   deleteUser(id: string): Promise<AuthResult>
   verifyUserEmail(id: string): Promise<AuthResult>
   changeUserPassword(id: string, currentPassword: string, newPassword: string): Promise<AuthResult>
+  resetUserPassword(id: string, newPassword: string): Promise<AuthResult>
   signInWithOAuth(provider: string): Promise<OAuthResult>
   getAvailableOAuthProviders(): OAuthProvider[]
   isConfigured(): boolean
@@ -70,6 +72,22 @@ export interface AvatarUploadResult {
   success: boolean
   user?: AuthUser | null
   error?: string
+}
+
+export interface PasswordResetToken {
+  token: string
+  userId: string
+  expiresAt: Date
+  used: boolean
+}
+
+export interface PasswordResetRequest {
+  email: string
+}
+
+export interface PasswordResetCompletion {
+  token: string
+  newPassword: string
 }
 
 export interface SessionData {

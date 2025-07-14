@@ -1,18 +1,32 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { LoginForm } from './components/login-form'
 import { SignupForm } from './components/signup-form'
 import { UserProfileForm } from './components/user-profile-form'
 import { ChangePasswordForm } from './components/change-password-form'
 import { DeleteAccountForm } from './components/delete-account-form'
+import { PasswordResetRequestForm } from './components/password-reset-request-form'
+import { PasswordResetCompletionForm } from './components/password-reset-completion-form'
 import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
 
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<'login' | 'signup' | 'profile' | 'password' | 'delete'>('login')
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState<'login' | 'signup' | 'profile' | 'password' | 'delete' | 'reset-request' | 'reset-complete'>('login')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
+  const [resetToken, setResetToken] = useState<string | null>(null)
+
+  // Check for password reset token in URL
+  useEffect(() => {
+    const token = searchParams.get('token')
+    if (token) {
+      setResetToken(token)
+      setActiveTab('reset-complete')
+    }
+  }, [searchParams])
 
   const handleSuccess = (user: AuthUser) => {
     setCurrentUser(user)
@@ -59,6 +73,33 @@ export default function AuthPage() {
       type: 'success',
       text: 'Account deleted successfully!'
     })
+  }
+
+  const handleForgotPassword = () => {
+    setMessage(null)
+    setActiveTab('reset-request')
+  }
+
+  const handlePasswordResetRequestSuccess = (successMessage: string) => {
+    setMessage({
+      type: 'success',
+      text: successMessage
+    })
+  }
+
+  const handlePasswordResetCompletionSuccess = (successMessage: string) => {
+    setMessage({
+      type: 'success',
+      text: successMessage
+    })
+    setActiveTab('login')
+    setResetToken(null)
+  }
+
+  const handleBackToLogin = () => {
+    setMessage(null)
+    setActiveTab('login')
+    setResetToken(null)
   }
 
   const authConfig = authService.getConfiguration()
@@ -194,10 +235,29 @@ export default function AuthPage() {
 
           {/* Forms */}
           {activeTab === 'login' && (
-            <LoginForm onSuccess={handleSuccess} onError={handleError} />
+            <LoginForm 
+              onSuccess={handleSuccess} 
+              onError={handleError} 
+              onForgotPassword={handleForgotPassword}
+            />
           )}
           {activeTab === 'signup' && (
             <SignupForm onSuccess={handleSuccess} onError={handleError} />
+          )}
+          {activeTab === 'reset-request' && (
+            <PasswordResetRequestForm 
+              onSuccess={handlePasswordResetRequestSuccess}
+              onError={handleError}
+              onBackToLogin={handleBackToLogin}
+            />
+          )}
+          {activeTab === 'reset-complete' && resetToken && (
+            <PasswordResetCompletionForm 
+              token={resetToken}
+              onSuccess={handlePasswordResetCompletionSuccess}
+              onError={handleError}
+              onBackToLogin={handleBackToLogin}
+            />
           )}
           {activeTab === 'profile' && currentUser && (
             <UserProfileForm 

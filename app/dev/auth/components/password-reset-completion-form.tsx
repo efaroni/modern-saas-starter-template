@@ -1,0 +1,115 @@
+'use client'
+
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { authService } from '@/lib/auth/factory'
+
+const passwordResetCompletionSchema = z.object({
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string().min(8, 'Password must be at least 8 characters')
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
+})
+
+type PasswordResetCompletionFormData = z.infer<typeof passwordResetCompletionSchema>
+
+interface PasswordResetCompletionFormProps {
+  token: string
+  onSuccess: (message: string) => void
+  onError: (error: string) => void
+  onBackToLogin: () => void
+}
+
+export function PasswordResetCompletionForm({ token, onSuccess, onError, onBackToLogin }: PasswordResetCompletionFormProps) {
+  const [isLoading, setIsLoading] = useState(false)
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<PasswordResetCompletionFormData>({
+    resolver: zodResolver(passwordResetCompletionSchema)
+  })
+
+  const onSubmit = async (data: PasswordResetCompletionFormData) => {
+    setIsLoading(true)
+    
+    try {
+      const result = await authService.resetPassword(token, data.newPassword)
+      
+      if (result.success) {
+        onSuccess('Your password has been reset successfully. You can now log in with your new password.')
+      } else {
+        onError(result.error || 'Failed to reset password')
+      }
+    } catch {
+      onError('An unexpected error occurred')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-medium text-gray-900">Set New Password</h2>
+        <p className="text-sm text-gray-600 mt-1">
+          Enter your new password below.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+            New Password
+          </label>
+          <input
+            id="newPassword"
+            type="password"
+            {...register('newPassword')}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter new password"
+          />
+          {errors.newPassword && (
+            <p className="mt-1 text-sm text-red-600">{errors.newPassword.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+            Confirm New Password
+          </label>
+          <input
+            id="confirmPassword"
+            type="password"
+            {...register('confirmPassword')}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Confirm new password"
+          />
+          {errors.confirmPassword && (
+            <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+        >
+          {isLoading ? 'Resetting...' : 'Reset Password'}
+        </button>
+
+        <button
+          type="button"
+          onClick={onBackToLogin}
+          className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Back to Login
+        </button>
+      </form>
+    </div>
+  )
+}

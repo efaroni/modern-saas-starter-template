@@ -22,6 +22,7 @@ import { authService } from '@/lib/auth/factory'
 describe('LoginForm', () => {
   const mockOnSuccess = jest.fn()
   const mockOnError = jest.fn()
+  const mockOnForgotPassword = jest.fn()
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -31,18 +32,18 @@ describe('LoginForm', () => {
   })
 
   it('should render login form with email and password fields', () => {
-    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} />)
+    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} onForgotPassword={mockOnForgotPassword} />)
 
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
   })
 
   it('should show validation errors for empty fields', async () => {
     const user = userEvent.setup()
-    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} />)
+    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} onForgotPassword={mockOnForgotPassword} />)
 
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
+    const submitButton = screen.getByRole('button', { name: 'Sign in' })
     await user.click(submitButton)
 
     await waitFor(() => {
@@ -53,11 +54,11 @@ describe('LoginForm', () => {
 
   it('should show validation error for invalid email format', async () => {
     const user = userEvent.setup()
-    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} />)
+    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} onForgotPassword={mockOnForgotPassword} />)
 
     const emailInput = screen.getByLabelText(/email/i)
     const passwordInput = screen.getByLabelText(/password/i)
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
+    const submitButton = screen.getByRole('button', { name: 'Sign in' })
 
     // Type invalid email and valid password to trigger our validation
     await user.type(emailInput, 'invalid-email')
@@ -73,11 +74,11 @@ describe('LoginForm', () => {
     const user = userEvent.setup()
     mockSignIn.mockResolvedValue({ success: true, user: { id: '1', email: 'test@example.com' } })
 
-    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} />)
+    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} onForgotPassword={mockOnForgotPassword} />)
 
     const emailInput = screen.getByLabelText(/email/i)
     const passwordInput = screen.getByLabelText(/password/i)
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
+    const submitButton = screen.getByRole('button', { name: 'Sign in' })
 
     await user.type(emailInput, 'test@example.com')
     await user.type(passwordInput, 'password123')
@@ -96,11 +97,11 @@ describe('LoginForm', () => {
     const mockUser = { id: '1', email: 'test@example.com', name: 'Test User' }
     mockSignIn.mockResolvedValue({ success: true, user: mockUser })
 
-    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} />)
+    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} onForgotPassword={mockOnForgotPassword} />)
 
     const emailInput = screen.getByLabelText(/email/i)
     const passwordInput = screen.getByLabelText(/password/i)
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
+    const submitButton = screen.getByRole('button', { name: 'Sign in' })
 
     await user.type(emailInput, 'test@example.com')
     await user.type(passwordInput, 'password123')
@@ -115,11 +116,11 @@ describe('LoginForm', () => {
     const user = userEvent.setup()
     mockSignIn.mockResolvedValue({ success: false, error: 'Invalid credentials' })
 
-    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} />)
+    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} onForgotPassword={mockOnForgotPassword} />)
 
     const emailInput = screen.getByLabelText(/email/i)
     const passwordInput = screen.getByLabelText(/password/i)
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
+    const submitButton = screen.getByRole('button', { name: 'Sign in' })
 
     await user.type(emailInput, 'test@example.com')
     await user.type(passwordInput, 'wrongpassword')
@@ -140,11 +141,11 @@ describe('LoginForm', () => {
     })
     mockSignIn.mockReturnValue(signInPromise)
 
-    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} />)
+    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} onForgotPassword={mockOnForgotPassword} />)
 
     const emailInput = screen.getByLabelText(/email/i)
     const passwordInput = screen.getByLabelText(/password/i)
-    const submitButton = screen.getByRole('button', { name: /sign in/i })
+    const submitButton = screen.getByRole('button', { name: 'Sign in' })
 
     await user.type(emailInput, 'test@example.com')
     await user.type(passwordInput, 'password123')
@@ -158,13 +159,13 @@ describe('LoginForm', () => {
     resolveSignIn!({ success: true, user: { id: '1', email: 'test@example.com' } })
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /sign in/i })).not.toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Sign in' })).not.toBeDisabled()
     })
   })
 
   it('should display service status indicators', () => {
-    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} />)
+    render(<LoginForm onSuccess={mockOnSuccess} onError={mockOnError} onForgotPassword={mockOnForgotPassword} />)
 
     // Should show that mock auth is configured
     expect(screen.getByText(/mock auth/i)).toBeInTheDocument()
