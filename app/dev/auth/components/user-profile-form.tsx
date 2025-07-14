@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
+import { AvatarUpload } from './avatar-upload'
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -85,6 +86,16 @@ export function UserProfileForm({ user, onSuccess, onError }: UserProfileFormPro
     <div className="space-y-6">
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Profile Information</h3>
+        
+        {/* Avatar Upload Section */}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-gray-700">Avatar</h4>
+          <AvatarUpload 
+            user={user} 
+            onSuccess={onSuccess} 
+            onError={onError} 
+          />
+        </div>
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>

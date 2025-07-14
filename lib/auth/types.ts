@@ -58,12 +58,18 @@ export interface AuthProvider {
 export interface UpdateProfileRequest {
   name?: string
   email?: string
-  image?: string
+  image?: string | null
 }
 
 export interface ChangePasswordRequest {
   currentPassword: string
   newPassword: string
+}
+
+export interface AvatarUploadResult {
+  success: boolean
+  user?: AuthUser | null
+  error?: string
 }
 
 export interface SessionData {

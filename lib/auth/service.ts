@@ -1,4 +1,5 @@
-import { AuthProvider, AuthResult, SignInRequest, SignUpRequest, SessionData, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest, ChangePasswordRequest } from './types'
+import { AuthProvider, AuthResult, SignInRequest, SignUpRequest, SessionData, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest, ChangePasswordRequest, AvatarUploadResult } from './types'
+import { uploadService } from '@/lib/upload/service'
 
 export class AuthService {
   private currentSession: SessionData | null = null
@@ -154,5 +155,107 @@ export class AuthService {
       passwordData.currentPassword,
       passwordData.newPassword
     )
+  }
+
+  async uploadAvatar(id: string, file: File): Promise<AvatarUploadResult> {
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        success: false,
+        error: 'Invalid file type. Only images are allowed.'
+      }
+    }
+
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      return {
+        success: false,
+        error: 'File too large. Maximum size is 5MB.'
+      }
+    }
+
+    // Get current user to check for existing avatar
+    const currentUser = await this.provider.getUserById(id)
+    if (!currentUser.success || !currentUser.user) {
+      return {
+        success: false,
+        error: 'User not found'
+      }
+    }
+
+    // Upload new avatar
+    const uploadResult = await uploadService.uploadFile(file, 'avatars')
+    if (!uploadResult.success) {
+      return {
+        success: false,
+        error: uploadResult.error
+      }
+    }
+
+    // Delete old avatar if it exists
+    if (currentUser.user.image) {
+      await uploadService.deleteFile(currentUser.user.image)
+      // We don't fail the upload if deletion fails
+    }
+
+    // Update user profile with new avatar URL
+    const updateResult = await this.provider.updateUser(id, {
+      image: uploadResult.url
+    })
+
+    if (updateResult.success && updateResult.user && this.currentSession?.user?.id === id) {
+      this.currentSession.user = updateResult.user
+    }
+
+    return {
+      success: updateResult.success,
+      user: updateResult.user,
+      error: updateResult.error
+    }
+  }
+
+  async deleteAvatar(id: string): Promise<AuthResult> {
+    // Get current user
+    const currentUser = await this.provider.getUserById(id)
+    if (!currentUser.success || !currentUser.user) {
+      return {
+        success: false,
+        error: 'User not found'
+      }
+    }
+
+    // Check if user has an avatar
+    if (!currentUser.user.image) {
+      return {
+        success: false,
+        error: 'User has no avatar to delete'
+      }
+    }
+
+    // Delete the avatar file
+    const deleteResult = await uploadService.deleteFile(currentUser.user.image)
+    if (!deleteResult.success) {
+      return {
+        success: false,
+        error: deleteResult.error
+      }
+    }
+
+    // Update user profile to remove avatar URL
+    const updateResult = await this.provider.updateUser(id, {
+      image: null
+    })
+
+    if (updateResult.success && updateResult.user && this.currentSession?.user?.id === id) {
+      this.currentSession.user = updateResult.user
+    }
+
+    return updateResult
+  }
+
+  generateAvatarUrl(userId: string, extension: string): string {
+    return uploadService.generateUrl('avatars', `${userId}.${extension}`)
   }
 }
