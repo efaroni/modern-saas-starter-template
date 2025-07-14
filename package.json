@@ -22,6 +22,7 @@
     "prepare": "sh setup-git-hooks.sh"
   },
   "dependencies": {
+    "@auth/drizzle-adapter": "^1.10.0",
     "@hookform/resolvers": "^5.1.1",
     "@node-rs/argon2": "^2.0.2",
     "@node-rs/bcrypt": "^1.10.7",
@@ -31,6 +32,7 @@
     "drizzle-orm": "^0.44.2",
     "drizzle-zod": "^0.8.2",
     "next": "15.3.4",
+    "next-auth": "^5.0.0-beta.29",
     "openai": "^5.8.2",
     "postgres": "^3.4.7",
     "react": "^19.0.0",

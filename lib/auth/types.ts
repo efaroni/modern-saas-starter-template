@@ -1,0 +1,42 @@
+export interface AuthUser {
+  id: string
+  email: string
+  name?: string | null
+  image?: string | null
+  emailVerified?: Date | null
+}
+
+export interface SignInRequest {
+  email: string
+  password: string
+}
+
+export interface SignUpRequest {
+  email: string
+  password: string
+  name?: string
+}
+
+export interface AuthResult<T = AuthUser> {
+  success: boolean
+  user?: T | null
+  error?: string
+}
+
+export interface AuthConfiguration {
+  provider: 'mock' | 'nextauth'
+  oauthProviders: string[]
+}
+
+export interface AuthProvider {
+  authenticateUser(email: string, password: string): Promise<AuthResult>
+  createUser(userData: SignUpRequest): Promise<AuthResult>
+  getUserById(id: string): Promise<AuthResult>
+  isConfigured(): boolean
+  getConfiguration(): AuthConfiguration
+}
+
+export interface SessionData {
+  user?: AuthUser | null
+  expires?: string
+}
