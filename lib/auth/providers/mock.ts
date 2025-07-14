@@ -1,23 +1,31 @@
-import { AuthProvider, AuthResult, AuthUser, SignUpRequest, AuthConfiguration, OAuthProvider, OAuthResult } from '../types'
+import { AuthProvider, AuthResult, AuthUser, SignUpRequest, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest } from '../types'
+
+interface MockUserWithPassword extends AuthUser {
+  password: string
+}
 
 export class MockAuthProvider implements AuthProvider {
-  private mockUsers = new Map<string, AuthUser>([
+  private mockUsers = new Map<string, MockUserWithPassword>([
     ['test-user-id', {
       id: 'test-user-id',
       email: 'test@example.com',
       name: 'Test User',
       image: null,
-      emailVerified: new Date()
+      emailVerified: new Date(),
+      password: 'password' // Mock hashed password
     }]
   ])
 
   async authenticateUser(email: string, password: string): Promise<AuthResult> {
-    // Mock authentication logic
-    if (email === 'test@example.com' && password === 'password') {
-      const user = this.mockUsers.get('test-user-id')
+    // Find user by email
+    const user = Array.from(this.mockUsers.values()).find(u => u.email === email)
+    
+    if (user && user.password === password) {
+      // Return user without password
+      const { password: _, ...authUser } = user
       return {
         success: true,
-        user
+        user: authUser
       }
     }
 
@@ -57,27 +65,37 @@ export class MockAuthProvider implements AuthProvider {
     }
 
     // Create new user
-    const newUser: AuthUser = {
+    const newUser: MockUserWithPassword = {
       id: `user-${Date.now()}`,
       email,
       name: name || null,
       image: null,
-      emailVerified: null
+      emailVerified: null,
+      password // Store mock password
     }
 
     this.mockUsers.set(newUser.id, newUser)
 
+    // Return user without password
+    const { password: _, ...authUser } = newUser
     return {
       success: true,
-      user: newUser
+      user: authUser
     }
   }
 
   async getUserById(id: string): Promise<AuthResult> {
     const user = this.mockUsers.get(id)
+    if (user) {
+      const { password: _, ...authUser } = user
+      return {
+        success: true,
+        user: authUser
+      }
+    }
     return {
       success: true,
-      user: user || null
+      user: null
     }
   }
 
@@ -96,14 +114,16 @@ export class MockAuthProvider implements AuthProvider {
         email: 'user@gmail.com',
         name: 'Google User',
         image: 'https://lh3.googleusercontent.com/a/default-user=s96-c',
-        emailVerified: new Date()
+        emailVerified: new Date(),
+        password: 'oauth-google' // Mock OAuth password
       },
       github: {
         id: 'github-user-id',
         email: 'user@github.com',
         name: 'GitHub User',
         image: 'https://avatars.githubusercontent.com/u/123456?v=4',
-        emailVerified: new Date()
+        emailVerified: new Date(),
+        password: 'oauth-github' // Mock OAuth password
       }
     }
 
@@ -121,9 +141,11 @@ export class MockAuthProvider implements AuthProvider {
       this.mockUsers.set(oauthUser.id, oauthUser)
     }
 
+    // Return user without password
+    const { password: _, ...authUser } = oauthUser
     return {
       success: true,
-      user: oauthUser
+      user: authUser
     }
   }
 
@@ -146,6 +168,128 @@ export class MockAuthProvider implements AuthProvider {
     return {
       provider: 'mock',
       oauthProviders: ['google', 'github']
+    }
+  }
+
+  async updateUser(id: string, data: UpdateProfileRequest): Promise<AuthResult> {
+    const user = this.mockUsers.get(id)
+    
+    if (!user) {
+      return {
+        success: false,
+        error: 'User not found'
+      }
+    }
+
+    // Validate email if updating
+    if (data.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(data.email)) {
+        return {
+          success: false,
+          error: 'Invalid email format'
+        }
+      }
+
+      // Check if email is already taken by another user
+      const existingUser = Array.from(this.mockUsers.values()).find(
+        u => u.email === data.email && u.id !== id
+      )
+      if (existingUser) {
+        return {
+          success: false,
+          error: 'Email already in use'
+        }
+      }
+
+      // Reset email verification when email changes
+      user.emailVerified = null
+    }
+
+    // Update user fields
+    if (data.name !== undefined) user.name = data.name
+    if (data.email !== undefined) user.email = data.email
+    if (data.image !== undefined) user.image = data.image
+
+    // Return updated user without password
+    const { password: _, ...authUser } = user
+    return {
+      success: true,
+      user: authUser
+    }
+  }
+
+  async deleteUser(id: string): Promise<AuthResult> {
+    const user = this.mockUsers.get(id)
+    
+    if (!user) {
+      return {
+        success: false,
+        error: 'User not found'
+      }
+    }
+
+    this.mockUsers.delete(id)
+    
+    return {
+      success: true
+    }
+  }
+
+  async verifyUserEmail(id: string): Promise<AuthResult> {
+    const user = this.mockUsers.get(id)
+    
+    if (!user) {
+      return {
+        success: false,
+        error: 'User not found'
+      }
+    }
+
+    user.emailVerified = new Date()
+    
+    // Return user without password
+    const { password: _, ...authUser } = user
+    return {
+      success: true,
+      user: authUser
+    }
+  }
+
+  async changeUserPassword(id: string, currentPassword: string, newPassword: string): Promise<AuthResult> {
+    const user = this.mockUsers.get(id)
+    
+    if (!user) {
+      return {
+        success: false,
+        error: 'User not found'
+      }
+    }
+
+    // Verify current password
+    if (user.password !== currentPassword) {
+      return {
+        success: false,
+        error: 'Current password is incorrect'
+      }
+    }
+
+    // Validate new password
+    if (newPassword.length < 8) {
+      return {
+        success: false,
+        error: 'Password must be at least 8 characters'
+      }
+    }
+
+    // Update password
+    user.password = newPassword
+
+    // Return user without password
+    const { password: _, ...authUser } = user
+    return {
+      success: true,
+      user: authUser
     }
   }
 }

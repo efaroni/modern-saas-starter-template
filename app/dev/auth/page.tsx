@@ -3,16 +3,20 @@
 import { useState } from 'react'
 import { LoginForm } from './components/login-form'
 import { SignupForm } from './components/signup-form'
+import { UserProfileForm } from './components/user-profile-form'
+import { ChangePasswordForm } from './components/change-password-form'
+import { DeleteAccountForm } from './components/delete-account-form'
 import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
 
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login')
+  const [activeTab, setActiveTab] = useState<'login' | 'signup' | 'profile' | 'password' | 'delete'>('login')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
 
   const handleSuccess = (user: AuthUser) => {
     setCurrentUser(user)
+    setActiveTab('profile')
     setMessage({
       type: 'success',
       text: `Successfully ${activeTab === 'login' ? 'signed in' : 'signed up'}!`
@@ -30,6 +34,31 @@ export default function AuthPage() {
     await authService.signOut()
     setCurrentUser(null)
     setMessage(null)
+    setActiveTab('login')
+  }
+
+  const handleProfileSuccess = (user: AuthUser) => {
+    setCurrentUser(user)
+    setMessage({
+      type: 'success',
+      text: 'Profile updated successfully!'
+    })
+  }
+
+  const handlePasswordSuccess = () => {
+    setMessage({
+      type: 'success',
+      text: 'Password changed successfully!'
+    })
+  }
+
+  const handleDeleteSuccess = () => {
+    setCurrentUser(null)
+    setActiveTab('login')
+    setMessage({
+      type: 'success',
+      text: 'Account deleted successfully!'
+    })
   }
 
   const authConfig = authService.getConfiguration()
@@ -98,36 +127,98 @@ export default function AuthPage() {
           )}
 
           {/* Tabs */}
-          <div className="flex border-b border-gray-200 mb-6">
-            <button
-              onClick={() => setActiveTab('login')}
-              className={`flex-1 py-2 px-4 text-sm font-medium ${
-                activeTab === 'login'
-                  ? 'border-b-2 border-blue-500 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              role="tab"
-            >
-              Login
-            </button>
-            <button
-              onClick={() => setActiveTab('signup')}
-              className={`flex-1 py-2 px-4 text-sm font-medium ${
-                activeTab === 'signup'
-                  ? 'border-b-2 border-blue-500 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              role="tab"
-            >
-              Sign Up
-            </button>
+          <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
+            {!currentUser ? (
+              <>
+                <button
+                  onClick={() => setActiveTab('login')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                    activeTab === 'login'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  role="tab"
+                >
+                  Login
+                </button>
+                <button
+                  onClick={() => setActiveTab('signup')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                    activeTab === 'signup'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  role="tab"
+                >
+                  Sign Up
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setActiveTab('profile')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                    activeTab === 'profile'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  role="tab"
+                >
+                  Profile
+                </button>
+                <button
+                  onClick={() => setActiveTab('password')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                    activeTab === 'password'
+                      ? 'border-b-2 border-blue-500 text-blue-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  role="tab"
+                >
+                  Password
+                </button>
+                <button
+                  onClick={() => setActiveTab('delete')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                    activeTab === 'delete'
+                      ? 'border-b-2 border-red-500 text-red-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  role="tab"
+                >
+                  Delete
+                </button>
+              </>
+            )}
           </div>
 
           {/* Forms */}
-          {activeTab === 'login' ? (
+          {activeTab === 'login' && (
             <LoginForm onSuccess={handleSuccess} onError={handleError} />
-          ) : (
+          )}
+          {activeTab === 'signup' && (
             <SignupForm onSuccess={handleSuccess} onError={handleError} />
+          )}
+          {activeTab === 'profile' && currentUser && (
+            <UserProfileForm 
+              user={currentUser} 
+              onSuccess={handleProfileSuccess} 
+              onError={handleError} 
+            />
+          )}
+          {activeTab === 'password' && currentUser && (
+            <ChangePasswordForm 
+              user={currentUser} 
+              onSuccess={handlePasswordSuccess} 
+              onError={handleError} 
+            />
+          )}
+          {activeTab === 'delete' && currentUser && (
+            <DeleteAccountForm 
+              user={currentUser} 
+              onSuccess={handleDeleteSuccess} 
+              onError={handleError} 
+            />
           )}
         </div>
       </div>

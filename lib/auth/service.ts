@@ -1,4 +1,4 @@
-import { AuthProvider, AuthResult, SignInRequest, SignUpRequest, SessionData, AuthConfiguration, OAuthProvider, OAuthResult } from './types'
+import { AuthProvider, AuthResult, SignInRequest, SignUpRequest, SessionData, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest, ChangePasswordRequest } from './types'
 
 export class AuthService {
   private currentSession: SessionData | null = null
@@ -105,5 +105,54 @@ export class AuthService {
 
   getConfiguration(): AuthConfiguration {
     return this.provider.getConfiguration()
+  }
+
+  async getUserProfile(id: string): Promise<AuthResult> {
+    return this.provider.getUserById(id)
+  }
+
+  async getCurrentUserProfile(): Promise<AuthResult> {
+    return this.getUser()
+  }
+
+  async updateUserProfile(id: string, data: UpdateProfileRequest): Promise<AuthResult> {
+    const result = await this.provider.updateUser(id, data)
+    
+    // Update session if current user updated their profile
+    if (result.success && result.user && this.currentSession?.user?.id === id) {
+      this.currentSession.user = result.user
+    }
+    
+    return result
+  }
+
+  async deleteUserAccount(id: string): Promise<AuthResult> {
+    const result = await this.provider.deleteUser(id)
+    
+    // Clear session if current user deleted their account
+    if (result.success && this.currentSession?.user?.id === id) {
+      this.currentSession = null
+    }
+    
+    return result
+  }
+
+  async verifyEmail(id: string): Promise<AuthResult> {
+    const result = await this.provider.verifyUserEmail(id)
+    
+    // Update session if current user verified their email
+    if (result.success && result.user && this.currentSession?.user?.id === id) {
+      this.currentSession.user = result.user
+    }
+    
+    return result
+  }
+
+  async changePassword(id: string, passwordData: ChangePasswordRequest): Promise<AuthResult> {
+    return this.provider.changeUserPassword(
+      id,
+      passwordData.currentPassword,
+      passwordData.newPassword
+    )
   }
 }
