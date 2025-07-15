@@ -1,6 +1,7 @@
 import { testDb, testFactories, clearTestDatabase, initializeTestDatabase } from './test'
 import { userApiKeys, users } from './schema'
 import type { InsertUserApiKey } from './schema'
+import bcrypt from '@node-rs/bcrypt'
 
 // Define InsertUser type based on the users table
 type InsertUser = typeof users.$inferInsert
@@ -15,6 +16,31 @@ export const testDataFactories = {
     id: TEST_USER_ID,
     email: `test-user-${Date.now()}@example.com`,
     name: 'Test User',
+    ...overrides
+  }),
+
+  // Auth user factory with password
+  createAuthUser: async (overrides: Partial<InsertUser> = {}): Promise<InsertUser> => {
+    const password = overrides.password || 'password123'
+    const hashedPassword = typeof password === 'string' ? await bcrypt.hash(password, 10) : password
+    
+    return {
+      id: TEST_USER_ID,
+      email: `auth-user-${Date.now()}@example.com`,
+      name: 'Auth Test User',
+      password: hashedPassword,
+      emailVerified: null,
+      ...overrides
+    }
+  },
+
+  // Auth user factory without password hashing (for testing)
+  createAuthUserPlain: (overrides: Partial<InsertUser> = {}): InsertUser => ({
+    id: TEST_USER_ID,
+    email: `auth-user-${Date.now()}@example.com`,
+    name: 'Auth Test User',
+    password: 'password123',
+    emailVerified: null,
     ...overrides
   }),
 
@@ -276,5 +302,110 @@ export const testHelpers = {
     // Verify deletion
     const deletedReadResult = await readFn(id)
     expect(deletedReadResult.success).toBe(false)
+  }
+}
+
+// Auth-specific test helpers
+export const authTestHelpers = {
+  // Create a test user with hashed password
+  async createTestUser(overrides: Partial<InsertUser> = {}): Promise<InsertUser> {
+    const user = await testDataFactories.createAuthUser(overrides)
+    const [insertedUser] = await testDb.insert(users).values(user).returning()
+    return insertedUser
+  },
+
+  // Create multiple test users for auth testing
+  async createTestUsers(count: number = 3): Promise<InsertUser[]> {
+    const userPromises = []
+    for (let i = 0; i < count; i++) {
+      userPromises.push(testDataFactories.createAuthUser({
+        id: `00000000-0000-0000-0000-00000000000${i + 1}`,
+        email: `user${i + 1}@example.com`,
+        name: `User ${i + 1}`
+      }))
+    }
+    
+    const users = await Promise.all(userPromises)
+    return await testDb.insert(users).values(users).returning()
+  },
+
+  // Verify password hashing
+  async verifyPasswordHash(plainPassword: string, hashedPassword: string): Promise<boolean> {
+    return await bcrypt.verify(plainPassword, hashedPassword)
+  },
+
+  // Test data for auth scenarios
+  authTestData: {
+    validUser: {
+      email: 'valid@example.com',
+      password: 'validPassword123',
+      name: 'Valid User'
+    },
+    invalidUser: {
+      email: 'invalid@example.com',
+      password: 'wrongPassword',
+      name: 'Invalid User'
+    },
+    duplicateEmailUser: {
+      email: 'duplicate@example.com',
+      password: 'password123',
+      name: 'Duplicate User'
+    },
+    weakPasswordUser: {
+      email: 'weak@example.com',
+      password: '123', // Too short
+      name: 'Weak Password User'
+    },
+    invalidEmailUser: {
+      email: 'invalid-email', // Invalid format
+      password: 'password123',
+      name: 'Invalid Email User'
+    },
+    updateProfileData: {
+      name: 'Updated Name',
+      image: 'https://example.com/avatar.jpg'
+    },
+    passwordChangeData: {
+      currentPassword: 'currentPassword123',
+      newPassword: 'newPassword123'
+    }
+  },
+
+  // Clean up auth-specific test data
+  async cleanupAuthData(): Promise<void> {
+    await testDb.delete(users)
+  },
+
+  // Assert auth result structure
+  assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+    expect(result).toHaveProperty('success')
+    expect(result.success).toBe(expectedSuccess)
+    
+    if (expectedSuccess) {
+      if (expectUser) {
+        expect(result).toHaveProperty('user')
+        if (result.user) {
+          expect(result.user).toHaveProperty('id')
+          expect(result.user).toHaveProperty('email')
+          expect(result.user).not.toHaveProperty('password') // Password should not be exposed
+        }
+      }
+      expect(result.error).toBeUndefined()
+    } else {
+      expect(result).toHaveProperty('error')
+      expect(typeof result.error).toBe('string')
+    }
+  },
+
+  // Assert user structure (without password)
+  assertUserStructure(user: any): void {
+    expect(user).toHaveProperty('id')
+    expect(user).toHaveProperty('email')
+    expect(user).toHaveProperty('name')
+    expect(user).toHaveProperty('image')
+    expect(user).toHaveProperty('emailVerified')
+    expect(user).toHaveProperty('createdAt')
+    expect(user).toHaveProperty('updatedAt')
+    expect(user).not.toHaveProperty('password') // Password should never be exposed
   }
 } 

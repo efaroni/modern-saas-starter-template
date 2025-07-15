@@ -6,9 +6,21 @@ import { emailService } from '@/lib/email/service'
 import { uploadService } from '@/lib/upload/service'
 
 export function createAuthService(): AuthService {
-  // For now, always use mock provider
-  // In the future, we'll check environment variables to determine which provider to use
-  const provider: AuthProvider = new MockAuthProvider()
+  // Use mock provider for testing and client-side, database provider for server-side only
+  const isTestEnvironment = process.env.NODE_ENV === 'test'
+  const isClientSide = typeof window !== 'undefined'
+  
+  let provider: AuthProvider
+  
+  if (isTestEnvironment || isClientSide) {
+    provider = new MockAuthProvider()
+  } else {
+    // Only import database provider on server-side
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { DatabaseAuthProvider } = require('./providers/database')
+    provider = new DatabaseAuthProvider()
+  }
+  
   const sessionStorage = createSessionStorage()
   
   return new AuthService(provider, sessionStorage, emailService, uploadService)
