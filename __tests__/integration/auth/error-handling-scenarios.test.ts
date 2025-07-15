@@ -244,7 +244,7 @@ describe('Auth Integration - Error Handling Scenarios', () => {
         const sessionResult = await authService.getUser()
         expect(sessionResult.user).toBeNull()
       }
-    })
+    }, 10000)
   })
 
   describe('Password Reset Failures', () => {

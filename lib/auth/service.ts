@@ -8,6 +8,7 @@ import type { UploadService } from '@/lib/upload/types'
 export class AuthService {
   private currentSession: SessionData | null = null
   private passwordResetTokens = new Map<string, PasswordResetToken>()
+  private hasStorageWriteFailure: boolean = false
   private sessionStorage: SessionStorage
   private emailService: EmailService
   private uploadService: UploadService
@@ -66,13 +67,11 @@ export class AuthService {
       
       // Store session (fail silently if storage fails)
       try {
-        try {
         await this.sessionStorage.setSession(this.currentSession)
+        this.hasStorageWriteFailure = false
       } catch {
         // Storage write failed, but we keep the session in memory
-      }
-      } catch {
-        // Storage write failed, but we keep the session in memory
+        this.hasStorageWriteFailure = true
       }
     }
 
@@ -123,13 +122,15 @@ export class AuthService {
     // Always try to get session from storage first for cross-instance persistence
     try {
       const storedSession = await this.sessionStorage.getSession()
-      // Only update current session if we got something from storage
-      // This allows memory session to persist if storage is empty but we have a valid memory session
+      // If there's a stored session, use it
       if (storedSession) {
         this.currentSession = storedSession
-      } else if (!this.currentSession) {
-        // No stored session and no memory session
-        this.currentSession = null
+      } else {
+        // No stored session - clear memory session for consistency across instances
+        // Exception: preserve memory session if we had a storage write failure
+        if (!this.hasStorageWriteFailure) {
+          this.currentSession = null
+        }
       }
     } catch {
       // If storage read fails, keep current session as fallback

@@ -31,6 +31,11 @@ export class LocalSessionStorage implements SessionStorage {
 
       const session = JSON.parse(sessionData) as SessionData
       
+      // Restore Date objects from JSON serialization
+      if (session.user?.emailVerified && typeof session.user.emailVerified === 'string') {
+        session.user.emailVerified = new Date(session.user.emailVerified)
+      }
+      
       // Check if session is expired
       if (session.expires && new Date(session.expires).getTime() < Date.now()) {
         await this.removeSession()

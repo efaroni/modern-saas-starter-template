@@ -60,17 +60,6 @@ export function LoginForm({ onSuccess, onError, onForgotPassword }: LoginFormPro
 
   return (
     <div className="space-y-4">
-      {/* Service Status */}
-      <div className="p-3 bg-gray-50 rounded-md">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="font-medium">Auth Service Status:</span>
-          <span className="text-green-600">✅</span>
-          <span className="text-gray-600">
-            {authConfig.provider === 'mock' ? 'Mock Auth' : 'Real Auth'} Configured
-          </span>
-        </div>
-      </div>
-
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">

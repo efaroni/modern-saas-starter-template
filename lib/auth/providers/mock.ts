@@ -15,6 +15,7 @@ export class MockAuthProvider implements AuthProvider {
       password: 'password' // Mock hashed password
     }]
   ])
+  private userIdCounter = 0
 
   async authenticateUser(email: string, password: string): Promise<AuthResult> {
     // Find user by email
@@ -66,7 +67,7 @@ export class MockAuthProvider implements AuthProvider {
 
     // Create new user
     const newUser: MockUserWithPassword = {
-      id: `user-${Date.now()}`,
+      id: `user-${Date.now()}-${++this.userIdCounter}`,
       email,
       name: name || null,
       image: null,
@@ -120,7 +121,7 @@ export class MockAuthProvider implements AuthProvider {
 
   async signInWithOAuth(provider: string): Promise<OAuthResult> {
     // Simulate OAuth flow delay
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 1000))
     
     // Mock OAuth providers
     const oauthUsers = {
