@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'
 import { SessionManager, DEFAULT_SECURITY_CONFIG } from '@/lib/auth/session-manager'
 import { testHelpers, authTestHelpers } from '@/lib/db/test-helpers'
 import { AuthUser } from '@/lib/auth/types'
+import { testDb } from '@/lib/db/test'
 
 describe('SessionManager', () => {
   let sessionManager: SessionManager
@@ -43,7 +44,7 @@ describe('SessionManager', () => {
     
     testUser = result.user
     
-    sessionManager = new SessionManager({
+    sessionManager = new SessionManager(testDb, {
       ...DEFAULT_SECURITY_CONFIG,
       maxAge: 3600, // 1 hour for testing
       inactivityTimeout: 1800, // 30 minutes for testing

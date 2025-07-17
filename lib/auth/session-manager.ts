@@ -1,5 +1,6 @@
 import { DatabaseSessionStorage, SessionConfig, DEFAULT_SESSION_CONFIG } from './database-session-storage'
 import { AuthUser } from './types'
+import { db } from '@/lib/db'
 
 export interface SessionSecurityConfig {
   // Session timeouts
@@ -40,9 +41,9 @@ export class SessionManager {
   private storage: DatabaseSessionStorage
   private config: SessionSecurityConfig
 
-  constructor(config: SessionSecurityConfig = DEFAULT_SECURITY_CONFIG) {
+  constructor(database: typeof db = db, config: SessionSecurityConfig = DEFAULT_SECURITY_CONFIG) {
     this.config = config
-    this.storage = new DatabaseSessionStorage({
+    this.storage = new DatabaseSessionStorage(database, {
       maxAge: config.maxAge,
       maxConcurrentSessions: config.maxConcurrentSessions,
       suspiciousActivityThreshold: config.suspiciousActivityThreshold,

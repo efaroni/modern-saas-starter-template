@@ -21,8 +21,10 @@ export const DEFAULT_SESSION_CONFIG: SessionConfig = {
 export class DatabaseSessionStorage implements SessionStorage {
   private sessionToken: string | null = null
   private config: SessionConfig
+  private readonly database: typeof db
 
-  constructor(config: SessionConfig = DEFAULT_SESSION_CONFIG) {
+  constructor(database: typeof db = db, config: SessionConfig = DEFAULT_SESSION_CONFIG) {
+    this.database = database
     this.config = config
   }
 
@@ -57,7 +59,7 @@ export class DatabaseSessionStorage implements SessionStorage {
       const expiresAt = new Date(Date.now() + this.config.maxAge * 1000)
 
       // Create session record
-      const [session] = await db
+      const [session] = await this.database
         .insert(userSessions)
         .values({
           userId,
@@ -90,7 +92,7 @@ export class DatabaseSessionStorage implements SessionStorage {
     }
 
     try {
-      const [result] = await db
+      const [result] = await this.database
         .select({
           session: userSessions,
           user: users
@@ -128,7 +130,7 @@ export class DatabaseSessionStorage implements SessionStorage {
       }
 
       // Update last activity
-      await db
+      await this.database
         .update(userSessions)
         .set({ lastActivity: new Date() })
         .where(eq(userSessions.id, session.id))
@@ -159,7 +161,7 @@ export class DatabaseSessionStorage implements SessionStorage {
     }
 
     try {
-      await db
+      await this.database
         .update(userSessions)
         .set({
           lastActivity: new Date(),
@@ -180,7 +182,7 @@ export class DatabaseSessionStorage implements SessionStorage {
     }
 
     try {
-      const [session] = await db
+      const [session] = await this.database
         .select()
         .from(userSessions)
         .where(eq(userSessions.sessionToken, this.sessionToken))
@@ -215,7 +217,7 @@ export class DatabaseSessionStorage implements SessionStorage {
    */
   private async invalidateSession(sessionId: string, reason: string): Promise<void> {
     try {
-      await db
+      await this.database
         .update(userSessions)
         .set({ isActive: false })
         .where(eq(userSessions.id, sessionId))
@@ -237,7 +239,7 @@ export class DatabaseSessionStorage implements SessionStorage {
     metadata?: Record<string, any>
   ): Promise<void> {
     try {
-      await db
+      await this.database
         .insert(sessionActivity)
         .values({
           sessionId,
@@ -256,7 +258,7 @@ export class DatabaseSessionStorage implements SessionStorage {
    */
   private async cleanupExpiredSessions(): Promise<void> {
     try {
-      await db
+      await this.database
         .update(userSessions)
         .set({ isActive: false })
         .where(lt(userSessions.expiresAt, new Date()))
@@ -270,7 +272,7 @@ export class DatabaseSessionStorage implements SessionStorage {
    */
   private async enforceConcurrentSessionLimit(userId: string): Promise<void> {
     try {
-      const activeSessions = await db
+      const activeSessions = await this.database
         .select()
         .from(userSessions)
         .where(
@@ -304,7 +306,7 @@ export class DatabaseSessionStorage implements SessionStorage {
   ): Promise<boolean> {
     try {
       // Get recent session activities
-      const recentActivities = await db
+      const recentActivities = await this.database
         .select()
         .from(sessionActivity)
         .where(eq(sessionActivity.sessionId, sessionId))
@@ -359,7 +361,7 @@ export class DatabaseSessionStorage implements SessionStorage {
    */
   async getUserSessions(userId: string): Promise<any[]> {
     try {
-      return await db
+      return await this.database
         .select()
         .from(userSessions)
         .where(
