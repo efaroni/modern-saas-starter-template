@@ -43,7 +43,7 @@ const customJestConfig = {
       useESM: true,
     },
   },
-  // Configure parallel execution - use 2 workers to reduce race conditions
+  // Configure parallel execution - use 2 workers for balance of speed and stability
   maxWorkers: 2,
   // Configure test timeout - longer for better stability
   testTimeout: 45000,
