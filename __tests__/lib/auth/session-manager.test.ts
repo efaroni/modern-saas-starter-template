@@ -3,26 +3,42 @@ import { SessionManager, DEFAULT_SECURITY_CONFIG } from '@/lib/auth/session-mana
 import { testHelpers, authTestHelpers } from '@/lib/db/test-helpers'
 import { AuthUser } from '@/lib/auth/types'
 
-describe.skip('SessionManager', () => {
+describe('SessionManager', () => {
   let sessionManager: SessionManager
   let testUser: AuthUser
 
   beforeEach(async () => {
     await testHelpers.setupTest()
     
-    // Create a real user in the database for session tests
+    // Create a real user in the database for session tests with retry logic
     const { DatabaseAuthProvider } = require('@/lib/auth/providers/database')
     const { testDb } = require('@/lib/db/test')
     const provider = new DatabaseAuthProvider(testDb)
-    const uniqueEmail = authTestHelpers.generateUniqueEmail('session')
-    const result = await provider.createUser({
-      email: uniqueEmail,
-      name: 'Test User',
-      password: 'StrongP@ssw0rd123!'
-    })
     
-    if (!result.success || !result.user) {
-      throw new Error('Failed to create test user for session tests')
+    // Retry logic for test stability
+    let result
+    let retries = 3
+    while (retries > 0) {
+      const uniqueEmail = authTestHelpers.generateUniqueEmail('session')
+      result = await provider.createUser({
+        email: uniqueEmail,
+        name: 'Test User',
+        password: 'StrongP@ssw0rd123!'
+      })
+      
+      if (result.success && result.user) {
+        break
+      }
+      
+      retries--
+      if (retries > 0) {
+        // Wait a bit before retry
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+    
+    if (!result?.success || !result?.user) {
+      throw new Error('Failed to create test user for session tests after 3 attempts')
     }
     
     testUser = result.user
