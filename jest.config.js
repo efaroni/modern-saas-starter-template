@@ -21,6 +21,8 @@ const customJestConfig = {
     '/scripts/',
     'drizzle.config.test.ts',
     'drizzle.config.ts',
+    '/e2e/',
+    '/accessibility/',
   ],
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',
@@ -29,6 +31,17 @@ const customJestConfig = {
     '!**/*.d.ts',
     '!**/node_modules/**',
   ],
+  // Handle ES modules from next-auth and related packages
+  transformIgnorePatterns: [
+    'node_modules/(?!(next-auth|@auth|@node-rs|jose)/)',
+  ],
+  // Enable ES modules support
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  globals: {
+    'ts-jest': {
+      useESM: true,
+    },
+  },
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

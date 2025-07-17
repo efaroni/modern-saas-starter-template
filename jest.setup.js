@@ -26,6 +26,25 @@ jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),
 }))
 
+// Mock next-auth to prevent ES module issues
+jest.mock('next-auth', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    auth: jest.fn(),
+    handlers: { GET: jest.fn(), POST: jest.fn() },
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+  })),
+}))
+
+// Mock next-auth config
+jest.mock('@/lib/auth/auth', () => ({
+  auth: jest.fn(),
+  handlers: { GET: jest.fn(), POST: jest.fn() },
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+}))
+
 // Import test database utilities
 import { resetTestDatabase, closeTestDatabase, initializeTestDatabase } from './lib/db/test'
 

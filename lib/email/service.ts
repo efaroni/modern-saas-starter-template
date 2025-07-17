@@ -1,10 +1,24 @@
 import { EmailService } from './types'
 import { MockEmailService } from './mock'
+import { ResendEmailService } from './resend'
 
 function createEmailService(): EmailService {
-  // For now, always use mock service
-  // In the future, we can switch to real services based on environment
-  return new MockEmailService()
+  // Use mock service in test environment
+  if (process.env.NODE_ENV === 'test') {
+    return new MockEmailService()
+  }
+
+  // Use Resend service in production
+  const apiKey = process.env.RESEND_API_KEY
+  const from = process.env.RESEND_FROM_EMAIL || 'noreply@localhost'
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+
+  if (!apiKey) {
+    console.warn('RESEND_API_KEY not found, using mock email service')
+    return new MockEmailService()
+  }
+
+  return new ResendEmailService(apiKey, from, baseUrl)
 }
 
 export const emailService = createEmailService()

@@ -17,16 +17,61 @@ export const testDb = drizzle(testClient, { schema })
 // Initialize test database (run migrations)
 export async function initializeTestDatabase() {
   try {
-    // Check if tables exist by querying them
-    await testClient`SELECT 1 FROM users LIMIT 1`
-    await testClient`SELECT 1 FROM user_api_keys LIMIT 1`
+    // Check if all required tables exist
+    const requiredTables = [
+      'users',
+      'user_api_keys',
+      'auth_attempts',
+      'password_history',
+      'user_sessions', 
+      'session_activity',
+      'accounts',
+      'sessions',
+      'verification_tokens'
+    ]
+    
+    const missingTables = []
+    
+    for (const table of requiredTables) {
+      try {
+        await testClient`SELECT 1 FROM ${testClient(table)} LIMIT 1`
+      } catch (error) {
+        // Use a more specific check for table existence
+        try {
+          await testClient`SELECT to_regclass(${table})`
+        } catch (tableCheckError) {
+          missingTables.push(table)
+        }
+      }
+    }
+    
+    if (missingTables.length > 0) {
+      console.log(`Missing tables: ${missingTables.join(', ')}`)
+      console.log('Running migrations...')
+      
+      // Run migrations using drizzle-kit
+      const { exec } = require('child_process')
+      const util = require('util')
+      const execAsync = util.promisify(exec)
+      
+      try {
+        await execAsync('npm run db:push', { 
+          env: { 
+            ...process.env, 
+            DATABASE_URL: TEST_DATABASE_URL 
+          } 
+        })
+        console.log('Migrations completed successfully')
+      } catch (migrationError) {
+        console.error('Migration failed:', migrationError)
+        // Continue anyway - tests will fail if tables don't exist
+      }
+    }
+    
     return true
   } catch (error) {
-    // Tables don't exist, we need to run migrations
-    console.log('Test database tables not found, running migrations...')
-    // In a real setup, you'd run migrations here
-    // For now, we'll assume migrations are run manually
-    throw new Error('Test database not initialized. Please run: npm run setup:test-db')
+    console.error('Test database initialization failed:', error)
+    return false
   }
 }
 
@@ -43,11 +88,27 @@ export async function resetTestDatabase() {
 // Helper to clear test database tables (no schema drop)
 export async function clearTestDatabase() {
   try {
+    // Clear in dependency order (foreign keys)
+    // Child tables first, then parent tables
+    await testClient`DELETE FROM session_activity`
+    await testClient`DELETE FROM user_sessions`
+    await testClient`DELETE FROM auth_attempts`
+    await testClient`DELETE FROM password_history`
+    await testClient`DELETE FROM accounts`
+    await testClient`DELETE FROM sessions`
+    await testClient`DELETE FROM verification_tokens`
     await testClient`DELETE FROM user_api_keys`
     await testClient`DELETE FROM users`
   } catch (error) {
     // Ignore errors if tables don't exist
-    console.log('Tables not found during cleanup, continuing...')
+    console.log('Some tables not found during cleanup, continuing...')
+    // Try to clear just the core tables that should exist
+    try {
+      await testClient`DELETE FROM user_api_keys`
+      await testClient`DELETE FROM users`
+    } catch (coreError) {
+      console.log('Core tables not found during cleanup')
+    }
   }
 }
 

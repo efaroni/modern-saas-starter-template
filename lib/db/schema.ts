@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, uuid, unique, integer, primaryKey } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, jsonb, uuid, unique, integer, primaryKey, boolean } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import type { AdapterAccountType } from 'next-auth/adapters'
 
@@ -69,6 +69,50 @@ export const userApiKeys = pgTable('user_api_keys', {
   uniqueUserProvider: unique().on(table.userId, table.provider)
 }))
 
+// Password history table to prevent password reuse
+export const passwordHistory = pgTable('password_history', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  passwordHash: text('password_hash').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+// Authentication attempts table for rate limiting and security monitoring
+export const authAttempts = pgTable('auth_attempts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  identifier: text('identifier').notNull(), // email or IP address
+  type: text('type').notNull(), // 'login', 'signup', 'password_reset'
+  success: boolean('success').notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+// Enhanced sessions table for session management
+export const userSessions = pgTable('user_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  sessionToken: text('session_token').notNull().unique(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  isActive: boolean('is_active').default(true).notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+// Session activity log for security monitoring
+export const sessionActivity = pgTable('session_activity', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  sessionId: uuid('session_id').references(() => userSessions.id, { onDelete: 'cascade' }).notNull(),
+  action: text('action').notNull(), // 'login', 'activity', 'logout', 'timeout', 'suspicious'
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  metadata: jsonb('metadata').$type<Record<string, any>>().default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users)
 export const selectUserSchema = createSelectSchema(users)
@@ -80,6 +124,14 @@ export const insertVerificationTokenSchema = createInsertSchema(verificationToke
 export const selectVerificationTokenSchema = createSelectSchema(verificationTokens)
 export const insertUserApiKeySchema = createInsertSchema(userApiKeys)
 export const selectUserApiKeySchema = createSelectSchema(userApiKeys)
+export const insertPasswordHistorySchema = createInsertSchema(passwordHistory)
+export const selectPasswordHistorySchema = createSelectSchema(passwordHistory)
+export const insertAuthAttemptSchema = createInsertSchema(authAttempts)
+export const selectAuthAttemptSchema = createSelectSchema(authAttempts)
+export const insertUserSessionSchema = createInsertSchema(userSessions)
+export const selectUserSessionSchema = createSelectSchema(userSessions)
+export const insertSessionActivitySchema = createInsertSchema(sessionActivity)
+export const selectSessionActivitySchema = createSelectSchema(sessionActivity)
 
 // Export types using the table structure
 export type User = typeof users.$inferSelect
@@ -92,3 +144,11 @@ export type VerificationToken = typeof verificationTokens.$inferSelect
 export type NewVerificationToken = typeof verificationTokens.$inferInsert
 export type InsertUserApiKey = typeof userApiKeys.$inferInsert
 export type SelectUserApiKey = typeof userApiKeys.$inferSelect
+export type PasswordHistory = typeof passwordHistory.$inferSelect
+export type NewPasswordHistory = typeof passwordHistory.$inferInsert
+export type AuthAttempt = typeof authAttempts.$inferSelect
+export type NewAuthAttempt = typeof authAttempts.$inferInsert
+export type UserSession = typeof userSessions.$inferSelect
+export type NewUserSession = typeof userSessions.$inferInsert
+export type SessionActivity = typeof sessionActivity.$inferSelect
+export type NewSessionActivity = typeof sessionActivity.$inferInsert

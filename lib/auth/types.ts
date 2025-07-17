@@ -21,6 +21,13 @@ export interface AuthResult<T = AuthUser> {
   success: boolean
   user?: T | null
   error?: string
+  passwordExpiration?: {
+    isExpired: boolean
+    isNearExpiration: boolean
+    daysUntilExpiration: number
+    mustChangePassword: boolean
+    graceLoginsRemaining: number
+  }
 }
 
 export interface AuthConfiguration {
@@ -42,8 +49,8 @@ export interface OAuthResult {
 }
 
 export interface AuthProvider {
-  authenticateUser(email: string, password: string): Promise<AuthResult>
-  createUser(userData: SignUpRequest): Promise<AuthResult>
+  authenticateUser(email: string, password: string, ipAddress?: string, userAgent?: string): Promise<AuthResult>
+  createUser(userData: SignUpRequest, ipAddress?: string, userAgent?: string): Promise<AuthResult>
   getUserById(id: string): Promise<AuthResult>
   getUserByEmail(email: string): Promise<AuthResult>
   updateUser(id: string, data: UpdateProfileRequest): Promise<AuthResult>
@@ -55,6 +62,14 @@ export interface AuthProvider {
   getAvailableOAuthProviders(): OAuthProvider[]
   isConfigured(): boolean
   getConfiguration(): AuthConfiguration
+  
+  // Email verification methods
+  sendEmailVerification(email: string): Promise<{ success: boolean; error?: string }>
+  verifyEmailWithToken(token: string): Promise<{ success: boolean; error?: string }>
+  
+  // Password reset methods
+  sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }>
+  resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; error?: string }>
 }
 
 export interface UpdateProfileRequest {

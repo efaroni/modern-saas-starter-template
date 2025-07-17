@@ -536,4 +536,22 @@ export class AuthService {
     
     return token
   }
+
+  // New email verification methods
+  async sendEmailVerification(email: string): Promise<{ success: boolean; error?: string }> {
+    return await this.provider.sendEmailVerification(email)
+  }
+
+  async verifyEmailWithToken(token: string): Promise<{ success: boolean; error?: string }> {
+    return await this.provider.verifyEmailWithToken(token)
+  }
+
+  // New password reset methods
+  async sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+    return await this.provider.sendPasswordReset(email)
+  }
+
+  async resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+    return await this.provider.resetPasswordWithToken(token, newPassword)
+  }
 }

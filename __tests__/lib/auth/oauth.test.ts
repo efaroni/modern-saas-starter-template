@@ -88,7 +88,7 @@ describe('OAuth Integration', () => {
     it('should handle OAuth provider timeout simulation', async () => {
       // Test the async nature of OAuth flow
       const startTime = Date.now()
-      await authService.signInWithOAuth('google')
+      await authService.signInWithOAuth('timeout-test')
       const endTime = Date.now()
       
       // Should take at least 1 second due to mock delay

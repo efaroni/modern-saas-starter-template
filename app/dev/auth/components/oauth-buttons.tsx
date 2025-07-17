@@ -23,14 +23,17 @@ export function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
     try {
       const result = await authService.signInWithOAuth(providerId)
       
-      if (result.success && result.user) {
+      if (result.success && result.redirectUrl) {
+        // Redirect to OAuth provider
+        window.location.href = result.redirectUrl
+      } else if (result.success && result.user) {
         onSuccess(result.user)
       } else {
         onError(result.error || 'OAuth sign in failed')
+        setLoadingProvider(null)
       }
     } catch {
       onError('An unexpected error occurred during OAuth sign in')
-    } finally {
       setLoadingProvider(null)
     }
   }

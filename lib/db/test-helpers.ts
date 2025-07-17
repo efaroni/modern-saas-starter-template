@@ -1,5 +1,5 @@
 import { testDb, testFactories, clearTestDatabase, initializeTestDatabase } from './test'
-import { userApiKeys, users } from './schema'
+import { userApiKeys, users, authAttempts, passwordHistory, userSessions, sessionActivity, accounts, sessions, verificationTokens } from './schema'
 import type { InsertUserApiKey } from './schema'
 import bcrypt from '@node-rs/bcrypt'
 
@@ -150,10 +150,8 @@ export class TestDatabaseManager {
       // Ensure database is initialized
       await initializeTestDatabase()
       
-      const existingUsers = await testDb.select().from(users).limit(1)
-      if (existingUsers.length === 0) {
-        await testDb.insert(users).values(testFixtures.users)
-      }
+      // Don't seed test users automatically - let tests create their own data
+      // This prevents conflicts between tests
     } catch (error) {
       console.log('Database not ready, skipping seed:', error)
     }
@@ -373,7 +371,40 @@ export const authTestHelpers = {
 
   // Clean up auth-specific test data
   async cleanupAuthData(): Promise<void> {
-    await testDb.delete(users)
+    try {
+      // Delete in correct order due to foreign key constraints
+      // Child tables first, then parent tables
+      
+      // 1. Delete session activity (references userSessions)
+      await testDb.delete(sessionActivity)
+      
+      // 2. Delete user sessions (references users)
+      await testDb.delete(userSessions)
+      
+      // 3. Delete auth attempts (references users)
+      await testDb.delete(authAttempts)
+      
+      // 4. Delete password history (references users)
+      await testDb.delete(passwordHistory)
+      
+      // 5. Delete OAuth accounts (references users)
+      await testDb.delete(accounts)
+      
+      // 6. Delete NextAuth sessions (references users)
+      await testDb.delete(sessions)
+      
+      // 7. Delete verification tokens
+      await testDb.delete(verificationTokens)
+      
+      // 8. Delete user API keys (references users)
+      await testDb.delete(userApiKeys)
+      
+      // 9. Finally delete users (parent table)
+      await testDb.delete(users)
+    } catch (error) {
+      console.error('Error cleaning up auth data:', error)
+      // Continue with the test even if cleanup fails
+    }
   },
 
   // Assert auth result structure
@@ -395,6 +426,29 @@ export const authTestHelpers = {
       expect(result).toHaveProperty('error')
       expect(typeof result.error).toBe('string')
     }
+  },
+
+  // Generate unique test email to prevent duplicates
+  generateUniqueEmail(prefix: string = 'test'): string {
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 8)
+    return `${prefix}-${timestamp}-${random}@example.com`
+  },
+
+  // Create test user with unique email
+  async createTestUser(overrides: Partial<InsertUser> = {}): Promise<any> {
+    const uniqueEmail = this.generateUniqueEmail()
+    const hashedPassword = await bcrypt.hash('password123', 10)
+    
+    const userData = {
+      email: uniqueEmail,
+      name: 'Test User',
+      password: hashedPassword,
+      ...overrides
+    }
+
+    const [user] = await testDb.insert(users).values(userData).returning()
+    return user
   },
 
   // Assert user structure (without password)

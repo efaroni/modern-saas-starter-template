@@ -120,8 +120,10 @@ export class MockAuthProvider implements AuthProvider {
   }
 
   async signInWithOAuth(provider: string): Promise<OAuthResult> {
-    // Simulate OAuth flow delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Simulate OAuth flow delay only for timeout tests
+    if (provider === 'timeout-test') {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    }
     
     // Mock OAuth providers
     const oauthUsers = {
@@ -336,5 +338,28 @@ export class MockAuthProvider implements AuthProvider {
       success: true,
       user: authUser
     }
+  }
+
+
+  // Email verification methods
+  async sendEmailVerification(email: string): Promise<{ success: boolean; error?: string }> {
+    // Mock implementation - just return success
+    return { success: true }
+  }
+
+  async verifyEmailWithToken(token: string): Promise<{ success: boolean; error?: string }> {
+    // Mock implementation - just return success
+    return { success: true }
+  }
+
+  // Password reset methods
+  async sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+    // Mock implementation - just return success
+    return { success: true }
+  }
+
+  async resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+    // Mock implementation - just return success
+    return { success: true }
   }
 }
