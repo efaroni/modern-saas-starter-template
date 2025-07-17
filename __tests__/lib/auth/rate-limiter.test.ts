@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'
 import { RateLimiter } from '@/lib/auth/rate-limiter'
 import { testHelpers } from '@/lib/db/test-helpers'
+import { testDb } from '@/lib/db/test'
 
 describe('RateLimiter', () => {
-  const rateLimiter = new RateLimiter()
+  const rateLimiter = new RateLimiter(testDb)
 
   beforeEach(async () => {
     await testHelpers.setupTest()
@@ -31,7 +32,7 @@ describe('RateLimiter', () => {
       expect(result.locked).toBe(false)
     })
 
-    it.skip('should differentiate between different action types', async () => {
+    it('should differentiate between different action types', async () => {
       const identifier = 'test@example.com'
       
       // Exhaust login attempts

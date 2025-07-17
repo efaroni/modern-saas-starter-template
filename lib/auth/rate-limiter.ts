@@ -36,8 +36,10 @@ export const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
 
 export class RateLimiter {
   private config: Record<string, RateLimitConfig>
+  private readonly database: typeof db
 
-  constructor(config: Record<string, RateLimitConfig> = DEFAULT_RATE_LIMITS) {
+  constructor(database: typeof db = db, config: Record<string, RateLimitConfig> = DEFAULT_RATE_LIMITS) {
+    this.database = database
     this.config = config
   }
 
@@ -64,7 +66,7 @@ export class RateLimiter {
 
     try {
       // Get recent attempts
-      const recentAttempts = await db
+      const recentAttempts = await this.database
         .select()
         .from(authAttempts)
         .where(
@@ -137,7 +139,19 @@ export class RateLimiter {
     userId?: string
   ): Promise<void> {
     try {
-      await db.insert(authAttempts).values({
+      // If userId is provided, verify it exists before inserting
+      if (userId) {
+        const { users } = await import('@/lib/db/schema')
+        const { eq } = await import('drizzle-orm')
+        const userExists = await this.database.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1)
+        
+        // If user doesn't exist, record attempt without userId to avoid foreign key error
+        if (userExists.length === 0) {
+          userId = undefined
+        }
+      }
+
+      await this.database.insert(authAttempts).values({
         identifier,
         type,
         success,
@@ -201,7 +215,7 @@ export class RateLimiter {
         conditions.push(eq(authAttempts.type, type))
       }
 
-      return await db
+      return await this.database
         .select()
         .from(authAttempts)
         .where(and(...conditions))

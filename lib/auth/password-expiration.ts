@@ -26,8 +26,10 @@ export interface PasswordExpirationResult {
 
 export class PasswordExpirationService {
   private config: PasswordExpirationConfig
+  private readonly database: typeof db
 
-  constructor(config: PasswordExpirationConfig = DEFAULT_PASSWORD_EXPIRATION_CONFIG) {
+  constructor(database: typeof db = db, config: PasswordExpirationConfig = DEFAULT_PASSWORD_EXPIRATION_CONFIG) {
+    this.database = database
     this.config = config
   }
 
@@ -54,7 +56,7 @@ export class PasswordExpirationService {
 
     try {
       // Get user's password update date
-      const [user] = await db
+      const [user] = await this.database
         .select({
           id: users.id,
           updatedAt: users.updatedAt,
@@ -119,7 +121,7 @@ export class PasswordExpirationService {
       const warningDate = new Date(Date.now() - (this.config.maxAge - this.config.warningDays) * 24 * 60 * 60 * 1000)
       const expirationDate = new Date(Date.now() - this.config.maxAge * 24 * 60 * 60 * 1000)
 
-      return await db
+      return await this.database
         .select({
           id: users.id,
           email: users.email,
@@ -146,7 +148,7 @@ export class PasswordExpirationService {
     try {
       const expirationDate = new Date(Date.now() - this.config.maxAge * 24 * 60 * 60 * 1000)
 
-      return await db
+      return await this.database
         .select({
           id: users.id,
           email: users.email,
@@ -167,7 +169,7 @@ export class PasswordExpirationService {
    */
   async markPasswordUpdated(userId: string): Promise<void> {
     try {
-      await db
+      await this.database
         .update(users)
         .set({ updatedAt: new Date() })
         .where(eq(users.id, userId))

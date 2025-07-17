@@ -2,16 +2,31 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
 
-// Test database configuration
+// Test database configuration with worker isolation
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://test_user:test_pass@localhost:5433/saas_template_test'
 
-// Create test database client
-const testClient = postgres(TEST_DATABASE_URL, {
-  max: 1, // Single connection for tests
-  idle_timeout: 20,
-  connect_timeout: 10
-})
+// Get worker ID for isolation (Jest sets JEST_WORKER_ID)
+const getWorkerId = () => {
+  const workerId = process.env.JEST_WORKER_ID || '1'
+  return workerId
+}
 
+// Create worker-specific database client
+const createWorkerTestClient = () => {
+  const workerId = getWorkerId()
+  return postgres(TEST_DATABASE_URL, {
+    max: 3, // Allow more connections per worker
+    idle_timeout: 20,
+    connect_timeout: 10,
+    // Add worker ID to connection for debugging
+    connection: {
+      application_name: `test_worker_${workerId}`
+    }
+  })
+}
+
+// Create test database client for this worker
+const testClient = createWorkerTestClient()
 export const testDb = drizzle(testClient, { schema })
 
 // Initialize test database (run migrations)
@@ -112,6 +127,65 @@ export async function clearTestDatabase() {
   }
 }
 
+// Worker-specific test data cleanup (safer for parallel execution)
+export async function clearWorkerTestData() {
+  try {
+    const workerId = getWorkerId()
+    const workerPrefix = `test-worker${workerId}-%`
+    
+    // Clear only data created by this worker based on email patterns
+    // Use simpler queries that are more reliable
+    
+    // First get worker-specific user IDs
+    const workerUsers = await testClient`
+      SELECT id FROM users WHERE email LIKE ${workerPrefix}
+    `
+    
+    if (workerUsers.length > 0) {
+      const userIds = workerUsers.map(u => u.id)
+      
+      // Delete related data for these users (in correct order for foreign keys)
+      for (const userId of userIds) {
+        // Check which tables exist and use correct column names
+        try {
+          await testClient`DELETE FROM session_activity WHERE user_id = ${userId}`
+        } catch (e) { /* Table may not exist */ }
+        
+        try {
+          await testClient`DELETE FROM user_sessions WHERE user_id = ${userId}`
+        } catch (e) { /* Table may not exist */ }
+        
+        try {
+          await testClient`DELETE FROM auth_attempts WHERE user_id = ${userId}`
+        } catch (e) { /* Table may not exist */ }
+        
+        try {
+          await testClient`DELETE FROM password_history WHERE user_id = ${userId}`
+        } catch (e) { /* Table may not exist */ }
+        
+        try {
+          await testClient`DELETE FROM accounts WHERE user_id = ${userId}`
+        } catch (e) { /* Table may not exist */ }
+        
+        try {
+          await testClient`DELETE FROM sessions WHERE user_id = ${userId}`
+        } catch (e) { /* Table may not exist */ }
+        
+        try {
+          await testClient`DELETE FROM user_api_keys WHERE user_id = ${userId}`
+        } catch (e) { /* Table may not exist */ }
+      }
+    }
+    
+    // Clear verification tokens and users with worker prefix
+    await testClient`DELETE FROM verification_tokens WHERE identifier LIKE ${workerPrefix}`
+    await testClient`DELETE FROM users WHERE email LIKE ${workerPrefix}`
+    
+  } catch (error) {
+    console.log('Worker test data cleanup failed:', error)
+  }
+}
+
 // Close test database connection
 export async function closeTestDatabase() {
   try {
@@ -123,9 +197,27 @@ export async function closeTestDatabase() {
 
 // Test database helpers for isolation
 export async function withTestTransaction<T>(fn: (db: any) => Promise<T>): Promise<T> {
-  // For now, we'll use the regular test database
-  // In a more sophisticated setup, we'd use actual transactions
-  return await fn(testDb)
+  // Use actual database transactions for test isolation
+  return await testDb.transaction(async (tx) => {
+    const result = await fn(tx)
+    // Throw an error to force rollback and maintain test isolation
+    throw new TestTransactionRollback(result)
+  }).catch((error) => {
+    // If it's our intentional rollback, return the result
+    if (error instanceof TestTransactionRollback) {
+      return error.result
+    }
+    // Otherwise, re-throw the actual error
+    throw error
+  })
+}
+
+// Custom error class for intentional transaction rollback
+class TestTransactionRollback extends Error {
+  constructor(public result: any) {
+    super('Test transaction rollback')
+    this.name = 'TestTransactionRollback'
+  }
 }
 
 // Factory functions for test data

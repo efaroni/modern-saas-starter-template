@@ -3,6 +3,7 @@ import { DatabaseAuthProvider } from '@/lib/auth/providers/database'
 import { testHelpers, authTestHelpers } from '@/lib/db/test-helpers'
 import { getDatabasePool } from '@/lib/db/connection-pool'
 import { sessionCache } from '@/lib/cache/session-cache'
+import { testDb } from '@/lib/db/test'
 
 // Load testing configuration
 const LOAD_TEST_CONFIG = {
@@ -27,13 +28,13 @@ interface LoadTestResult {
   concurrentUsers: number
 }
 
-describe.skip('Authentication Load Tests', () => {
+describe('Authentication Load Tests', () => {
   let provider: DatabaseAuthProvider
   let testUsers: Array<{ email: string; password: string; userId?: string }> = []
 
   beforeAll(async () => {
     await testHelpers.setupTest()
-    provider = new DatabaseAuthProvider()
+    provider = new DatabaseAuthProvider(testDb)
     
     // Create test users for load testing
     console.log('Creating test users for load testing...')

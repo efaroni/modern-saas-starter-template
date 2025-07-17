@@ -23,6 +23,7 @@ const customJestConfig = {
     'drizzle.config.ts',
     '/e2e/',
     '/accessibility/',
+    '/__tests__/load/', // Exclude load tests from regular test runs
   ],
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',
@@ -42,6 +43,10 @@ const customJestConfig = {
       useESM: true,
     },
   },
+  // Configure parallel execution - use 2 workers to reduce race conditions
+  maxWorkers: 2,
+  // Configure test timeout - longer for better stability
+  testTimeout: 45000,
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

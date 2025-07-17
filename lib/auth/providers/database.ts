@@ -13,10 +13,18 @@ import { authLogger, timeOperation } from '../logger'
 export class DatabaseAuthProvider implements AuthProvider {
   private readonly bcryptRounds = 12
   private readonly passwordValidator = new PasswordValidator(DEFAULT_PASSWORD_POLICY)
-  private readonly rateLimiter = new RateLimiter()
-  private readonly passwordExpiration = new PasswordExpirationService(DEFAULT_PASSWORD_EXPIRATION_CONFIG)
+  private readonly rateLimiter: RateLimiter
+  private readonly passwordExpiration: PasswordExpirationService
   private readonly passwordHistoryLimit = 5
-  private readonly tokenService = new TokenService()
+  private readonly tokenService: TokenService
+  private readonly database: typeof db
+
+  constructor(database: typeof db = db) {
+    this.database = database
+    this.rateLimiter = new RateLimiter(database)
+    this.passwordExpiration = new PasswordExpirationService(database, DEFAULT_PASSWORD_EXPIRATION_CONFIG)
+    this.tokenService = new TokenService(database)
+  }
 
   async authenticateUser(email: string, password: string, ipAddress?: string, userAgent?: string): Promise<AuthResult> {
     const startTime = Date.now()
@@ -66,7 +74,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
 
         // Find user by email
-        const [user] = await db
+        const [user] = await this.database
           .select()
           .from(users)
           .where(eq(users.email, email))
@@ -213,7 +221,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Check if user already exists
-      const [existingUser] = await db
+      const [existingUser] = await this.database
         .select()
         .from(users)
         .where(eq(users.email, email))
@@ -231,7 +239,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       const hashedPassword = await bcrypt.hash(password, this.bcryptRounds)
 
       // Create new user
-      const [newUser] = await db
+      const [newUser] = await this.database
         .insert(users)
         .values({
           email,
@@ -243,7 +251,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         .returning()
 
       // Store password in history
-      await db.insert(passwordHistory).values({
+      await this.database.insert(passwordHistory).values({
         userId: newUser.id,
         passwordHash: hashedPassword
       })
@@ -306,7 +314,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
       }
 
-      const [user] = await db
+      const [user] = await this.database
         .select()
         .from(users)
         .where(eq(users.id, id))
@@ -335,7 +343,7 @@ export class DatabaseAuthProvider implements AuthProvider {
 
   async getUserByEmail(email: string): Promise<AuthResult> {
     try {
-      const [user] = await db
+      const [user] = await this.database
         .select()
         .from(users)
         .where(eq(users.email, email))
@@ -374,7 +382,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Check if user exists
-      const [existingUser] = await db
+      const [existingUser] = await this.database
         .select()
         .from(users)
         .where(eq(users.id, id))
@@ -398,7 +406,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
 
         // Check if email is already taken by another user
-        const [emailExists] = await db
+        const [emailExists] = await this.database
           .select()
           .from(users)
           .where(eq(users.email, data.email))
@@ -425,7 +433,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       if (data.image !== undefined) updateData.image = data.image
 
       // Update user
-      const [updatedUser] = await db
+      const [updatedUser] = await this.database
         .update(users)
         .set(updateData)
         .where(eq(users.id, id))
@@ -457,7 +465,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
       }
 
-      const [deletedUser] = await db
+      const [deletedUser] = await this.database
         .delete(users)
         .where(eq(users.id, id))
         .returning()
@@ -492,7 +500,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
       }
 
-      const [updatedUser] = await db
+      const [updatedUser] = await this.database
         .update(users)
         .set({ 
           emailVerified: new Date(),
@@ -535,7 +543,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Get user with password
-      const [user] = await db
+      const [user] = await this.database
         .select()
         .from(users)
         .where(eq(users.id, id))
@@ -570,7 +578,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Check password history
-      const recentPasswords = await db
+      const recentPasswords = await this.database
         .select()
         .from(passwordHistory)
         .where(eq(passwordHistory.userId, id))
@@ -591,7 +599,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds)
 
       // Update password
-      const [updatedUser] = await db
+      const [updatedUser] = await this.database
         .update(users)
         .set({ 
           password: hashedPassword,
@@ -600,17 +608,22 @@ export class DatabaseAuthProvider implements AuthProvider {
         .where(eq(users.id, id))
         .returning()
 
-      // Store password in history
-      await db.insert(passwordHistory).values({
-        userId: id,
-        passwordHash: hashedPassword
-      })
+      // Store password in history (only if user still exists)
+      try {
+        await this.database.insert(passwordHistory).values({
+          userId: id,
+          passwordHash: hashedPassword
+        })
+      } catch (error) {
+        // Don't fail password change if history insertion fails
+        console.error('Failed to store password history:', error)
+      }
 
       // Mark password as updated for expiration tracking
       await this.passwordExpiration.markPasswordUpdated(id)
 
       // Clean up old password history (keep only last N passwords)
-      const allPasswords = await db
+      const allPasswords = await this.database
         .select()
         .from(passwordHistory)
         .where(eq(passwordHistory.userId, id))
@@ -619,7 +632,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       if (allPasswords.length > this.passwordHistoryLimit) {
         const passwordsToDelete = allPasswords.slice(this.passwordHistoryLimit)
         for (const oldPassword of passwordsToDelete) {
-          await db
+          await this.database
             .delete(passwordHistory)
             .where(eq(passwordHistory.id, oldPassword.id))
         }
@@ -652,7 +665,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Get user info for password validation
-      const [user] = await db
+      const [user] = await this.database
         .select()
         .from(users)
         .where(eq(users.id, id))
@@ -678,7 +691,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Check password history
-      const recentPasswords = await db
+      const recentPasswords = await this.database
         .select()
         .from(passwordHistory)
         .where(eq(passwordHistory.userId, id))
@@ -699,7 +712,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds)
 
       // Update password (no current password verification needed for reset)
-      const [updatedUser] = await db
+      const [updatedUser] = await this.database
         .update(users)
         .set({ 
           password: hashedPassword,
@@ -715,17 +728,22 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
       }
 
-      // Store password in history
-      await db.insert(passwordHistory).values({
-        userId: id,
-        passwordHash: hashedPassword
-      })
+      // Store password in history (only if user still exists)
+      try {
+        await this.database.insert(passwordHistory).values({
+          userId: id,
+          passwordHash: hashedPassword
+        })
+      } catch (error) {
+        // Don't fail password change if history insertion fails
+        console.error('Failed to store password history:', error)
+      }
 
       // Mark password as updated for expiration tracking
       await this.passwordExpiration.markPasswordUpdated(id)
 
       // Clean up old password history (keep only last N passwords)
-      const allPasswords = await db
+      const allPasswords = await this.database
         .select()
         .from(passwordHistory)
         .where(eq(passwordHistory.userId, id))
@@ -734,7 +752,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       if (allPasswords.length > this.passwordHistoryLimit) {
         const passwordsToDelete = allPasswords.slice(this.passwordHistoryLimit)
         for (const oldPassword of passwordsToDelete) {
-          await db
+          await this.database
             .delete(passwordHistory)
             .where(eq(passwordHistory.id, oldPassword.id))
         }
@@ -827,7 +845,7 @@ export class DatabaseAuthProvider implements AuthProvider {
   async sendEmailVerification(email: string): Promise<{ success: boolean; error?: string }> {
     try {
       // Check if user exists
-      const [user] = await db
+      const [user] = await this.database
         .select()
         .from(users)
         .where(eq(users.email, email))
@@ -894,14 +912,14 @@ export class DatabaseAuthProvider implements AuthProvider {
       
       // For now, we need to check all users to find the matching email
       // In a production system, you might want to include the email in the URL
-      const allUsers = await db.select().from(users)
+      const allUsers = await this.database.select().from(users)
       
       for (const user of allUsers) {
         const verification = await this.tokenService.verifyToken(token, user.email)
         
         if (verification.valid && verification.type === 'email_verification') {
           // Mark email as verified
-          await db
+          await this.database
             .update(users)
             .set({ 
               emailVerified: new Date(),
@@ -942,7 +960,7 @@ export class DatabaseAuthProvider implements AuthProvider {
   async sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
     try {
       // Check if user exists
-      const [user] = await db
+      const [user] = await this.database
         .select()
         .from(users)
         .where(eq(users.email, email))
@@ -989,7 +1007,7 @@ export class DatabaseAuthProvider implements AuthProvider {
     try {
       // For now, we need to check all users to find the matching email
       // In a production system, you might want to include the email in the URL
-      const allUsers = await db.select().from(users)
+      const allUsers = await this.database.select().from(users)
       
       for (const user of allUsers) {
         const verification = await this.tokenService.verifyToken(token, user.email)
@@ -1008,7 +1026,7 @@ export class DatabaseAuthProvider implements AuthProvider {
           }
           
           // Check password history
-          const recentPasswords = await db
+          const recentPasswords = await this.database
             .select()
             .from(passwordHistory)
             .where(eq(passwordHistory.userId, user.id))
@@ -1029,7 +1047,7 @@ export class DatabaseAuthProvider implements AuthProvider {
           const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds)
           
           // Update password
-          await db
+          await this.database
             .update(users)
             .set({ 
               password: hashedPassword,
@@ -1038,7 +1056,7 @@ export class DatabaseAuthProvider implements AuthProvider {
             .where(eq(users.id, user.id))
           
           // Store password in history
-          await db.insert(passwordHistory).values({
+          await this.database.insert(passwordHistory).values({
             userId: user.id,
             passwordHash: hashedPassword
           })

@@ -53,7 +53,8 @@ beforeAll(async () => {
   try {
     // Initialize test database before all tests
     await initializeTestDatabase()
-    await resetTestDatabase()
+    // Remove global database reset to prevent race conditions
+    // Individual tests will handle their own setup/teardown
   } catch (error) {
     console.log('Test database initialization failed:', error)
   }

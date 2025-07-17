@@ -1,4 +1,4 @@
-import { testDb, testFactories, clearTestDatabase, initializeTestDatabase } from './test'
+import { testDb, testFactories, clearTestDatabase, initializeTestDatabase, clearWorkerTestData } from './test'
 import { userApiKeys, users, authAttempts, passwordHistory, userSessions, sessionActivity, accounts, sessions, verificationTokens } from './schema'
 import type { InsertUserApiKey } from './schema'
 import bcrypt from '@node-rs/bcrypt'
@@ -201,21 +201,26 @@ export async function withTestTransaction<T>(
 
 // Test setup and teardown helpers
 export const testHelpers = {
-  // Setup before each test (truncate tables, seed minimal data)
+  // Setup before each test (worker-specific cleanup)
   async setupTest(): Promise<void> {
-    const dbManager = TestDatabaseManager.getInstance()
     try {
-      await dbManager.clearAllData()
-      await dbManager.seedMinimalData()
+      // Use worker-specific cleanup instead of clearing all data
+      await clearWorkerTestData()
+      // Initialize database if needed (but don't clear all data)
+      await initializeTestDatabase()
     } catch (error) {
       console.log('Test setup failed, database may not be ready:', error)
     }
   },
 
-  // Teardown after each test (truncate tables)
+  // Teardown after each test (worker-specific cleanup)
   async teardownTest(): Promise<void> {
-    const dbManager = TestDatabaseManager.getInstance()
-    await dbManager.clearAllData()
+    try {
+      // Use worker-specific cleanup to avoid affecting other workers
+      await clearWorkerTestData()
+    } catch (error) {
+      console.log('Test teardown failed:', error)
+    }
   },
 
   // Setup for specific test scenarios
@@ -407,6 +412,40 @@ export const authTestHelpers = {
     }
   },
 
+  // Clean up test data created by specific test suite (more isolated)
+  async cleanupTestSuiteData(testSuitePattern: string): Promise<void> {
+    try {
+      const { like, eq } = await import('drizzle-orm')
+      
+      // Delete users whose email contains the test suite pattern
+      const testUsers = await testDb.select().from(users).where(like(users.email, `%${testSuitePattern}%`))
+      
+      if (testUsers.length > 0) {
+        const userIds = testUsers.map(u => u.id)
+        
+        // Delete in correct order due to foreign key constraints
+        for (const userId of userIds) {
+          await testDb.delete(sessionActivity).where(eq(sessionActivity.userId, userId))
+          await testDb.delete(userSessions).where(eq(userSessions.userId, userId))
+          await testDb.delete(authAttempts).where(eq(authAttempts.userId, userId))
+          await testDb.delete(passwordHistory).where(eq(passwordHistory.userId, userId))
+          await testDb.delete(accounts).where(eq(accounts.userId, userId))
+          await testDb.delete(sessions).where(eq(sessions.userId, userId))
+          await testDb.delete(userApiKeys).where(eq(userApiKeys.userId, userId))
+        }
+        
+        // Delete verification tokens by identifier pattern
+        await testDb.delete(verificationTokens).where(like(verificationTokens.identifier, `%${testSuitePattern}%`))
+        
+        // Finally delete users
+        await testDb.delete(users).where(like(users.email, `%${testSuitePattern}%`))
+      }
+    } catch (error) {
+      console.error('Error cleaning up test suite data:', error)
+      // Continue with the test even if cleanup fails
+    }
+  },
+
   // Assert auth result structure
   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
     expect(result).toHaveProperty('success')
@@ -431,8 +470,12 @@ export const authTestHelpers = {
   // Generate unique test email to prevent duplicates
   generateUniqueEmail(prefix: string = 'test'): string {
     const timestamp = Date.now()
+    const processId = process.pid
+    const workerId = process.env.JEST_WORKER_ID || '1'
     const random = Math.random().toString(36).substring(2, 8)
-    return `${prefix}-${timestamp}-${random}@example.com`
+    const counter = Math.floor(Math.random() * 10000)
+    // Add worker ID for parallel test isolation
+    return `test-worker${workerId}-${prefix}-${timestamp}-${processId}-${counter}-${random}@example.com`
   },
 
   // Create test user with unique email

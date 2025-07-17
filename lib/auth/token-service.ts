@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { verificationTokens } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, lt } from 'drizzle-orm'
 import { randomBytes } from 'crypto'
 
 export type TokenType = 'email_verification' | 'password_reset'
@@ -12,6 +12,11 @@ export interface TokenData {
 }
 
 export class TokenService {
+  private readonly database: typeof db
+
+  constructor(database: typeof db = db) {
+    this.database = database
+  }
   /**
    * Generate a secure token for email verification or password reset
    */
@@ -31,7 +36,7 @@ export class TokenService {
     
     try {
       // Delete any existing tokens for this identifier and type
-      await db
+      await this.database
         .delete(verificationTokens)
         .where(
           and(
@@ -41,7 +46,7 @@ export class TokenService {
         )
       
       // Insert new token
-      await db.insert(verificationTokens).values({
+      await this.database.insert(verificationTokens).values({
         identifier,
         token: fullToken,
         expires
@@ -64,7 +69,7 @@ export class TokenService {
   async verifyToken(token: string, identifier: string): Promise<{ valid: boolean; type?: TokenType }> {
     try {
       // Find the token
-      const [tokenRecord] = await db
+      const [tokenRecord] = await this.database
         .select()
         .from(verificationTokens)
         .where(
@@ -82,7 +87,7 @@ export class TokenService {
       // Check if token has expired
       if (new Date() > tokenRecord.expires) {
         // Delete expired token
-        await db
+        await this.database
           .delete(verificationTokens)
           .where(
             and(
@@ -94,7 +99,7 @@ export class TokenService {
       }
       
       // Token is valid, delete it (consume it)
-      await db
+      await this.database
         .delete(verificationTokens)
         .where(
           and(
@@ -118,11 +123,11 @@ export class TokenService {
    */
   async cleanupExpiredTokens(): Promise<void> {
     try {
-      await db
+      await this.database
         .delete(verificationTokens)
         .where(
           // Remove tokens that have expired
-          eq(verificationTokens.expires, new Date())
+          lt(verificationTokens.expires, new Date())
         )
     } catch (error) {
       console.error('Failed to cleanup expired tokens:', error)
@@ -134,7 +139,7 @@ export class TokenService {
    */
   async getTokensForIdentifier(identifier: string): Promise<Array<{ token: string; expires: Date }>> {
     try {
-      const tokens = await db
+      const tokens = await this.database
         .select()
         .from(verificationTokens)
         .where(eq(verificationTokens.identifier, identifier))
@@ -154,7 +159,7 @@ export class TokenService {
    */
   async deleteTokensForIdentifier(identifier: string): Promise<void> {
     try {
-      await db
+      await this.database
         .delete(verificationTokens)
         .where(eq(verificationTokens.identifier, identifier))
     } catch (error) {

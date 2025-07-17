@@ -3,7 +3,7 @@ import { SessionManager, DEFAULT_SECURITY_CONFIG } from '@/lib/auth/session-mana
 import { testHelpers, authTestHelpers } from '@/lib/db/test-helpers'
 import { AuthUser } from '@/lib/auth/types'
 
-describe.skip('SessionManager', () => {
+describe('SessionManager', () => {
   let sessionManager: SessionManager
   let testUser: AuthUser
 
@@ -12,7 +12,8 @@ describe.skip('SessionManager', () => {
     
     // Create a real user in the database for session tests
     const { DatabaseAuthProvider } = require('@/lib/auth/providers/database')
-    const provider = new DatabaseAuthProvider()
+    const { testDb } = require('@/lib/db/test')
+    const provider = new DatabaseAuthProvider(testDb)
     const uniqueEmail = authTestHelpers.generateUniqueEmail('session')
     const result = await provider.createUser({
       email: uniqueEmail,

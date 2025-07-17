@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'
 import { DatabaseAuthProvider } from '@/lib/auth/providers/database'
 import { testHelpers, authTestHelpers } from '@/lib/db/test-helpers'
 import { TokenService } from '@/lib/auth/token-service'
+import { testDb } from '@/lib/db/test'
 
 describe('Email Integration', () => {
   let provider: DatabaseAuthProvider
@@ -9,8 +10,8 @@ describe('Email Integration', () => {
 
   beforeEach(async () => {
     await testHelpers.setupTest()
-    provider = new DatabaseAuthProvider()
-    tokenService = new TokenService()
+    provider = new DatabaseAuthProvider(testDb)
+    tokenService = new TokenService(testDb)
   })
 
   afterEach(async () => {
