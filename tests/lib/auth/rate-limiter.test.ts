@@ -16,7 +16,9 @@ describe('RateLimiter', () => {
 
   describe('checkRateLimit', () => {
     it('should allow requests within rate limit', async () => {
-      const result = await rateLimiter.checkRateLimit('test@example.com', 'login')
+      // Use a unique identifier to avoid conflicts with other tests
+      const testIdentifier = `test-${Date.now()}-${Math.random()}@example.com`
+      const result = await rateLimiter.checkRateLimit(testIdentifier, 'login')
       
       expect(result.allowed).toBe(true)
       expect(result.remaining).toBe(5)
@@ -25,7 +27,8 @@ describe('RateLimiter', () => {
     })
 
     it('should handle unknown action types gracefully', async () => {
-      const result = await rateLimiter.checkRateLimit('test@example.com', 'unknown')
+      const testIdentifier = `test-${Date.now()}-${Math.random()}@example.com`
+      const result = await rateLimiter.checkRateLimit(testIdentifier, 'unknown')
       
       expect(result.allowed).toBe(true)
       expect(result.remaining).toBe(999)
@@ -33,7 +36,7 @@ describe('RateLimiter', () => {
     })
 
     it('should differentiate between different action types', async () => {
-      const identifier = 'test@example.com'
+      const identifier = `test-${Date.now()}-${Math.random()}@example.com`
       
       // Exhaust login attempts
       for (let i = 0; i < 5; i++) {
@@ -53,21 +56,24 @@ describe('RateLimiter', () => {
 
   describe('recordAttempt', () => {
     it('should record successful attempts', async () => {
-      await rateLimiter.recordAttempt('test@example.com', 'login', true, '127.0.0.1', 'TestAgent')
+      const testIdentifier = `test-${Date.now()}-${Math.random()}@example.com`
+      await rateLimiter.recordAttempt(testIdentifier, 'login', true, '127.0.0.1', 'TestAgent')
       
       // This should not throw an error
       expect(true).toBe(true)
     })
 
     it('should record failed attempts', async () => {
-      await rateLimiter.recordAttempt('test@example.com', 'login', false, '127.0.0.1', 'TestAgent')
+      const testIdentifier = `test-${Date.now()}-${Math.random()}@example.com`
+      await rateLimiter.recordAttempt(testIdentifier, 'login', false, '127.0.0.1', 'TestAgent')
       
       // This should not throw an error
       expect(true).toBe(true)
     })
 
     it('should handle missing optional parameters', async () => {
-      await rateLimiter.recordAttempt('test@example.com', 'login', true)
+      const testIdentifier = `test-${Date.now()}-${Math.random()}@example.com`
+      await rateLimiter.recordAttempt(testIdentifier, 'login', true)
       
       // This should not throw an error
       expect(true).toBe(true)
@@ -92,8 +98,9 @@ describe('RateLimiter', () => {
 
   describe('clearAttempts', () => {
     it('should clear attempts without throwing error', async () => {
-      await rateLimiter.recordAttempt('test@example.com', 'login', false)
-      await rateLimiter.clearAttempts('test@example.com', 'login')
+      const testIdentifier = `test-${Date.now()}-${Math.random()}@example.com`
+      await rateLimiter.recordAttempt(testIdentifier, 'login', false)
+      await rateLimiter.clearAttempts(testIdentifier, 'login')
       
       // This should not throw an error
       expect(true).toBe(true)

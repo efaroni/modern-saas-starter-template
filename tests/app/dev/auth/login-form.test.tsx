@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
-import { LoginForm } from '@/app/dev/auth/components/login-form'
+import { LoginForm } from '@/app/(dev)/auth/components/login-form'
 
 // Create a more direct mock approach
 const mockSignIn = jest.fn()

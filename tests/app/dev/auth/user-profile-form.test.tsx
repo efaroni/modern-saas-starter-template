@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
-import { UserProfileForm } from '@/app/dev/auth/components/user-profile-form'
+import { UserProfileForm } from '@/app/(dev)/auth/components/user-profile-form'
 import type { AuthUser } from '@/lib/auth/types'
 
 // Mock the auth service with comprehensive mock object
