@@ -36,7 +36,7 @@ export function DeleteAccountForm({ user, onSuccess, onError }: DeleteAccountFor
     resolver: zodResolver(deleteAccountSchema)
   })
 
-  const onSubmit = async (data: DeleteAccountFormData) => {
+  const onSubmit = async (_data: DeleteAccountFormData) => {
     setIsSubmitting(true)
     try {
       const result = await authService.deleteUserAccount(user.id)

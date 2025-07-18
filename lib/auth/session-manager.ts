@@ -82,8 +82,7 @@ export class SessionManager {
         }
       }
     } catch (error) {
-      console.error('Failed to create session:', error)
-      throw new Error('Session creation failed')
+      throw new Error(`Session creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -261,7 +260,6 @@ export class SessionManager {
     try {
       // The cleanup is handled internally by DatabaseSessionStorage
       // We could add more sophisticated cleanup logic here
-      console.log('Session cleanup completed')
     } catch (error) {
       console.error('Failed to cleanup expired sessions:', error)
     }

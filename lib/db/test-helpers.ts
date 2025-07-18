@@ -1,4 +1,4 @@
-import { testDb, testFactories, clearTestDatabase, initializeTestDatabase, clearWorkerTestData } from './test'
+import { testDb, clearTestDatabase, initializeTestDatabase, clearWorkerTestData } from './test'
 import { userApiKeys, users, authAttempts, passwordHistory, userSessions, sessionActivity, accounts, sessions, verificationTokens } from './schema'
 import type { InsertUserApiKey } from './schema'
 import bcrypt from '@node-rs/bcrypt'
@@ -272,39 +272,39 @@ export const testHelpers = {
 
   // Helper for testing complete CRUD workflows
   async testCRUDWorkflow<T>(
-    createFn: (data: any) => Promise<any>,
-    readFn: (id: string) => Promise<any>,
-    updateFn: (id: string, data: any) => Promise<any>,
-    deleteFn: (id: string) => Promise<any>,
-    testData: any
+    createFn: (data: unknown) => Promise<unknown>,
+    readFn: (id: string) => Promise<unknown>,
+    updateFn: (id: string, data: unknown) => Promise<unknown>,
+    deleteFn: (id: string) => Promise<unknown>,
+    testData: unknown
   ): Promise<void> {
     // CREATE
     const createResult = await createFn(testData)
-    expect(createResult.success).toBe(true)
-    const id = createResult.data?.id
+    expect((createResult as { success: boolean }).success).toBe(true)
+    const id = (createResult as { data?: { id: string } }).data?.id
     expect(id).toBeDefined()
 
     // READ
     const readResult = await readFn(id)
-    expect(readResult.success).toBe(true)
-    expect(readResult.data?.id).toBe(id)
+    expect((readResult as { success: boolean }).success).toBe(true)
+    expect((readResult as { data?: { id: string } }).data?.id).toBe(id)
 
     // UPDATE
-    const updateData = { ...testData, name: 'Updated Name' }
+    const updateData = { ...(testData as Record<string, unknown>), name: 'Updated Name' }
     const updateResult = await updateFn(id, updateData)
-    expect(updateResult.success).toBe(true)
+    expect((updateResult as { success: boolean }).success).toBe(true)
 
     // Verify update
     const updatedReadResult = await readFn(id)
-    expect(updatedReadResult.data?.name).toBe('Updated Name')
+    expect((updatedReadResult as { data?: { name: string } }).data?.name).toBe('Updated Name')
 
     // DELETE
     const deleteResult = await deleteFn(id)
-    expect(deleteResult.success).toBe(true)
+    expect((deleteResult as { success: boolean }).success).toBe(true)
 
     // Verify deletion
     const deletedReadResult = await readFn(id)
-    expect(deletedReadResult.success).toBe(false)
+    expect((deletedReadResult as { success: boolean }).success).toBe(false)
   }
 }
 
@@ -447,23 +447,24 @@ export const authTestHelpers = {
   },
 
   // Assert auth result structure
-  assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+  assertAuthResult(result: unknown, expectedSuccess: boolean, expectUser: boolean = true): void {
     expect(result).toHaveProperty('success')
-    expect(result.success).toBe(expectedSuccess)
+    expect((result as { success: boolean }).success).toBe(expectedSuccess)
     
     if (expectedSuccess) {
       if (expectUser) {
         expect(result).toHaveProperty('user')
-        if (result.user) {
-          expect(result.user).toHaveProperty('id')
-          expect(result.user).toHaveProperty('email')
-          expect(result.user).not.toHaveProperty('password') // Password should not be exposed
+        const user = (result as { user?: { id: string; email: string } }).user
+        if (user) {
+          expect(user).toHaveProperty('id')
+          expect(user).toHaveProperty('email')
+          expect(user).not.toHaveProperty('password') // Password should not be exposed
         }
       }
-      expect(result.error).toBeUndefined()
+      expect((result as { error?: unknown }).error).toBeUndefined()
     } else {
       expect(result).toHaveProperty('error')
-      expect(typeof result.error).toBe('string')
+      expect(typeof (result as { error: unknown }).error).toBe('string')
     }
   },
 
@@ -479,7 +480,7 @@ export const authTestHelpers = {
   },
 
   // Create test user with unique email
-  async createTestUser(overrides: Partial<InsertUser> = {}): Promise<any> {
+  async createTestUser(overrides: Partial<InsertUser> = {}): Promise<unknown> {
     const uniqueEmail = this.generateUniqueEmail()
     const hashedPassword = await bcrypt.hash('password123', 10)
     
@@ -495,7 +496,7 @@ export const authTestHelpers = {
   },
 
   // Assert user structure (without password)
-  assertUserStructure(user: any): void {
+  assertUserStructure(user: unknown): void {
     expect(user).toHaveProperty('id')
     expect(user).toHaveProperty('email')
     expect(user).toHaveProperty('name')

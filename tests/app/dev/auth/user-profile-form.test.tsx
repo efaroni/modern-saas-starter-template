@@ -133,7 +133,7 @@ describe('UserProfileForm', () => {
     expect(changeAvatarButton).toBeInTheDocument()
     expect(removeAvatarButton).toBeInTheDocument()
     expect(avatarImage).toBeInTheDocument()
-    expect(avatarImage).toHaveAttribute('src', 'https://example.com/avatar.jpg')
+    expect(avatarImage).toHaveAttribute('src', expect.stringContaining('_next/image'))
     
     // Buttons should be clickable
     expect(changeAvatarButton).not.toBeDisabled()

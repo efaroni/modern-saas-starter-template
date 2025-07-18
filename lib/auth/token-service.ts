@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { verificationTokens } from '@/lib/db/schema'
-import { eq, and, lt } from 'drizzle-orm'
+import { eq, and, lt, like } from 'drizzle-orm'
 import { randomBytes } from 'crypto'
 
 export type TokenType = 'email_verification' | 'password_reset'
@@ -41,7 +41,7 @@ export class TokenService {
         .where(
           and(
             eq(verificationTokens.identifier, identifier),
-            eq(verificationTokens.token, fullToken)
+            like(verificationTokens.token, `${type}:%`)
           )
         )
       

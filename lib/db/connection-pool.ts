@@ -99,8 +99,8 @@ export class DatabaseConnectionPool {
         ...this.config.transform,
         // Add query timing
         column: {
-          to: (column: any) => column,
-          from: (column: any) => column,
+          to: (column: unknown) => column,
+          from: (column: unknown) => column,
         },
       },
     })
@@ -186,7 +186,7 @@ export class DatabaseConnectionPool {
       await this.sql`SELECT 1`
       
       // Get connection pool stats if available
-      const poolStats = (this.sql as any).options
+      const poolStats = (this.sql as unknown as { options?: { active?: number; idle?: number; total?: number } }).options
       
       this.healthStats.healthy = true
       this.healthStats.connections = {
@@ -197,7 +197,7 @@ export class DatabaseConnectionPool {
       }
       
       return this.healthStats
-    } catch (error) {
+    } catch {
       this.healthStats.healthy = false
       this.healthStats.errors.connectionErrors++
       return this.healthStats

@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { userApiKeyService } from '@/lib/user-api-keys/service'
+import { SelectUserApiKey } from '@/lib/db/schema'
 
 export default function ServiceTestPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<SelectUserApiKey[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -14,8 +15,8 @@ export default function ServiceTestPage() {
     try {
       const result = await userApiKeyService.list()
       setKeys(result)
-    } catch (err: any) {
-      setError(err.message || 'Unknown error')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setLoading(false)
     }

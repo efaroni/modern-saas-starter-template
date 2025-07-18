@@ -12,8 +12,8 @@ export default function MinimalConfigPage() {
       const { userApiKeyService } = await import('@/lib/user-api-keys/service')
       const result = await userApiKeyService.list()
       setMessage(`Success: Found ${result.length} API keys`)
-    } catch (error: any) {
-      setMessage(`Error: ${error.message}`)
+    } catch (error: unknown) {
+      setMessage(`Error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -25,8 +25,8 @@ export default function MinimalConfigPage() {
         privateKey: 'sk-mock-test-key'
       })
       setMessage(`Action result: ${JSON.stringify(result)}`)
-    } catch (error: any) {
-      setMessage(`Action error: ${error.message}`)
+    } catch (error: unknown) {
+      setMessage(`Action error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 

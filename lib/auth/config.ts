@@ -29,7 +29,7 @@ export const authConfig = {
     error: '/dev/auth',
   },
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile: _profile }) {
       // Allow OAuth sign-ins
       if (account?.type === 'oauth') {
         try {
@@ -79,7 +79,7 @@ export const authConfig = {
     },
   },
   events: {
-    async signIn({ user, account, profile, isNewUser }) {
+    async signIn({ user, account, profile: _profile, isNewUser }) {
       // Log OAuth sign-ins for security monitoring
       console.log('OAuth sign-in:', {
         userId: user.id,
@@ -88,7 +88,7 @@ export const authConfig = {
         email: user.email,
       })
     },
-    async linkAccount({ user, account, profile }) {
+    async linkAccount({ user, account, profile: _profile }) {
       // Log account linking
       console.log('Account linked:', {
         userId: user.id,

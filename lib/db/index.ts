@@ -1,6 +1,4 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
-import * as schema from './schema'
 
 // In development, Next.js loads .env.local automatically
 // For production, use actual environment variables

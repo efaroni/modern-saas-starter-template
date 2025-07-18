@@ -53,16 +53,38 @@ describe('SessionManager', () => {
   })
 
   afterEach(async () => {
+    // Clean up any sessions that might have been created during testing
+    try {
+      await sessionManager.invalidateUserSessions(testUser.id)
+    } catch {
+      // Ignore errors during cleanup
+    }
     await testHelpers.teardownTest()
   })
 
   describe('createSession', () => {
     it('should create a new session with secure configuration', async () => {
-      const result = await sessionManager.createSession(
-        testUser,
-        '127.0.0.1',
-        'Test User Agent'
-      )
+      let result
+      let attempts = 0
+      const maxAttempts = 3
+      
+      do {
+        attempts++
+        try {
+          result = await sessionManager.createSession(
+            testUser,
+            '127.0.0.1',
+            'Test User Agent'
+          )
+          break
+        } catch (error) {
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          } else {
+            throw error
+          }
+        }
+      } while (attempts < maxAttempts)
 
       expect(result.sessionToken).toBeTruthy()
       expect(result.sessionToken).toHaveLength(64) // 32 bytes hex = 64 chars
@@ -73,15 +95,63 @@ describe('SessionManager', () => {
     })
 
     it('should create unique session tokens', async () => {
-      const result1 = await sessionManager.createSession(testUser, '127.0.0.1')
-      const result2 = await sessionManager.createSession(testUser, '127.0.0.1')
+      let result1, result2
+      
+      // Create first session with retry
+      let attempts = 0
+      const maxAttempts = 3
+      do {
+        attempts++
+        try {
+          result1 = await sessionManager.createSession(testUser, '127.0.0.1')
+          break
+        } catch (error) {
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          } else {
+            throw error
+          }
+        }
+      } while (attempts < maxAttempts)
+      
+      // Create second session with retry
+      attempts = 0
+      do {
+        attempts++
+        try {
+          result2 = await sessionManager.createSession(testUser, '127.0.0.1')
+          break
+        } catch (error) {
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          } else {
+            throw error
+          }
+        }
+      } while (attempts < maxAttempts)
 
       expect(result1.sessionToken).not.toBe(result2.sessionToken)
     })
 
     it('should set correct expiration time', async () => {
       const beforeCreation = Date.now()
-      const result = await sessionManager.createSession(testUser, '127.0.0.1')
+      let result
+      let attempts = 0
+      const maxAttempts = 3
+      
+      do {
+        attempts++
+        try {
+          result = await sessionManager.createSession(testUser, '127.0.0.1')
+          break
+        } catch (error) {
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          } else {
+            throw error
+          }
+        }
+      } while (attempts < maxAttempts)
       const afterCreation = Date.now()
 
       const expectedExpiry = beforeCreation + 3600 * 1000 // 1 hour
@@ -92,8 +162,26 @@ describe('SessionManager', () => {
 
   describe('validateSession', () => {
     it('should validate a valid session', async () => {
-      const { sessionToken } = await sessionManager.createSession(testUser, '127.0.0.1')
+      // Retry session creation for parallel test stability
+      let sessionResult
+      let attempts = 0
+      const maxAttempts = 3
       
+      do {
+        attempts++
+        try {
+          sessionResult = await sessionManager.createSession(testUser, '127.0.0.1')
+          break
+        } catch (error) {
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          } else {
+            throw error
+          }
+        }
+      } while (attempts < maxAttempts)
+      
+      const { sessionToken } = sessionResult
       const result = await sessionManager.validateSession(sessionToken, '127.0.0.1')
       
       expect(result.valid).toBe(true)

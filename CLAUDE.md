@@ -30,27 +30,27 @@ This guide helps Claude Code understand the critical paths and test infrastructu
 ## Test Confidence Levels
 
 ### High Confidence Tests (Must Pass)
-1. **Authentication Tests** (`__tests__/lib/auth/providers/database.test.ts`)
+1. **Authentication Tests** (`tests/lib/auth/providers/database.test.ts`)
    - Core CRUD operations
    - Password validation
    - Email verification
 
-2. **Integration Tests** (`__tests__/integration/auth/`)
+2. **Integration Tests** (`tests/integration/auth/`)
    - Complete user workflows
    - Error handling scenarios
    - Session persistence
 
-3. **Security Tests** (`__tests__/security/auth-security.test.ts`)
+3. **Security Tests** (`tests/security/auth-security.test.ts`)
    - SQL injection prevention
    - Rate limiting
    - Password complexity
 
 ### Medium Confidence Tests
-1. **Session Manager Tests** (`__tests__/lib/auth/session-manager.test.ts`)
+1. **Session Manager Tests** (`tests/lib/auth/session-manager.test.ts`)
    - 16 comprehensive tests
    - Uses retry logic for stability
 
-2. **Email Integration Tests** (`__tests__/lib/auth/email-integration.test.ts`)
+2. **Email Integration Tests** (`tests/lib/auth/email-integration.test.ts`)
    - Token generation and verification
    - Password reset flow
 
@@ -61,7 +61,7 @@ This guide helps Claude Code understand the critical paths and test infrastructu
    - Session invalidation on password change test
    - These features still work but tests were flaky
 
-2. **Load Tests** (`__tests__/load/`)
+2. **Load Tests** (`tests/load/`)
    - Separated into own test suite
    - Run with `npm run test:load`
    - Not part of regular CI/CD

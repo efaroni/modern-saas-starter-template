@@ -15,15 +15,15 @@ const customJestConfig = {
   },
   testEnvironment: 'jsdom',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  testMatch: ['**/__tests__/**/*.(ts|tsx|js)', '**/*.(test|spec).(ts|tsx|js)'],
+  testMatch: ['**/tests/**/*.(ts|tsx|js)', '**/*.(test|spec).(ts|tsx|js)'],
   testPathIgnorePatterns: [
     '/node_modules/',
     '/scripts/',
     'drizzle.config.test.ts',
     'drizzle.config.ts',
-    '/e2e/',
-    '/accessibility/',
-    '/__tests__/load/', // Exclude load tests from regular test runs
+    '/tests/e2e/',
+    '/tests/accessibility/',
+    '/tests/load/', // Exclude load tests from regular test runs
   ],
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',

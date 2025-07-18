@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { authService } from '@/lib/auth/factory'
 import { Spinner } from '@/components/ui/spinner'
 import type { AuthUser } from '@/lib/auth/types'
@@ -68,9 +69,11 @@ export function AvatarUpload({ user, onSuccess, onError }: AvatarUploadProps) {
         <div className="relative">
           <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
             {user.image ? (
-              <img 
+              <Image 
                 src={user.image} 
                 alt={`${user.name || 'User'}'s avatar`}
+                width={80}
+                height={80}
                 className="w-full h-full object-cover"
               />
             ) : (

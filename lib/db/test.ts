@@ -65,7 +65,9 @@ export async function initializeTestDatabase() {
       console.log('Running migrations...')
       
       // Run migrations using drizzle-kit
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { exec } = require('child_process')
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const util = require('util')
       const execAsync = util.promisify(exec)
       

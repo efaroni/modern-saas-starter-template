@@ -202,7 +202,7 @@ export class RateLimiter {
         )
 
       // Add additional filters if provided
-      let conditions = [
+      const conditions = [
         eq(authAttempts.success, false),
         gte(authAttempts.createdAt, windowStart)
       ]

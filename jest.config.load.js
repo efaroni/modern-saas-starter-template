@@ -1,8 +1,8 @@
 module.exports = {
   ...require('./jest.config'),
   testMatch: [
-    "**/__tests__/**/load/*.test.ts",
-    "**/__tests__/**/load/*.test.js"
+    "**/tests/**/load/*.test.ts",
+    "**/tests/**/load/*.test.js"
   ],
   testPathIgnorePatterns: [
     "/node_modules/",

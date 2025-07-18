@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Liveness probe checks if the service is alive and not deadlocked
     // This is a simple check that the service can respond

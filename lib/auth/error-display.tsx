@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { AuthErrorMessage, AuthErrorMessageProvider } from './error-messages'
+import { AuthErrorMessageProvider } from './error-messages'
 
 interface ErrorDisplayProps {
   error: unknown
@@ -16,9 +16,8 @@ export function AuthErrorDisplay({
   showRetry = false, 
   onRetry 
 }: ErrorDisplayProps) {
-  if (!error) return null
-
   const authError = React.useMemo(() => {
+    if (!error) return null
     if (typeof error === 'string') {
       return AuthErrorMessageProvider.getErrorFromString(error)
     }
@@ -29,6 +28,8 @@ export function AuthErrorDisplay({
     
     return AuthErrorMessageProvider.getErrorMessage('SERVER_ERROR')
   }, [error])
+
+  if (!error || !authError) return null
 
   const formatted = AuthErrorMessageProvider.formatErrorForUI(authError)
 
@@ -114,9 +115,8 @@ interface InlineErrorProps {
 }
 
 export function InlineAuthError({ error, className = '' }: InlineErrorProps) {
-  if (!error) return null
-
   const authError = React.useMemo(() => {
+    if (!error) return null
     if (typeof error === 'string') {
       return AuthErrorMessageProvider.getErrorFromString(error)
     }
@@ -127,6 +127,8 @@ export function InlineAuthError({ error, className = '' }: InlineErrorProps) {
     
     return AuthErrorMessageProvider.getErrorMessage('SERVER_ERROR')
   }, [error])
+
+  if (!error || !authError) return null
 
   return (
     <p className={`text-sm text-red-600 ${className}`}>
@@ -142,9 +144,8 @@ export interface ToastErrorProps {
 }
 
 export function AuthErrorToast({ error, onDismiss }: ToastErrorProps) {
-  if (!error) return null
-
   const authError = React.useMemo(() => {
+    if (!error) return null
     if (typeof error === 'string') {
       return AuthErrorMessageProvider.getErrorFromString(error)
     }
@@ -156,15 +157,19 @@ export function AuthErrorToast({ error, onDismiss }: ToastErrorProps) {
     return AuthErrorMessageProvider.getErrorMessage('SERVER_ERROR')
   }, [error])
 
-  const formatted = AuthErrorMessageProvider.formatErrorForUI(authError)
+  const formatted = React.useMemo(() => {
+    if (!error || !authError) return null
+    return AuthErrorMessageProvider.formatErrorForUI(authError)
+  }, [error, authError])
 
   React.useEffect(() => {
+    if (!formatted || formatted.variant === 'error') return
     // Auto-dismiss after 5 seconds for non-critical errors
-    if (formatted.variant !== 'error') {
-      const timer = setTimeout(onDismiss, 5000)
-      return () => clearTimeout(timer)
-    }
-  }, [formatted.variant, onDismiss])
+    const timer = setTimeout(onDismiss, 5000)
+    return () => clearTimeout(timer)
+  }, [formatted, onDismiss])
+
+  if (!error || !authError || !formatted) return null
 
   return (
     <div className="fixed top-4 right-4 z-50 max-w-sm w-full bg-white shadow-lg rounded-lg border border-gray-200">

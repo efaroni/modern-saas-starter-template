@@ -1,5 +1,4 @@
 import { pgTable, unique, uuid, text, timestamp, jsonb, foreignKey, pgEnum } from "drizzle-orm/pg-core"
-import { sql } from "drizzle-orm"
 
 export const keyType = pgEnum("key_type", ['secret', 'public', 'webhook_secret'])
 export const serviceType = pgEnum("service_type", ['openai', 'stripe', 'resend', 'github', 'google', 'custom'])

@@ -62,7 +62,7 @@ export const userApiKeys = pgTable('user_api_keys', {
   provider: text('provider').notNull(), // 'openai', 'stripe', 'resend', 'github', 'google'
   publicKey: text('public_key'), // Optional for services that need it (Stripe)
   privateKeyEncrypted: text('private_key_encrypted').notNull(), // Always encrypted
-  metadata: jsonb('metadata').$type<Record<string, any>>().default({}),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, table => ({
@@ -109,7 +109,7 @@ export const sessionActivity = pgTable('session_activity', {
   action: text('action').notNull(), // 'login', 'activity', 'logout', 'timeout', 'suspicious'
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
-  metadata: jsonb('metadata').$type<Record<string, any>>().default({}),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

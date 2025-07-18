@@ -236,7 +236,7 @@ export class DatabaseSessionStorage implements SessionStorage {
     action: string,
     ipAddress?: string,
     userAgent?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
       await this.database
@@ -359,7 +359,7 @@ export class DatabaseSessionStorage implements SessionStorage {
   /**
    * Get all active sessions for a user
    */
-  async getUserSessions(userId: string): Promise<any[]> {
+  async getUserSessions(userId: string): Promise<unknown[]> {
     try {
       return await this.database
         .select()

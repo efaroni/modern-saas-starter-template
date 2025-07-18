@@ -37,7 +37,7 @@ export default function VerifyEmailPage() {
         setStatus('error')
         setMessage(data.error || 'Failed to verify email')
       }
-    } catch (error) {
+    } catch {
       setStatus('error')
       setMessage('An error occurred while verifying your email')
     }

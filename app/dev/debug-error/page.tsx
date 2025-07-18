@@ -14,18 +14,18 @@ export default function DebugErrorPage() {
       log('Testing config import...')
       const { config } = await import('@/lib/config')
       log(`Config loaded successfully: database.enabled = ${config.database.enabled}`)
-    } catch (error: any) {
-      log(`Config error: ${error.message}`)
+    } catch (error: unknown) {
+      log(`Config error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
   const testDb = async () => {
     try {
       log('Testing database import...')
-      const { db } = await import('@/lib/db')
+      await import('@/lib/db')
       log('Database connection imported successfully')
-    } catch (error: any) {
-      log(`Database error: ${error.message}`)
+    } catch (error: unknown) {
+      log(`Database error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -37,8 +37,8 @@ export default function DebugErrorPage() {
       const encrypted = encrypt(test)
       const decrypted = decrypt(encrypted)
       log(`Encryption test: ${test} -> ${encrypted} -> ${decrypted}`)
-    } catch (error: any) {
-      log(`Encryption error: ${error.message}`)
+    } catch (error: unknown) {
+      log(`Encryption error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -48,8 +48,8 @@ export default function DebugErrorPage() {
       const { userApiKeyService } = await import('@/lib/user-api-keys/service')
       const keys = await userApiKeyService.list()
       log(`Service test successful: found ${keys.length} keys`)
-    } catch (error: any) {
-      log(`Service error: ${error.message}`)
+    } catch (error: unknown) {
+      log(`Service error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -59,8 +59,8 @@ export default function DebugErrorPage() {
       const { validateApiKey } = await import('@/lib/api-keys/validators')
       const result = await validateApiKey('openai', 'sk-mock-test')
       log(`Validator test: ${JSON.stringify(result)}`)
-    } catch (error: any) {
-      log(`Validator error: ${error.message}`)
+    } catch (error: unknown) {
+      log(`Validator error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -73,18 +73,18 @@ export default function DebugErrorPage() {
         privateKey: 'sk-mock-test-key'
       })
       log(`Action test: ${JSON.stringify(result)}`)
-    } catch (error: any) {
-      log(`Action error: ${error.message}`)
+    } catch (error: unknown) {
+      log(`Action error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
   const testComponents = async () => {
     try {
       log('Testing component imports...')
-      const { ServiceApiKeyInput } = await import('@/components/services/service-api-key-input')
+      await import('@/components/services/service-api-key-input')
       log('ServiceApiKeyInput component imported successfully')
-    } catch (error: any) {
-      log(`Component error: ${error.message}`)
+    } catch (error: unknown) {
+      log(`Component error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 

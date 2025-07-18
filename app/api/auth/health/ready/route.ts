@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authHealthChecker } from '@/lib/auth/health-check'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Readiness probe checks if the service is ready to handle requests
     // This includes checking critical dependencies like database

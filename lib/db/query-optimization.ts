@@ -1,6 +1,6 @@
 import { db, getDatabasePool } from './connection-pool'
 import { users, authAttempts, passwordHistory, userSessions } from './schema'
-import { eq, and, gte, desc, lte, count, sql, SQL } from 'drizzle-orm'
+import { eq, and, gte, desc, lte, count, sql } from 'drizzle-orm'
 
 export interface QueryOptimizationConfig {
   // Cache settings
@@ -33,14 +33,14 @@ export const DEFAULT_QUERY_CONFIG: QueryOptimizationConfig = {
 
 // Query cache for frequently accessed data
 class QueryCache {
-  private cache = new Map<string, { data: any; timestamp: number }>()
+  private cache = new Map<string, { data: unknown; timestamp: number }>()
   private config: QueryOptimizationConfig
 
   constructor(config: QueryOptimizationConfig) {
     this.config = config
   }
 
-  set(key: string, data: any): void {
+  set(key: string, data: unknown): void {
     if (!this.config.enableQueryCache) return
     
     this.cache.set(key, {
@@ -49,7 +49,7 @@ class QueryCache {
     })
   }
 
-  get(key: string): any | null {
+  get(key: string): unknown | null {
     if (!this.config.enableQueryCache) return null
     
     const cached = this.cache.get(key)
@@ -143,7 +143,7 @@ export class QueryOptimizer {
     }
   }
 
-  private updateMetrics(queryName: string, queryTime: number, failed: boolean = false): void {
+  private updateMetrics(queryName: string, queryTime: number, _failed: boolean = false): void {
     const existing = this.queryMetrics.get(queryName) || { count: 0, totalTime: 0, avgTime: 0 }
     
     existing.count++

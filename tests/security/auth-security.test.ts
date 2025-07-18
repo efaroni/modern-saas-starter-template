@@ -5,6 +5,8 @@ import { RateLimiter } from '@/lib/auth/rate-limiter'
 import { PasswordValidator } from '@/lib/auth/password-validator'
 import { TokenService } from '@/lib/auth/token-service'
 import { testDb } from '@/lib/db/test'
+import { verificationTokens } from '@/lib/db/schema'
+import { like } from 'drizzle-orm'
 import bcrypt from '@node-rs/bcrypt'
 
 describe('Authentication Security Tests', () => {
@@ -22,6 +24,12 @@ describe('Authentication Security Tests', () => {
   })
 
   afterEach(async () => {
+    // Clean up any tokens that might have been created during testing
+    await tokenService.cleanupExpiredTokens()
+    // Also clean up all tokens for identifiers used in tests
+    const testEmail = 'test-worker'
+    await testDb.delete(verificationTokens)
+      .where(like(verificationTokens.identifier, `%${testEmail}%`))
     await testHelpers.teardownTest()
   })
 

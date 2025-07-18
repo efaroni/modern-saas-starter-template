@@ -34,7 +34,7 @@ export function EmailVerification({ email, onVerificationSent }: EmailVerificati
       } else {
         setMessage(data.error || 'Failed to send verification email')
       }
-    } catch (error) {
+    } catch {
       setMessage('An error occurred while sending verification email')
     } finally {
       setLoading(false)
