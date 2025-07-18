@@ -5,6 +5,11 @@ import { createSessionStorage, type SessionStorage } from './session-storage'
 import type { EmailService } from '@/lib/email/types'
 import type { UploadService } from '@/lib/upload/types'
 import { AUTH_CONFIG } from '@/lib/config/app-config'
+import { validateEmail } from '@/lib/utils/validators'
+import { addHours } from '@/lib/utils/date-time'
+import { TokenGenerators } from '@/lib/utils/token-generator'
+import { ErrorFactory, withErrorContext } from '@/lib/utils/error-handler'
+import { authLogger } from '@/lib/auth/logger'
 
 export class AuthService {
   private currentSession: SessionData | null = null
@@ -13,6 +18,7 @@ export class AuthService {
   private sessionStorage: SessionStorage
   private emailService: EmailService
   private uploadService: UploadService
+  private cleanupTimer: NodeJS.Timeout | null = null
 
   constructor(
     private provider: AuthProvider, 
@@ -24,6 +30,7 @@ export class AuthService {
     this.emailService = emailSvc || emailService
     this.uploadService = uploadSvc || uploadService
     this.initializeSession()
+    this.startCleanupTimer()
   }
 
   private async initializeSession(): Promise<void> {
@@ -35,6 +42,41 @@ export class AuthService {
     } catch {
       // If session initialization fails, start with no session
       this.currentSession = null
+    }
+  }
+
+  private startCleanupTimer(): void {
+    // Run cleanup every hour
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupExpiredTokens()
+    }, AUTH_CONFIG.SESSION_CLEANUP_INTERVAL_MS)
+    
+    // Ensure the timer doesn't keep the process alive (if unref is available)
+    if (this.cleanupTimer && typeof this.cleanupTimer.unref === 'function') {
+      this.cleanupTimer.unref()
+    }
+  }
+
+  private cleanupExpiredTokens(): void {
+    const now = Date.now()
+    let removedCount = 0
+    
+    for (const [token, tokenData] of this.passwordResetTokens.entries()) {
+      if (now > tokenData.expiresAt) {
+        this.passwordResetTokens.delete(token)
+        removedCount++
+      }
+    }
+    
+    if (removedCount > 0) {
+      console.log(`[AUTH] Cleaned up ${removedCount} expired password reset tokens`)
+    }
+  }
+
+  public stopCleanupTimer(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer)
+      this.cleanupTimer = null
     }
   }
 
@@ -70,9 +112,18 @@ export class AuthService {
       try {
         await this.sessionStorage.setSession(this.currentSession)
         this.hasStorageWriteFailure = false
-      } catch {
+      } catch (error) {
         // Storage write failed, but we keep the session in memory
         this.hasStorageWriteFailure = true
+        authLogger.logAuthEvent({
+          type: 'session_storage_failure',
+          userId: result.user.id,
+          email: result.user.email,
+          success: false,
+          error: 'Session storage write failed',
+          timestamp: new Date(),
+          metadata: { fallbackToMemory: true }
+        })
       }
     }
 
@@ -91,13 +142,18 @@ export class AuthService {
       
       // Store session (fail silently if storage fails)
       try {
-        try {
         await this.sessionStorage.setSession(this.currentSession)
-      } catch {
+      } catch (error) {
         // Storage write failed, but we keep the session in memory
-      }
-      } catch {
-        // Storage write failed, but we keep the session in memory
+        authLogger.logAuthEvent({
+          type: 'session_storage_failure',
+          userId: result.user.id,
+          email: result.user.email,
+          success: false,
+          error: 'Session storage write failed during signup',
+          timestamp: new Date(),
+          metadata: { fallbackToMemory: true }
+        })
       }
     }
 
@@ -379,11 +435,11 @@ export class AuthService {
 
   async requestPasswordReset(email: string): Promise<AuthResult> {
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.isValid) {
       return {
         success: false,
-        error: 'Invalid email format'
+        error: emailValidation.error || 'Invalid email format'
       }
     }
 
@@ -398,7 +454,7 @@ export class AuthService {
 
     // Generate reset token
     const resetToken = this.generateResetToken()
-    const expiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000) // 3 hours from now
+    const expiresAt = addHours(3) // 3 hours from now
 
     // Store reset token
     this.passwordResetTokens.set(resetToken, {
@@ -527,15 +583,7 @@ export class AuthService {
   }
 
   private generateResetToken(): string {
-    // Generate a secure random token
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    let token = ''
-    
-    for (let i = 0; i < 32; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    
-    return token
+    return TokenGenerators.passwordReset()
   }
 
   // New email verification methods

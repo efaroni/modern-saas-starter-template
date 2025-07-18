@@ -1,7 +1,8 @@
 import { db } from '@/lib/db'
 import { verificationTokens } from '@/lib/db/schema'
 import { eq, and, lt, like } from 'drizzle-orm'
-import { randomBytes } from 'crypto'
+import { addMinutes } from '@/lib/utils/date-time'
+import { generateSecureToken, TokenSecurityLevel } from '@/lib/utils/token-generator'
 
 export type TokenType = 'email_verification' | 'password_reset'
 
@@ -21,7 +22,7 @@ export class TokenService {
    * Generate a secure token for email verification or password reset
    */
   private generateToken(): string {
-    return randomBytes(32).toString('hex')
+    return generateSecureToken(TokenSecurityLevel.HIGH)
   }
 
   /**
@@ -29,7 +30,7 @@ export class TokenService {
    */
   async createToken(identifier: string, type: TokenType, expiresInMinutes: number = 60): Promise<TokenData> {
     const token = this.generateToken()
-    const expires = new Date(Date.now() + expiresInMinutes * 60 * 1000)
+    const expires = addMinutes(expiresInMinutes)
     
     // Create the full token with type prefix for uniqueness
     const fullToken = `${type}:${token}`
@@ -64,7 +65,51 @@ export class TokenService {
   }
 
   /**
-   * Verify and consume a token
+   * Verify a token without knowing the identifier (more efficient for email verification)
+   */
+  async verifyTokenById(token: string): Promise<{ valid: boolean; type?: TokenType; identifier?: string }> {
+    try {
+      // Find the token without requiring identifier
+      const [tokenRecord] = await this.database
+        .select()
+        .from(verificationTokens)
+        .where(eq(verificationTokens.token, token))
+        .limit(1)
+      
+      if (!tokenRecord) {
+        return { valid: false }
+      }
+      
+      // Check if token has expired
+      if (new Date() > tokenRecord.expires) {
+        // Delete expired token
+        await this.database
+          .delete(verificationTokens)
+          .where(eq(verificationTokens.token, token))
+        return { valid: false }
+      }
+      
+      // Token is valid, delete it (consume it)
+      await this.database
+        .delete(verificationTokens)
+        .where(eq(verificationTokens.token, token))
+      
+      // Extract type from token string (format: "type:actual_token")
+      const type = tokenRecord.token.split(':')[0] as TokenType
+      
+      return { 
+        valid: true, 
+        type,
+        identifier: tokenRecord.identifier
+      }
+    } catch (error) {
+      console.error('Token verification error:', error)
+      return { valid: false }
+    }
+  }
+
+  /**
+   * Verify and consume a token (legacy method - kept for compatibility)
    */
   async verifyToken(token: string, identifier: string): Promise<{ valid: boolean; type?: TokenType }> {
     try {

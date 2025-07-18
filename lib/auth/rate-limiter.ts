@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { authAttempts } from '@/lib/db/schema'
 import { eq, and, gte } from 'drizzle-orm'
+import { addMinutes, getDaysAgo } from '@/lib/utils/date-time'
 
 export interface RateLimitConfig {
   maxAttempts: number
@@ -56,13 +57,13 @@ export class RateLimiter {
       return {
         allowed: true,
         remaining: 999,
-        resetTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
+        resetTime: addMinutes(60), // 1 hour from now
         locked: false
       }
     }
 
-    const windowStart = new Date(Date.now() - config.windowMinutes * 60 * 1000)
-    const lockoutStart = new Date(Date.now() - config.lockoutMinutes * 60 * 1000)
+    const windowStart = addMinutes(-config.windowMinutes)
+    const lockoutStart = addMinutes(-config.lockoutMinutes)
 
     try {
       // Get recent attempts
@@ -86,9 +87,7 @@ export class RateLimiter {
 
       if (recentFailures.length >= config.maxAttempts) {
         const lastFailure = recentFailures[recentFailures.length - 1]
-        const lockoutEndTime = new Date(
-          lastFailure.createdAt.getTime() + config.lockoutMinutes * 60 * 1000
-        )
+        const lockoutEndTime = addMinutes(config.lockoutMinutes, lastFailure.createdAt)
 
         if (new Date() < lockoutEndTime) {
           return {

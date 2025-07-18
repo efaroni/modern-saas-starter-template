@@ -1,4 +1,5 @@
 import { AuthProvider, AuthResult, AuthUser, SignUpRequest, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest } from '../types'
+import { validateEmail } from '@/lib/utils/validators'
 
 interface MockUserWithPassword extends AuthUser {
   password: string
@@ -40,11 +41,11 @@ export class MockAuthProvider implements AuthProvider {
     const { email, password, name } = userData
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.isValid) {
       return {
         success: false,
-        error: 'Invalid email format'
+        error: emailValidation.error || 'Invalid email format'
       }
     }
 
@@ -201,11 +202,11 @@ export class MockAuthProvider implements AuthProvider {
 
     // Validate email if updating
     if (data.email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(data.email)) {
+      const emailValidation = validateEmail(data.email)
+      if (!emailValidation.isValid) {
         return {
           success: false,
-          error: 'Invalid email format'
+          error: emailValidation.error || 'Invalid email format'
         }
       }
 

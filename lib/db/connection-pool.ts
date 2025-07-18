@@ -64,6 +64,11 @@ export class DatabaseConnectionPool {
     totalTime: number
     slowQueries: number
     errors: number
+    slowQueryDetails: Array<{
+      query: string
+      duration: number
+      timestamp: Date
+    }>
   }
 
   constructor(connectionString: string, config?: Partial<ConnectionPoolConfig>) {
@@ -72,7 +77,8 @@ export class DatabaseConnectionPool {
       totalQueries: 0,
       totalTime: 0,
       slowQueries: 0,
-      errors: 0
+      errors: 0,
+      slowQueryDetails: []
     }
     
     this.sql = postgres(connectionString, {
@@ -169,15 +175,52 @@ export class DatabaseConnectionPool {
       this.queryMetrics.errors++
     }
     
-    // Consider queries > 1 second as slow
+    // Consider queries > threshold as slow
     if (queryTime > DATABASE_CONFIG.SLOW_QUERY_THRESHOLD_MS) {
       this.queryMetrics.slowQueries++
+      // Track slow query details
+      this.queryMetrics.slowQueryDetails.push({
+        query: 'Query details would be captured here', // TODO: Capture actual query
+        duration: queryTime,
+        timestamp: new Date()
+      })
+      
+      // Limit stored slow queries to prevent memory growth
+      if (this.queryMetrics.slowQueryDetails.length > 100) {
+        this.queryMetrics.slowQueryDetails.shift() // Remove oldest
+      }
+      
+      // Log slow query for monitoring
+      console.warn(`[DB] Slow query detected: ${queryTime}ms (threshold: ${DATABASE_CONFIG.SLOW_QUERY_THRESHOLD_MS}ms)`)
     }
     
     // Update health stats
     this.healthStats.performance.totalQueries = this.queryMetrics.totalQueries
     this.healthStats.performance.avgQueryTime = this.queryMetrics.totalTime / this.queryMetrics.totalQueries
     this.healthStats.performance.slowQueries = this.queryMetrics.slowQueries
+    
+    // Check for concerning patterns and alert
+    this.checkPerformanceAlerts()
+  }
+
+  private checkPerformanceAlerts(): void {
+    // Alert on high error rate
+    const errorRate = this.queryMetrics.errors / this.queryMetrics.totalQueries
+    if (errorRate > 0.1 && this.queryMetrics.totalQueries > 10) { // 10% error rate
+      console.error(`[DB ALERT] High error rate: ${(errorRate * 100).toFixed(1)}% (${this.queryMetrics.errors}/${this.queryMetrics.totalQueries})`)
+    }
+    
+    // Alert on high slow query rate
+    const slowQueryRate = this.queryMetrics.slowQueries / this.queryMetrics.totalQueries
+    if (slowQueryRate > 0.2 && this.queryMetrics.totalQueries > 5) { // 20% slow query rate
+      console.warn(`[DB ALERT] High slow query rate: ${(slowQueryRate * 100).toFixed(1)}% (${this.queryMetrics.slowQueries}/${this.queryMetrics.totalQueries})`)
+    }
+    
+    // Alert on very high average query time
+    const avgQueryTime = this.queryMetrics.totalTime / this.queryMetrics.totalQueries
+    if (avgQueryTime > DATABASE_CONFIG.SLOW_QUERY_THRESHOLD_MS * 0.5) { // 50% of slow query threshold
+      console.warn(`[DB ALERT] High average query time: ${avgQueryTime.toFixed(2)}ms`)
+    }
   }
 
   // Get connection pool health
@@ -197,11 +240,57 @@ export class DatabaseConnectionPool {
         max: this.config.max
       }
       
+      // Check for connection pool saturation
+      this.checkConnectionPoolAlerts(this.healthStats.connections)
+      
       return this.healthStats
     } catch {
       this.healthStats.healthy = false
       this.healthStats.errors.connectionErrors++
       return this.healthStats
+    }
+  }
+
+  private checkConnectionPoolAlerts(connections: { active: number; idle: number; waiting: number; max: number }): void {
+    // Alert on high connection pool utilization
+    const utilization = connections.active / connections.max
+    if (utilization > 0.8) { // 80% utilization
+      console.warn(`[DB ALERT] Connection pool near saturation: ${(utilization * 100).toFixed(1)}% (${connections.active}/${connections.max})`)
+    }
+    
+    // Alert on waiting connections
+    if (connections.waiting > 0) {
+      console.warn(`[DB ALERT] Connections waiting in queue: ${connections.waiting}`)
+    }
+    
+    // Alert on very low idle connections
+    if (connections.idle === 0 && connections.active > connections.max * 0.5) {
+      console.warn(`[DB ALERT] No idle connections available (${connections.active} active)`)
+    }
+  }
+
+  // Get query performance metrics
+  getPerformanceMetrics(): {
+    totalQueries: number
+    averageQueryTime: number
+    slowQueryCount: number
+    errorRate: number
+    topSlowQueries: Array<{ query: string; duration: number; timestamp: Date }>
+  } {
+    const avgQueryTime = this.queryMetrics.totalTime / this.queryMetrics.totalQueries || 0
+    const errorRate = this.queryMetrics.errors / this.queryMetrics.totalQueries || 0
+    
+    // Get top 10 slowest queries
+    const topSlowQueries = this.queryMetrics.slowQueryDetails
+      .sort((a, b) => b.duration - a.duration)
+      .slice(0, 10)
+    
+    return {
+      totalQueries: this.queryMetrics.totalQueries,
+      averageQueryTime: avgQueryTime,
+      slowQueryCount: this.queryMetrics.slowQueries,
+      errorRate: errorRate,
+      topSlowQueries
     }
   }
 

@@ -1,7 +1,7 @@
 import { AuthProvider, AuthResult, AuthUser, SignUpRequest, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest } from '../types'
 import { db } from '@/lib/db'
 import { users, passwordHistory, authAttempts } from '@/lib/db/schema'
-import { eq, desc, and, gte } from 'drizzle-orm'
+import { eq, desc, and, gte, sql } from 'drizzle-orm'
 import bcrypt from '@node-rs/bcrypt'
 import { PasswordValidator, DEFAULT_PASSWORD_POLICY } from '../password-validator'
 import { RateLimiter } from '../rate-limiter'
@@ -10,6 +10,8 @@ import { TokenService } from '../token-service'
 import { emailService } from '@/lib/email/service'
 import { authLogger, timeOperation } from '../logger'
 import { AUTH_CONFIG, VALIDATION_CONFIG } from '@/lib/config/app-config'
+import { validateEmail, validateUUID } from '@/lib/utils/validators'
+import { ErrorFactory, withErrorContext } from '@/lib/utils/error-handler'
 
 export class DatabaseAuthProvider implements AuthProvider {
   private readonly bcryptRounds = AUTH_CONFIG.BCRYPT_ROUNDS
@@ -157,7 +159,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
       })
     } catch (error) {
-      console.error('Database authentication error:', error)
+      const duration = Date.now() - startTime
       
       authLogger.logAuthEvent({
         type: 'login',
@@ -165,10 +167,32 @@ export class DatabaseAuthProvider implements AuthProvider {
         ipAddress,
         userAgent,
         success: false,
-        error: 'Authentication failed',
+        error: 'Database authentication error',
         timestamp: new Date(),
-        duration: Date.now() - startTime
+        duration,
+        metadata: {
+          errorType: error instanceof Error ? error.name : 'unknown',
+          errorMessage: error instanceof Error ? error.message : String(error)
+        }
       })
+      
+      // Log structured error for monitoring
+      if (error instanceof Error) {
+        authLogger.logSecurityEvent({
+          type: 'database_error',
+          email,
+          ipAddress,
+          userAgent,
+          severity: 'high',
+          details: {
+            operation: 'user_authentication',
+            error: error.message,
+            duration
+          },
+          timestamp: new Date(),
+          actionTaken: 'authentication_failed'
+        })
+      }
       
       return {
         success: false,
@@ -202,12 +226,12 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(email)) {
+      const emailValidation = validateEmail(email)
+      if (!emailValidation.isValid) {
         await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent)
         return {
           success: false,
-          error: 'Invalid email format'
+          error: emailValidation.error || 'Invalid email format'
         }
       }
 
@@ -284,7 +308,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
       })
     } catch (error) {
-      console.error('Database user creation error:', error)
+      const duration = Date.now() - startTime
       
       authLogger.logAuthEvent({
         type: 'signup',
@@ -292,10 +316,56 @@ export class DatabaseAuthProvider implements AuthProvider {
         ipAddress,
         userAgent,
         success: false,
-        error: 'User creation failed',
+        error: 'Database user creation error',
         timestamp: new Date(),
-        duration: Date.now() - startTime
+        duration,
+        metadata: {
+          errorType: error instanceof Error ? error.name : 'unknown',
+          errorMessage: error instanceof Error ? error.message : String(error)
+        }
       })
+      
+      // Check for specific error types
+      if (error instanceof Error) {
+        // Handle duplicate email error
+        if (error.message.includes('duplicate') || error.message.includes('unique')) {
+          authLogger.logSecurityEvent({
+            type: 'duplicate_registration',
+            email,
+            ipAddress,
+            userAgent,
+            severity: 'medium',
+            details: {
+              operation: 'user_creation',
+              error: 'Email already exists',
+              duration
+            },
+            timestamp: new Date(),
+            actionTaken: 'registration_rejected'
+          })
+          
+          return {
+            success: false,
+            error: 'Email already exists'
+          }
+        }
+        
+        // Log other database errors for monitoring
+        authLogger.logSecurityEvent({
+          type: 'database_error',
+          email,
+          ipAddress,
+          userAgent,
+          severity: 'high',
+          details: {
+            operation: 'user_creation',
+            error: error.message,
+            duration
+          },
+          timestamp: new Date(),
+          actionTaken: 'registration_failed'
+        })
+      }
       
       return {
         success: false,
@@ -307,7 +377,8 @@ export class DatabaseAuthProvider implements AuthProvider {
   async getUserById(id: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
+      const uuidValidation = validateUUID(id)
+      if (!uuidValidation.isValid) {
         return {
           success: true,
           user: null
@@ -373,7 +444,8 @@ export class DatabaseAuthProvider implements AuthProvider {
   async updateUser(id: string, data: UpdateProfileRequest): Promise<AuthResult> {
     try {
       // Validate UUID format
-      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
+      const uuidValidation = validateUUID(id)
+      if (!uuidValidation.isValid) {
         return {
           success: false,
           error: 'User not found'
@@ -396,11 +468,11 @@ export class DatabaseAuthProvider implements AuthProvider {
 
       // Validate email if updating
       if (data.email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!emailRegex.test(data.email)) {
+        const emailValidation = validateEmail(data.email)
+        if (!emailValidation.isValid) {
           return {
             success: false,
-            error: 'Invalid email format'
+            error: emailValidation.error || 'Invalid email format'
           }
         }
 
@@ -456,7 +528,8 @@ export class DatabaseAuthProvider implements AuthProvider {
   async deleteUser(id: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
+      const uuidValidation = validateUUID(id)
+      if (!uuidValidation.isValid) {
         return {
           success: false,
           error: 'User not found'
@@ -490,7 +563,8 @@ export class DatabaseAuthProvider implements AuthProvider {
   async verifyUserEmail(id: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
+      const uuidValidation = validateUUID(id)
+      if (!uuidValidation.isValid) {
         return {
           success: false,
           error: 'User not found'
@@ -531,7 +605,8 @@ export class DatabaseAuthProvider implements AuthProvider {
   async changeUserPassword(id: string, currentPassword: string, newPassword: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
+      const uuidValidation = validateUUID(id)
+      if (!uuidValidation.isValid) {
         return {
           success: false,
           error: 'User not found'
@@ -627,11 +702,15 @@ export class DatabaseAuthProvider implements AuthProvider {
 
       if (allPasswords.length > this.passwordHistoryLimit) {
         const passwordsToDelete = allPasswords.slice(this.passwordHistoryLimit)
-        for (const oldPassword of passwordsToDelete) {
-          await this.database
-            .delete(passwordHistory)
-            .where(eq(passwordHistory.id, oldPassword.id))
-        }
+        const idsToDelete = passwordsToDelete.map(p => p.id)
+        
+        // Batch delete operation instead of individual deletes
+        await this.database
+          .delete(passwordHistory)
+          .where(and(
+            eq(passwordHistory.userId, id),
+            sql`${passwordHistory.id} = ANY(${idsToDelete})`
+          ))
       }
 
       // Return user without password
@@ -652,7 +731,8 @@ export class DatabaseAuthProvider implements AuthProvider {
   async resetUserPassword(id: string, newPassword: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
+      const uuidValidation = validateUUID(id)
+      if (!uuidValidation.isValid) {
         return {
           success: false,
           error: 'User not found'
@@ -746,11 +826,15 @@ export class DatabaseAuthProvider implements AuthProvider {
 
       if (allPasswords.length > this.passwordHistoryLimit) {
         const passwordsToDelete = allPasswords.slice(this.passwordHistoryLimit)
-        for (const oldPassword of passwordsToDelete) {
-          await this.database
-            .delete(passwordHistory)
-            .where(eq(passwordHistory.id, oldPassword.id))
-        }
+        const idsToDelete = passwordsToDelete.map(p => p.id)
+        
+        // Batch delete operation instead of individual deletes
+        await this.database
+          .delete(passwordHistory)
+          .where(and(
+            eq(passwordHistory.userId, id),
+            sql`${passwordHistory.id} = ANY(${idsToDelete})`
+          ))
       }
 
       // Return user without password
@@ -905,37 +989,43 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
       }
       
-      // For now, we need to check all users to find the matching email
-      // In a production system, you might want to include the email in the URL
-      const allUsers = await this.database.select().from(users)
+      // Efficient token verification - single query to find the token and user
+      const verification = await this.tokenService.verifyTokenById(token)
       
-      for (const user of allUsers) {
-        const verification = await this.tokenService.verifyToken(token, user.email)
+      if (verification.valid && verification.type === 'email_verification' && verification.identifier) {
+        // Find the user by email (identifier)
+        const [user] = await this.database
+          .select()
+          .from(users)
+          .where(eq(users.email, verification.identifier))
+          .limit(1)
         
-        if (verification.valid && verification.type === 'email_verification') {
-          // Mark email as verified
-          await this.database
-            .update(users)
-            .set({ 
-              emailVerified: new Date(),
-              updatedAt: new Date()
-            })
-            .where(eq(users.id, user.id))
-          
-          // Send welcome email
-          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-          const dashboardUrl = `${baseUrl}/dashboard`
-          
-          await emailService.sendWelcomeEmail(user.email, {
-            user: {
-              email: user.email,
-              name: user.name
-            },
-            dashboardUrl
-          })
-          
-          return { success: true }
+        if (!user) {
+          return { success: false, error: 'User not found' }
         }
+        
+        // Mark email as verified
+        await this.database
+          .update(users)
+          .set({ 
+            emailVerified: new Date(),
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, user.id))
+        
+        // Send welcome email
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+        const dashboardUrl = `${baseUrl}/dashboard`
+        
+        await emailService.sendWelcomeEmail(user.email, {
+          user: {
+            email: user.email,
+            name: user.name
+          },
+          dashboardUrl
+        })
+        
+        return { success: true }
       }
       
       return {
@@ -1000,73 +1090,82 @@ export class DatabaseAuthProvider implements AuthProvider {
 
   async resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
     try {
-      // For now, we need to check all users to find the matching email
-      // In a production system, you might want to include the email in the URL
-      const allUsers = await this.database.select().from(users)
+      // Use efficient token verification - single query to find the token and user
+      const verification = await this.tokenService.verifyTokenById(token)
       
-      for (const user of allUsers) {
-        const verification = await this.tokenService.verifyToken(token, user.email)
-        
-        if (verification.valid && verification.type === 'password_reset') {
-          // Validate new password
-          const passwordValidation = this.passwordValidator.validate(newPassword, { 
-            email: user.email, 
-            name: user.name 
-          })
-          if (!passwordValidation.isValid) {
-            return {
-              success: false,
-              error: passwordValidation.errors.join('. ')
-            }
-          }
-          
-          // Check password history
-          const recentPasswords = await this.database
-            .select()
-            .from(passwordHistory)
-            .where(eq(passwordHistory.userId, user.id))
-            .orderBy(desc(passwordHistory.createdAt))
-            .limit(this.passwordHistoryLimit)
-
-          for (const oldPassword of recentPasswords) {
-            const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash)
-            if (isReusedPassword) {
-              return {
-                success: false,
-                error: `Cannot reuse any of your last ${this.passwordHistoryLimit} passwords`
-              }
-            }
-          }
-          
-          // Hash new password
-          const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds)
-          
-          // Update password
-          await this.database
-            .update(users)
-            .set({ 
-              password: hashedPassword,
-              updatedAt: new Date()
-            })
-            .where(eq(users.id, user.id))
-          
-          // Store password in history
-          await this.database.insert(passwordHistory).values({
-            userId: user.id,
-            passwordHash: hashedPassword
-          })
-          
-          // Mark password as updated for expiration tracking
-          await this.passwordExpiration.markPasswordUpdated(user.id)
-          
-          return { success: true }
+      if (!verification.valid || verification.type !== 'password_reset' || !verification.identifier) {
+        return {
+          success: false,
+          error: 'Invalid or expired token'
         }
       }
       
-      return {
-        success: false,
-        error: 'Invalid or expired token'
+      // Find the user by email (identifier)
+      const [user] = await this.database
+        .select()
+        .from(users)
+        .where(eq(users.email, verification.identifier))
+        .limit(1)
+      
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found'
+        }
       }
+      
+      // Validate new password
+      const passwordValidation = this.passwordValidator.validate(newPassword, { 
+        email: user.email, 
+        name: user.name 
+      })
+      if (!passwordValidation.isValid) {
+        return {
+          success: false,
+          error: passwordValidation.errors.join('. ')
+        }
+      }
+      
+      // Check password history
+      const recentPasswords = await this.database
+        .select()
+        .from(passwordHistory)
+        .where(eq(passwordHistory.userId, user.id))
+        .orderBy(desc(passwordHistory.createdAt))
+        .limit(this.passwordHistoryLimit)
+
+      for (const oldPassword of recentPasswords) {
+        const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash)
+        if (isReusedPassword) {
+          return {
+            success: false,
+            error: `Cannot reuse any of your last ${this.passwordHistoryLimit} passwords`
+          }
+        }
+      }
+      
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds)
+      
+      // Update password
+      await this.database
+        .update(users)
+        .set({ 
+          password: hashedPassword,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, user.id))
+      
+      // Store password in history
+      await this.database.insert(passwordHistory).values({
+        userId: user.id,
+        passwordHash: hashedPassword
+      })
+      
+      // Mark password as updated for expiration tracking
+      await this.passwordExpiration.markPasswordUpdated(user.id)
+      
+      return { success: true }
     } catch (error) {
       console.error('Failed to reset password with token:', error)
       return {
