@@ -12,6 +12,7 @@ import { authLogger, timeOperation } from '../logger'
 import { AUTH_CONFIG, VALIDATION_CONFIG } from '@/lib/config/app-config'
 import { validateEmail, validateUUID } from '@/lib/utils/validators'
 import { ErrorFactory, withErrorContext } from '@/lib/utils/error-handler'
+import { SessionManager, DEFAULT_SECURITY_CONFIG } from '../session-manager'
 
 export class DatabaseAuthProvider implements AuthProvider {
   private readonly bcryptRounds = AUTH_CONFIG.BCRYPT_ROUNDS
@@ -21,12 +22,14 @@ export class DatabaseAuthProvider implements AuthProvider {
   private readonly passwordHistoryLimit = AUTH_CONFIG.PASSWORD_HISTORY_LIMIT
   private readonly tokenService: TokenService
   private readonly database: typeof db
+  private readonly sessionManager: SessionManager
 
-  constructor(database: typeof db = db) {
+  constructor(database: typeof db = db, sessionManager?: SessionManager) {
     this.database = database
     this.rateLimiter = new RateLimiter(database)
     this.passwordExpiration = new PasswordExpirationService(database, DEFAULT_PASSWORD_EXPIRATION_CONFIG)
     this.tokenService = new TokenService(database)
+    this.sessionManager = sessionManager || new SessionManager(database, DEFAULT_SECURITY_CONFIG)
   }
 
   async authenticateUser(email: string, password: string, ipAddress?: string, userAgent?: string): Promise<AuthResult> {
@@ -693,6 +696,14 @@ export class DatabaseAuthProvider implements AuthProvider {
       // Mark password as updated for expiration tracking
       await this.passwordExpiration.markPasswordUpdated(id)
 
+      // Invalidate all sessions for security after password change
+      try {
+        await this.sessionManager.invalidateUserSessions(id, 'password_change')
+      } catch (error) {
+        // Log but don't fail the password change if session invalidation fails
+        console.error('Failed to invalidate sessions after password change:', error)
+      }
+
       // Clean up old password history (keep only last N passwords)
       const allPasswords = await this.database
         .select()
@@ -816,6 +827,14 @@ export class DatabaseAuthProvider implements AuthProvider {
 
       // Mark password as updated for expiration tracking
       await this.passwordExpiration.markPasswordUpdated(id)
+
+      // Invalidate all sessions for security after password change
+      try {
+        await this.sessionManager.invalidateUserSessions(id, 'password_change')
+      } catch (error) {
+        // Log but don't fail the password change if session invalidation fails
+        console.error('Failed to invalidate sessions after password change:', error)
+      }
 
       // Clean up old password history (keep only last N passwords)
       const allPasswords = await this.database

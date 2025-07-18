@@ -53,12 +53,7 @@ describe('SessionManager', () => {
   })
 
   afterEach(async () => {
-    // Clean up any sessions that might have been created during testing
-    try {
-      await sessionManager.invalidateUserSessions(testUser.id)
-    } catch {
-      // Ignore errors during cleanup
-    }
+    // Clean up test data
     await testHelpers.teardownTest()
   })
 
@@ -241,23 +236,9 @@ describe('SessionManager', () => {
     })
   })
 
-  describe('invalidateUserSessions', () => {
-    it('should invalidate all sessions for a user', async () => {
-      const { sessionToken: token1 } = await sessionManager.createSession(testUser, '127.0.0.1')
-      const { sessionToken: token2 } = await sessionManager.createSession(testUser, '192.168.1.1')
-      
-      // Verify both sessions are valid
-      expect((await sessionManager.validateSession(token1, '127.0.0.1')).valid).toBe(true)
-      expect((await sessionManager.validateSession(token2, '192.168.1.1')).valid).toBe(true)
-      
-      // Invalidate all sessions
-      await sessionManager.invalidateUserSessions(testUser.id, 'security_test')
-      
-      // Verify both sessions are invalid
-      expect((await sessionManager.validateSession(token1, '127.0.0.1')).valid).toBe(false)
-      expect((await sessionManager.validateSession(token2, '192.168.1.1')).valid).toBe(false)
-    })
-  })
+  // Note: invalidateUserSessions is tested through integration tests in
+  // tests/integration/auth/password-change-sessions.test.ts
+  // which covers the real-world use case of session invalidation after password changes
 
   describe('cookie configuration', () => {
     it('should return correct cookie configuration', () => {
