@@ -1,6 +1,7 @@
-import { testDb, testFactories, clearTestDatabase, initializeTestDatabase } from './test'
-import { userApiKeys, users } from './schema'
+import { testDb, clearTestDatabase, initializeTestDatabase, clearWorkerTestData } from './test'
+import { userApiKeys, users, authAttempts, passwordHistory, userSessions, sessionActivity, accounts, sessions, verificationTokens } from './schema'
 import type { InsertUserApiKey } from './schema'
+import bcrypt from '@node-rs/bcrypt'
 
 // Define InsertUser type based on the users table
 type InsertUser = typeof users.$inferInsert
@@ -15,6 +16,31 @@ export const testDataFactories = {
     id: TEST_USER_ID,
     email: `test-user-${Date.now()}@example.com`,
     name: 'Test User',
+    ...overrides
+  }),
+
+  // Auth user factory with password
+  createAuthUser: async (overrides: Partial<InsertUser> = {}): Promise<InsertUser> => {
+    const password = overrides.password || 'password123'
+    const hashedPassword = typeof password === 'string' ? await bcrypt.hash(password, 10) : password
+    
+    return {
+      id: TEST_USER_ID,
+      email: `auth-user-${Date.now()}@example.com`,
+      name: 'Auth Test User',
+      password: hashedPassword,
+      emailVerified: null,
+      ...overrides
+    }
+  },
+
+  // Auth user factory without password hashing (for testing)
+  createAuthUserPlain: (overrides: Partial<InsertUser> = {}): InsertUser => ({
+    id: TEST_USER_ID,
+    email: `auth-user-${Date.now()}@example.com`,
+    name: 'Auth Test User',
+    password: 'password123',
+    emailVerified: null,
     ...overrides
   }),
 
@@ -124,10 +150,8 @@ export class TestDatabaseManager {
       // Ensure database is initialized
       await initializeTestDatabase()
       
-      const existingUsers = await testDb.select().from(users).limit(1)
-      if (existingUsers.length === 0) {
-        await testDb.insert(users).values(testFixtures.users)
-      }
+      // Don't seed test users automatically - let tests create their own data
+      // This prevents conflicts between tests
     } catch (error) {
       console.log('Database not ready, skipping seed:', error)
     }
@@ -177,21 +201,26 @@ export async function withTestTransaction<T>(
 
 // Test setup and teardown helpers
 export const testHelpers = {
-  // Setup before each test (truncate tables, seed minimal data)
+  // Setup before each test (worker-specific cleanup)
   async setupTest(): Promise<void> {
-    const dbManager = TestDatabaseManager.getInstance()
     try {
-      await dbManager.clearAllData()
-      await dbManager.seedMinimalData()
+      // Use worker-specific cleanup instead of clearing all data
+      await clearWorkerTestData()
+      // Initialize database if needed (but don't clear all data)
+      await initializeTestDatabase()
     } catch (error) {
       console.log('Test setup failed, database may not be ready:', error)
     }
   },
 
-  // Teardown after each test (truncate tables)
+  // Teardown after each test (worker-specific cleanup)
   async teardownTest(): Promise<void> {
-    const dbManager = TestDatabaseManager.getInstance()
-    await dbManager.clearAllData()
+    try {
+      // Use worker-specific cleanup to avoid affecting other workers
+      await clearWorkerTestData()
+    } catch (error) {
+      console.log('Test teardown failed:', error)
+    }
   },
 
   // Setup for specific test scenarios
@@ -243,38 +272,238 @@ export const testHelpers = {
 
   // Helper for testing complete CRUD workflows
   async testCRUDWorkflow<T>(
-    createFn: (data: any) => Promise<any>,
-    readFn: (id: string) => Promise<any>,
-    updateFn: (id: string, data: any) => Promise<any>,
-    deleteFn: (id: string) => Promise<any>,
-    testData: any
+    createFn: (data: unknown) => Promise<unknown>,
+    readFn: (id: string) => Promise<unknown>,
+    updateFn: (id: string, data: unknown) => Promise<unknown>,
+    deleteFn: (id: string) => Promise<unknown>,
+    testData: unknown
   ): Promise<void> {
     // CREATE
     const createResult = await createFn(testData)
-    expect(createResult.success).toBe(true)
-    const id = createResult.data?.id
+    expect((createResult as { success: boolean }).success).toBe(true)
+    const id = (createResult as { data?: { id: string } }).data?.id
     expect(id).toBeDefined()
 
     // READ
     const readResult = await readFn(id)
-    expect(readResult.success).toBe(true)
-    expect(readResult.data?.id).toBe(id)
+    expect((readResult as { success: boolean }).success).toBe(true)
+    expect((readResult as { data?: { id: string } }).data?.id).toBe(id)
 
     // UPDATE
-    const updateData = { ...testData, name: 'Updated Name' }
+    const updateData = { ...(testData as Record<string, unknown>), name: 'Updated Name' }
     const updateResult = await updateFn(id, updateData)
-    expect(updateResult.success).toBe(true)
+    expect((updateResult as { success: boolean }).success).toBe(true)
 
     // Verify update
     const updatedReadResult = await readFn(id)
-    expect(updatedReadResult.data?.name).toBe('Updated Name')
+    expect((updatedReadResult as { data?: { name: string } }).data?.name).toBe('Updated Name')
 
     // DELETE
     const deleteResult = await deleteFn(id)
-    expect(deleteResult.success).toBe(true)
+    expect((deleteResult as { success: boolean }).success).toBe(true)
 
     // Verify deletion
     const deletedReadResult = await readFn(id)
-    expect(deletedReadResult.success).toBe(false)
+    expect((deletedReadResult as { success: boolean }).success).toBe(false)
+  }
+}
+
+// Auth-specific test helpers
+export const authTestHelpers = {
+  // Create a test user with hashed password
+  async createTestUser(overrides: Partial<InsertUser> = {}): Promise<InsertUser> {
+    const user = await testDataFactories.createAuthUser(overrides)
+    const [insertedUser] = await testDb.insert(users).values(user).returning()
+    return insertedUser
+  },
+
+  // Create multiple test users for auth testing
+  async createTestUsers(count: number = 3): Promise<InsertUser[]> {
+    const userPromises = []
+    for (let i = 0; i < count; i++) {
+      userPromises.push(testDataFactories.createAuthUser({
+        id: `00000000-0000-0000-0000-00000000000${i + 1}`,
+        email: `user${i + 1}@example.com`,
+        name: `User ${i + 1}`
+      }))
+    }
+    
+    const users = await Promise.all(userPromises)
+    return await testDb.insert(users).values(users).returning()
+  },
+
+  // Verify password hashing
+  async verifyPasswordHash(plainPassword: string, hashedPassword: string): Promise<boolean> {
+    return await bcrypt.verify(plainPassword, hashedPassword)
+  },
+
+  // Test data for auth scenarios
+  authTestData: {
+    validUser: {
+      email: 'valid@example.com',
+      password: 'validPassword123',
+      name: 'Valid User'
+    },
+    invalidUser: {
+      email: 'invalid@example.com',
+      password: 'wrongPassword',
+      name: 'Invalid User'
+    },
+    duplicateEmailUser: {
+      email: 'duplicate@example.com',
+      password: 'password123',
+      name: 'Duplicate User'
+    },
+    weakPasswordUser: {
+      email: 'weak@example.com',
+      password: '123', // Too short
+      name: 'Weak Password User'
+    },
+    invalidEmailUser: {
+      email: 'invalid-email', // Invalid format
+      password: 'password123',
+      name: 'Invalid Email User'
+    },
+    updateProfileData: {
+      name: 'Updated Name',
+      image: 'https://example.com/avatar.jpg'
+    },
+    passwordChangeData: {
+      currentPassword: 'currentPassword123',
+      newPassword: 'newPassword123'
+    }
+  },
+
+  // Clean up auth-specific test data
+  async cleanupAuthData(): Promise<void> {
+    try {
+      // Delete in correct order due to foreign key constraints
+      // Child tables first, then parent tables
+      
+      // 1. Delete session activity (references userSessions)
+      await testDb.delete(sessionActivity)
+      
+      // 2. Delete user sessions (references users)
+      await testDb.delete(userSessions)
+      
+      // 3. Delete auth attempts (references users)
+      await testDb.delete(authAttempts)
+      
+      // 4. Delete password history (references users)
+      await testDb.delete(passwordHistory)
+      
+      // 5. Delete OAuth accounts (references users)
+      await testDb.delete(accounts)
+      
+      // 6. Delete NextAuth sessions (references users)
+      await testDb.delete(sessions)
+      
+      // 7. Delete verification tokens
+      await testDb.delete(verificationTokens)
+      
+      // 8. Delete user API keys (references users)
+      await testDb.delete(userApiKeys)
+      
+      // 9. Finally delete users (parent table)
+      await testDb.delete(users)
+    } catch (error) {
+      console.error('Error cleaning up auth data:', error)
+      // Continue with the test even if cleanup fails
+    }
+  },
+
+  // Clean up test data created by specific test suite (more isolated)
+  async cleanupTestSuiteData(testSuitePattern: string): Promise<void> {
+    try {
+      const { like, eq } = await import('drizzle-orm')
+      
+      // Delete users whose email contains the test suite pattern
+      const testUsers = await testDb.select().from(users).where(like(users.email, `%${testSuitePattern}%`))
+      
+      if (testUsers.length > 0) {
+        const userIds = testUsers.map(u => u.id)
+        
+        // Delete in correct order due to foreign key constraints
+        for (const userId of userIds) {
+          await testDb.delete(sessionActivity).where(eq(sessionActivity.userId, userId))
+          await testDb.delete(userSessions).where(eq(userSessions.userId, userId))
+          await testDb.delete(authAttempts).where(eq(authAttempts.userId, userId))
+          await testDb.delete(passwordHistory).where(eq(passwordHistory.userId, userId))
+          await testDb.delete(accounts).where(eq(accounts.userId, userId))
+          await testDb.delete(sessions).where(eq(sessions.userId, userId))
+          await testDb.delete(userApiKeys).where(eq(userApiKeys.userId, userId))
+        }
+        
+        // Delete verification tokens by identifier pattern
+        await testDb.delete(verificationTokens).where(like(verificationTokens.identifier, `%${testSuitePattern}%`))
+        
+        // Finally delete users
+        await testDb.delete(users).where(like(users.email, `%${testSuitePattern}%`))
+      }
+    } catch (error) {
+      console.error('Error cleaning up test suite data:', error)
+      // Continue with the test even if cleanup fails
+    }
+  },
+
+  // Assert auth result structure
+  assertAuthResult(result: unknown, expectedSuccess: boolean, expectUser: boolean = true): void {
+    expect(result).toHaveProperty('success')
+    expect((result as { success: boolean }).success).toBe(expectedSuccess)
+    
+    if (expectedSuccess) {
+      if (expectUser) {
+        expect(result).toHaveProperty('user')
+        const user = (result as { user?: { id: string; email: string } }).user
+        if (user) {
+          expect(user).toHaveProperty('id')
+          expect(user).toHaveProperty('email')
+          expect(user).not.toHaveProperty('password') // Password should not be exposed
+        }
+      }
+      expect((result as { error?: unknown }).error).toBeUndefined()
+    } else {
+      expect(result).toHaveProperty('error')
+      expect(typeof (result as { error: unknown }).error).toBe('string')
+    }
+  },
+
+  // Generate unique test email to prevent duplicates
+  generateUniqueEmail(prefix: string = 'test'): string {
+    const timestamp = Date.now()
+    const processId = process.pid
+    const workerId = process.env.JEST_WORKER_ID || '1'
+    const random = Math.random().toString(36).substring(2, 8)
+    const counter = Math.floor(Math.random() * 10000)
+    // Add worker ID for parallel test isolation
+    return `test-worker${workerId}-${prefix}-${timestamp}-${processId}-${counter}-${random}@example.com`
+  },
+
+  // Create test user with unique email
+  async createTestUser(overrides: Partial<InsertUser> = {}): Promise<unknown> {
+    const uniqueEmail = this.generateUniqueEmail()
+    const hashedPassword = await bcrypt.hash('password123', 10)
+    
+    const userData = {
+      email: uniqueEmail,
+      name: 'Test User',
+      password: hashedPassword,
+      ...overrides
+    }
+
+    const [user] = await testDb.insert(users).values(userData).returning()
+    return user
+  },
+
+  // Assert user structure (without password)
+  assertUserStructure(user: unknown): void {
+    expect(user).toHaveProperty('id')
+    expect(user).toHaveProperty('email')
+    expect(user).toHaveProperty('name')
+    expect(user).toHaveProperty('image')
+    expect(user).toHaveProperty('emailVerified')
+    expect(user).toHaveProperty('createdAt')
+    expect(user).toHaveProperty('updatedAt')
+    expect(user).not.toHaveProperty('password') // Password should never be exposed
   }
 } 

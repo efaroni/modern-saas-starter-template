@@ -1,0 +1,24 @@
+# GitHub Language Detection Configuration
+# This file helps GitHub correctly identify the primary languages in this repository
+
+# Mark generated and test files as vendored (not counted in language statistics)
+playwright-report/* linguist-vendored
+test-results/* linguist-vendored
+*.html linguist-vendored
+*.css linguist-vendored
+docs/* linguist-documentation
+
+# Ensure TypeScript is properly detected as the primary language
+*.ts linguist-language=TypeScript
+*.tsx linguist-language=TypeScript
+
+# Mark configuration files appropriately
+*.json linguist-language=JSON
+*.yml linguist-language=YAML
+*.yaml linguist-language=YAML
+*.md linguist-documentation
+
+# Handle specific files
+tsconfig.json linguist-language=JSON
+package.json linguist-language=JSON
+package-lock.json linguist-vendored

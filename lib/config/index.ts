@@ -1,4 +1,8 @@
-// Configuration service that works with or without database
+// Export centralized app configuration
+export * from './app-config'
+
+// Legacy configuration service that works with or without database
+// TODO: Migrate these to app-config.ts
 export const config = {
   database: {
     enabled: !!process.env.DATABASE_URL,

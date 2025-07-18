@@ -1,0 +1,25 @@
+CREATE TABLE "session_activity" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"session_id" uuid NOT NULL,
+	"action" text NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
+	"metadata" jsonb DEFAULT '{}'::jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "user_sessions" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" uuid NOT NULL,
+	"session_token" text NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"last_activity" timestamp DEFAULT now() NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "user_sessions_session_token_unique" UNIQUE("session_token")
+);
+--> statement-breakpoint
+ALTER TABLE "session_activity" ADD CONSTRAINT "session_activity_session_id_user_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."user_sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;

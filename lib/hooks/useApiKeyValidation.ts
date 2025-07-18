@@ -38,7 +38,7 @@ export function useApiKeyValidation({ service, title }: UseApiKeyValidationProps
         })
         setHasValidatedKey(false)
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'An error occurred while testing the API key' })
       setHasValidatedKey(false)
     } finally {

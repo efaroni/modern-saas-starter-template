@@ -23,10 +23,10 @@ export async function validateOpenAIKey(apiKey: string): Promise<ValidationResul
     const openai = new OpenAI({ apiKey })
     await openai.models.list()
     return { isValid: true }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       isValid: false,
-      error: error.message || 'Invalid OpenAI API key'
+      error: error instanceof Error ? error.message : 'Invalid OpenAI API key'
     }
   }
 }
@@ -56,10 +56,10 @@ export async function validateResendKey(apiKey: string): Promise<ValidationResul
     }
     
     return { isValid: true }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       isValid: false,
-      error: error.message || 'Failed to validate Resend API key'
+      error: error instanceof Error ? error.message : 'Failed to validate Resend API key'
     }
   }
 }
@@ -87,10 +87,10 @@ export async function validateStripeKey(apiKey: string): Promise<ValidationResul
       isValid: false,
       error: 'Invalid Stripe API key format'
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       isValid: false,
-      error: error.message || 'Failed to validate Stripe API key'
+      error: error instanceof Error ? error.message : 'Failed to validate Stripe API key'
     }
   }
 }

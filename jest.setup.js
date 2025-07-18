@@ -26,6 +26,25 @@ jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),
 }))
 
+// Mock next-auth to prevent ES module issues
+jest.mock('next-auth', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    auth: jest.fn(),
+    handlers: { GET: jest.fn(), POST: jest.fn() },
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+  })),
+}))
+
+// Mock next-auth config
+jest.mock('@/lib/auth/auth', () => ({
+  auth: jest.fn(),
+  handlers: { GET: jest.fn(), POST: jest.fn() },
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+}))
+
 // Import test database utilities
 import { resetTestDatabase, closeTestDatabase, initializeTestDatabase } from './lib/db/test'
 
@@ -34,7 +53,8 @@ beforeAll(async () => {
   try {
     // Initialize test database before all tests
     await initializeTestDatabase()
-    await resetTestDatabase()
+    // Remove global database reset to prevent race conditions
+    // Individual tests will handle their own setup/teardown
   } catch (error) {
     console.log('Test database initialization failed:', error)
   }
