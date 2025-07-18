@@ -4,6 +4,7 @@ import Google from 'next-auth/providers/google'
 import GitHub from 'next-auth/providers/github'
 import { db } from '@/lib/db'
 import { accounts, sessions, users, verificationTokens } from '@/lib/db/schema'
+import { AUTH_CONFIG } from '@/lib/config/app-config'
 
 export const authConfig = {
   adapter: DrizzleAdapter(db, {
@@ -16,12 +17,12 @@ export const authConfig = {
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true, // Allow linking accounts with same email
+      allowDangerousEmailAccountLinking: AUTH_CONFIG.ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING,
     }),
     GitHub({
       clientId: process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_SECRET!,
-      allowDangerousEmailAccountLinking: true, // Allow linking accounts with same email
+      allowDangerousEmailAccountLinking: AUTH_CONFIG.ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING,
     }),
   ],
   pages: {
@@ -99,7 +100,7 @@ export const authConfig = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: AUTH_CONFIG.SESSION_DURATION_HOURS * 60 * 60, // Convert hours to seconds
   },
   useSecureCookies: process.env.NODE_ENV === 'production',
   cookies: {
@@ -109,9 +110,9 @@ export const authConfig = {
         : 'next-auth.session-token',
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: AUTH_CONFIG.COOKIE_SAME_SITE,
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
+        secure: AUTH_CONFIG.COOKIE_SECURE,
       },
     },
   },

@@ -9,13 +9,14 @@ import { PasswordExpirationService, DEFAULT_PASSWORD_EXPIRATION_CONFIG } from '.
 import { TokenService } from '../token-service'
 import { emailService } from '@/lib/email/service'
 import { authLogger, timeOperation } from '../logger'
+import { AUTH_CONFIG, VALIDATION_CONFIG } from '@/lib/config/app-config'
 
 export class DatabaseAuthProvider implements AuthProvider {
-  private readonly bcryptRounds = 12
+  private readonly bcryptRounds = AUTH_CONFIG.BCRYPT_ROUNDS
   private readonly passwordValidator = new PasswordValidator(DEFAULT_PASSWORD_POLICY)
   private readonly rateLimiter: RateLimiter
   private readonly passwordExpiration: PasswordExpirationService
-  private readonly passwordHistoryLimit = 5
+  private readonly passwordHistoryLimit = AUTH_CONFIG.PASSWORD_HISTORY_LIMIT
   private readonly tokenService: TokenService
   private readonly database: typeof db
 
@@ -306,8 +307,7 @@ export class DatabaseAuthProvider implements AuthProvider {
   async getUserById(id: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(id)) {
+      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
         return {
           success: true,
           user: null
@@ -373,8 +373,7 @@ export class DatabaseAuthProvider implements AuthProvider {
   async updateUser(id: string, data: UpdateProfileRequest): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(id)) {
+      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
         return {
           success: false,
           error: 'User not found'
@@ -457,8 +456,7 @@ export class DatabaseAuthProvider implements AuthProvider {
   async deleteUser(id: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(id)) {
+      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
         return {
           success: false,
           error: 'User not found'
@@ -492,8 +490,7 @@ export class DatabaseAuthProvider implements AuthProvider {
   async verifyUserEmail(id: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(id)) {
+      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
         return {
           success: false,
           error: 'User not found'
@@ -534,8 +531,7 @@ export class DatabaseAuthProvider implements AuthProvider {
   async changeUserPassword(id: string, currentPassword: string, newPassword: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(id)) {
+      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
         return {
           success: false,
           error: 'User not found'
@@ -656,8 +652,7 @@ export class DatabaseAuthProvider implements AuthProvider {
   async resetUserPassword(id: string, newPassword: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(id)) {
+      if (!VALIDATION_CONFIG.UUID_PATTERN.test(id)) {
         return {
           success: false,
           error: 'User not found'

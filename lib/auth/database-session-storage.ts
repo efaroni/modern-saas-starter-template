@@ -3,6 +3,7 @@ import { userSessions, sessionActivity, users } from '@/lib/db/schema'
 import { eq, and, lt, desc } from 'drizzle-orm'
 import { SessionStorage, SessionData } from './session-storage'
 import { randomBytes } from 'crypto'
+import { AUTH_CONFIG } from '@/lib/config/app-config'
 
 export interface SessionConfig {
   maxAge: number // Session max age in seconds
@@ -12,7 +13,7 @@ export interface SessionConfig {
 }
 
 export const DEFAULT_SESSION_CONFIG: SessionConfig = {
-  maxAge: 24 * 60 * 60, // 24 hours
+  maxAge: AUTH_CONFIG.SESSION_DURATION_HOURS * 60 * 60, // Convert hours to seconds
   maxConcurrentSessions: 3,
   suspiciousActivityThreshold: 2,
   inactivityTimeout: 60 * 60 // 1 hour

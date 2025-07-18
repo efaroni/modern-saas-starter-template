@@ -4,6 +4,7 @@ import { emailService } from '@/lib/email/service'
 import { createSessionStorage, type SessionStorage } from './session-storage'
 import type { EmailService } from '@/lib/email/types'
 import type { UploadService } from '@/lib/upload/types'
+import { AUTH_CONFIG } from '@/lib/config/app-config'
 
 export class AuthService {
   private currentSession: SessionData | null = null
@@ -62,7 +63,7 @@ export class AuthService {
       // Create session
       this.currentSession = {
         user: result.user,
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+        expires: new Date(Date.now() + AUTH_CONFIG.SESSION_DURATION_MS).toISOString()
       }
       
       // Store session (fail silently if storage fails)
@@ -85,7 +86,7 @@ export class AuthService {
       // Create session for new user
       this.currentSession = {
         user: result.user,
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        expires: new Date(Date.now() + AUTH_CONFIG.SESSION_DURATION_MS).toISOString()
       }
       
       // Store session (fail silently if storage fails)
@@ -178,7 +179,7 @@ export class AuthService {
       // Create session for OAuth user
       this.currentSession = {
         user: result.user,
-        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        expires: new Date(Date.now() + AUTH_CONFIG.SESSION_DURATION_MS).toISOString()
       }
       
       // Store session (fail silently if storage fails)
@@ -503,7 +504,7 @@ export class AuthService {
     // Extend session expiration
     this.currentSession = {
       user: currentUser.user,
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+      expires: new Date(Date.now() + AUTH_CONFIG.SESSION_DURATION_MS).toISOString()
     }
 
     // Store refreshed session

@@ -91,7 +91,7 @@ describe('SessionManager', () => {
       expect(result.expires).toBeInstanceOf(Date)
       expect(result.cookieOptions.httpOnly).toBe(true)
       expect(result.cookieOptions.secure).toBe(false) // false in test env
-      expect(result.cookieOptions.sameSite).toBe('strict')
+      expect(result.cookieOptions.sameSite).toBe('lax') // 'lax' in test/dev env, 'strict' in production
     })
 
     it('should create unique session tokens', async () => {
@@ -266,7 +266,7 @@ describe('SessionManager', () => {
       expect(config.name).toBe('auth_session')
       expect(config.options.httpOnly).toBe(true)
       expect(config.options.secure).toBe(false) // false in test env
-      expect(config.options.sameSite).toBe('strict')
+      expect(config.options.sameSite).toBe('lax') // 'lax' in test/dev env, 'strict' in production
       expect(config.options.path).toBe('/')
     })
 
@@ -280,7 +280,7 @@ describe('SessionManager', () => {
       expect(cookieString).toContain('Expires=Mon, 01 Jan 2024 12:00:00 GMT')
       expect(cookieString).toContain('Path=/')
       expect(cookieString).toContain('HttpOnly')
-      expect(cookieString).toContain('SameSite=strict')
+      expect(cookieString).toContain('SameSite=lax') // 'lax' in test/dev env, 'strict' in production
     })
 
     it('should create correct clear cookie string', () => {

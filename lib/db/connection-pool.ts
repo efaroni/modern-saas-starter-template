@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
+import { DATABASE_CONFIG } from '@/lib/config/app-config'
 
 export interface ConnectionPoolConfig {
   // Connection pool settings
@@ -21,9 +22,9 @@ export interface ConnectionPoolConfig {
 }
 
 export const DEFAULT_POOL_CONFIG: ConnectionPoolConfig = {
-  max: 20,                    // Maximum 20 connections
-  idle_timeout: 30000,        // 30 seconds idle timeout
-  connect_timeout: 10000,     // 10 seconds connection timeout
+  max: DATABASE_CONFIG.MAX_CONNECTIONS,
+  idle_timeout: DATABASE_CONFIG.IDLE_TIMEOUT_MS,
+  connect_timeout: DATABASE_CONFIG.CONNECT_TIMEOUT_MS,
   prepare: true,              // Use prepared statements for performance
   transform: {
     undefined: null,          // Transform undefined to null for PostgreSQL
@@ -169,7 +170,7 @@ export class DatabaseConnectionPool {
     }
     
     // Consider queries > 1 second as slow
-    if (queryTime > 1000) {
+    if (queryTime > DATABASE_CONFIG.SLOW_QUERY_THRESHOLD_MS) {
       this.queryMetrics.slowQueries++
     }
     

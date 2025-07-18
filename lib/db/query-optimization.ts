@@ -1,6 +1,7 @@
 import { db, getDatabasePool } from './connection-pool'
 import { users, authAttempts, passwordHistory, userSessions } from './schema'
 import { eq, and, gte, desc, lte, count, sql } from 'drizzle-orm'
+import { DATABASE_CONFIG } from '@/lib/config/app-config'
 
 export interface QueryOptimizationConfig {
   // Cache settings
@@ -22,13 +23,13 @@ export interface QueryOptimizationConfig {
 
 export const DEFAULT_QUERY_CONFIG: QueryOptimizationConfig = {
   enableQueryCache: process.env.NODE_ENV === 'production',
-  cacheTimeout: 5 * 60 * 1000, // 5 minutes
+  cacheTimeout: DATABASE_CONFIG.CACHE_TTL_SECONDS * 1000, // Convert to milliseconds
   defaultPageSize: 20,
   maxPageSize: 100,
   enableQueryLogging: process.env.NODE_ENV === 'development',
-  slowQueryThreshold: 1000, // 1 second
+  slowQueryThreshold: DATABASE_CONFIG.SLOW_QUERY_THRESHOLD_MS,
   defaultBatchSize: 100,
-  maxBatchSize: 1000,
+  maxBatchSize: DATABASE_CONFIG.CACHE_MAX_SIZE * 10, // 10x cache size for batch operations
 }
 
 // Query cache for frequently accessed data

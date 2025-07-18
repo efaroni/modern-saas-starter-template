@@ -1,6 +1,7 @@
 import { DatabaseSessionStorage, SessionConfig, DEFAULT_SESSION_CONFIG } from './database-session-storage'
 import { AuthUser } from './types'
 import { db } from '@/lib/db'
+import { AUTH_CONFIG } from '@/lib/config/app-config'
 
 export interface SessionSecurityConfig {
   // Session timeouts
@@ -23,15 +24,15 @@ export interface SessionSecurityConfig {
 }
 
 export const DEFAULT_SECURITY_CONFIG: SessionSecurityConfig = {
-  maxAge: 24 * 60 * 60, // 24 hours
+  maxAge: AUTH_CONFIG.SESSION_DURATION_HOURS * 60 * 60, // Convert hours to seconds
   inactivityTimeout: 60 * 60, // 1 hour
   maxConcurrentSessions: 3,
   suspiciousActivityThreshold: 2,
   cookieName: 'auth_session',
   cookieOptions: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: AUTH_CONFIG.COOKIE_SECURE,
+    sameSite: AUTH_CONFIG.COOKIE_SAME_SITE,
     path: '/',
     domain: undefined
   }
