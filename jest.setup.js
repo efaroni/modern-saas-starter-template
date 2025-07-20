@@ -6,7 +6,15 @@ global.clearImmediate = global.clearImmediate || ((id) => global.clearTimeout(id
 
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test'
-process.env.DATABASE_URL = 'postgresql://test_user:test_pass@localhost:5433/saas_template_test'
+
+// Set component-based test database configuration
+process.env.TEST_DB_HOST = 'localhost'
+process.env.TEST_DB_PORT = '5433'
+process.env.TEST_DB_USER = 'test_user'
+process.env.TEST_DB_PASSWORD = 'test_pass'
+process.env.TEST_DB_NAME = 'saas_template_test'
+
+// Also set TEST_DATABASE_URL for backwards compatibility
 process.env.TEST_DATABASE_URL = 'postgresql://test_user:test_pass@localhost:5433/saas_template_test'
 process.env.ENCRYPTION_KEY = 'test-encryption-key-32-characters!!'
 

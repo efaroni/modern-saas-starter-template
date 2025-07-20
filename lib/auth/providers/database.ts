@@ -928,8 +928,9 @@ export class DatabaseAuthProvider implements AuthProvider {
   }
 
   isConfigured(): boolean {
-    // Check if database connection is available
-    return !!process.env.DATABASE_URL
+    // Check if database connection is available using centralized config
+    const { isRealDatabase } = require('@/lib/db/config')
+    return isRealDatabase()
   }
 
   getConfiguration(): AuthConfiguration {

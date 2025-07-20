@@ -1,7 +1,7 @@
 import { db, getDatabasePool } from './connection-pool'
 import { users, authAttempts, passwordHistory, userSessions } from './schema'
 import { eq, and, gte, desc, lte, count, sql } from 'drizzle-orm'
-import { DATABASE_CONFIG } from '@/lib/config/app-config'
+import { getDatabaseConfig } from './config'
 
 export interface QueryOptimizationConfig {
   // Cache settings
@@ -21,16 +21,23 @@ export interface QueryOptimizationConfig {
   maxBatchSize: number
 }
 
-export const DEFAULT_QUERY_CONFIG: QueryOptimizationConfig = {
-  enableQueryCache: process.env.NODE_ENV === 'production',
-  cacheTimeout: DATABASE_CONFIG.CACHE_TTL_SECONDS * 1000, // Convert to milliseconds
-  defaultPageSize: 20,
-  maxPageSize: 100,
-  enableQueryLogging: process.env.NODE_ENV === 'development',
-  slowQueryThreshold: DATABASE_CONFIG.SLOW_QUERY_THRESHOLD_MS,
-  defaultBatchSize: 100,
-  maxBatchSize: DATABASE_CONFIG.CACHE_MAX_SIZE * 10, // 10x cache size for batch operations
+// Get database configuration dynamically
+const getDefaultQueryConfig = (): QueryOptimizationConfig => {
+  const dbConfig = getDatabaseConfig()
+  
+  return {
+    enableQueryCache: process.env.NODE_ENV === 'production',
+    cacheTimeout: dbConfig.cacheTtl * 1000, // Convert to milliseconds
+    defaultPageSize: 20,
+    maxPageSize: 100,
+    enableQueryLogging: process.env.NODE_ENV === 'development',
+    slowQueryThreshold: dbConfig.slowQueryThreshold,
+    defaultBatchSize: 100,
+    maxBatchSize: dbConfig.cacheMaxSize * 10, // 10x cache size for batch operations
+  }
 }
+
+export const DEFAULT_QUERY_CONFIG: QueryOptimizationConfig = getDefaultQueryConfig()
 
 // Query cache for frequently accessed data
 class QueryCache {

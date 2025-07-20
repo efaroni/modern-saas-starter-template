@@ -1,9 +1,10 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
+import { getDatabaseUrl, getDatabaseConfig } from './config'
 
 // Test database configuration with worker isolation
-const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://test_user:test_pass@localhost:5433/saas_template_test'
+const TEST_DATABASE_URL = getDatabaseUrl()
 
 // Get worker ID for isolation (Jest sets JEST_WORKER_ID)
 const getWorkerId = () => {
@@ -14,10 +15,12 @@ const getWorkerId = () => {
 // Create worker-specific database client
 const createWorkerTestClient = () => {
   const workerId = getWorkerId()
+  const config = getDatabaseConfig()
+  
   return postgres(TEST_DATABASE_URL, {
-    max: 3, // Allow more connections per worker
-    idle_timeout: 20,
-    connect_timeout: 10,
+    max: config.poolSize || 3, // Allow more connections per worker
+    idle_timeout: config.idleTimeout || 20,
+    connect_timeout: config.connectTimeout || 10,
     // Add worker ID to connection for debugging
     connection: {
       application_name: `test_worker_${workerId}`

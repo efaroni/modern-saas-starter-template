@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
-import { DATABASE_CONFIG } from '@/lib/config/app-config'
+import { getDatabaseConfig } from './config'
 
 export interface ConnectionPoolConfig {
   // Connection pool settings
@@ -21,18 +21,25 @@ export interface ConnectionPoolConfig {
   max_uses: number        // Maximum uses of a connection before recycling
 }
 
-export const DEFAULT_POOL_CONFIG: ConnectionPoolConfig = {
-  max: DATABASE_CONFIG.MAX_CONNECTIONS,
-  idle_timeout: DATABASE_CONFIG.IDLE_TIMEOUT_MS,
-  connect_timeout: DATABASE_CONFIG.CONNECT_TIMEOUT_MS,
-  prepare: true,              // Use prepared statements for performance
-  transform: {
-    undefined: null,          // Transform undefined to null for PostgreSQL
-  },
-  ssl: process.env.NODE_ENV === 'production' ? 'require' : false,
-  max_lifetime: 3600,         // 1 hour connection lifetime
-  max_uses: 7500,            // Recycle after 7500 uses
+// Create default pool config using centralized database configuration
+function createDefaultPoolConfig(): ConnectionPoolConfig {
+  const dbConfig = getDatabaseConfig()
+  
+  return {
+    max: dbConfig.poolSize,
+    idle_timeout: dbConfig.idleTimeout * 1000, // Convert seconds to ms
+    connect_timeout: dbConfig.connectTimeout * 1000, // Convert seconds to ms
+    prepare: true,              // Use prepared statements for performance
+    transform: {
+      undefined: null,          // Transform undefined to null for PostgreSQL
+    },
+    ssl: process.env.NODE_ENV === 'production' ? 'require' : false,
+    max_lifetime: dbConfig.maxLifetime,
+    max_uses: dbConfig.maxUses,
+  }
 }
+
+export const DEFAULT_POOL_CONFIG: ConnectionPoolConfig = createDefaultPoolConfig()
 
 export interface DatabaseHealth {
   healthy: boolean
@@ -59,6 +66,7 @@ export class DatabaseConnectionPool {
   private db: ReturnType<typeof drizzle>
   private config: ConnectionPoolConfig
   private healthStats: DatabaseHealth
+  private dbConfig = getDatabaseConfig()
   private queryMetrics: {
     totalQueries: number
     totalTime: number
@@ -176,7 +184,7 @@ export class DatabaseConnectionPool {
     }
     
     // Consider queries > threshold as slow
-    if (queryTime > DATABASE_CONFIG.SLOW_QUERY_THRESHOLD_MS) {
+    if (queryTime > this.dbConfig.slowQueryThreshold) {
       this.queryMetrics.slowQueries++
       // Track slow query details
       this.queryMetrics.slowQueryDetails.push({
@@ -191,7 +199,7 @@ export class DatabaseConnectionPool {
       }
       
       // Log slow query for monitoring
-      console.warn(`[DB] Slow query detected: ${queryTime}ms (threshold: ${DATABASE_CONFIG.SLOW_QUERY_THRESHOLD_MS}ms)`)
+      console.warn(`[DB] Slow query detected: ${queryTime}ms (threshold: ${this.dbConfig.slowQueryThreshold}ms)`)
     }
     
     // Update health stats
@@ -218,7 +226,7 @@ export class DatabaseConnectionPool {
     
     // Alert on very high average query time
     const avgQueryTime = this.queryMetrics.totalTime / this.queryMetrics.totalQueries
-    if (avgQueryTime > DATABASE_CONFIG.SLOW_QUERY_THRESHOLD_MS * 0.5) { // 50% of slow query threshold
+    if (avgQueryTime > this.dbConfig.slowQueryThreshold * 0.5) { // 50% of slow query threshold
       console.warn(`[DB ALERT] High average query time: ${avgQueryTime.toFixed(2)}ms`)
     }
   }
@@ -359,20 +367,12 @@ let dbPool: DatabaseConnectionPool | null = null
 
 export function getDatabasePool(): DatabaseConnectionPool {
   if (!dbPool) {
-    const connectionString = process.env.DATABASE_URL
-    if (!connectionString) {
-      throw new Error('DATABASE_URL environment variable is not set')
-    }
+    // Import here to avoid circular dependency
+    const { getDatabaseUrl } = require('./config')
+    const connectionString = getDatabaseUrl()
     
-    // Configuration based on environment
-    const config: Partial<ConnectionPoolConfig> = {
-      max: process.env.DB_POOL_MAX ? parseInt(process.env.DB_POOL_MAX) : 20,
-      idle_timeout: process.env.DB_POOL_IDLE_TIMEOUT ? parseInt(process.env.DB_POOL_IDLE_TIMEOUT) : 30000,
-      connect_timeout: process.env.DB_POOL_CONNECT_TIMEOUT ? parseInt(process.env.DB_POOL_CONNECT_TIMEOUT) : 10000,
-      ssl: process.env.NODE_ENV === 'production' ? 'require' : false,
-    }
-    
-    dbPool = new DatabaseConnectionPool(connectionString, config)
+    // Use the centralized default pool configuration
+    dbPool = new DatabaseConnectionPool(connectionString, DEFAULT_POOL_CONFIG)
   }
   
   return dbPool

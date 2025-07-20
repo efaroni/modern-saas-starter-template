@@ -46,26 +46,7 @@ export const AUTH_CONFIG = {
   COOKIE_SAME_SITE: process.env.NODE_ENV === 'production' ? 'strict' as const : 'lax' as const,
 } as const
 
-// Database Configuration
-export const DATABASE_CONFIG = {
-  // Connection Pool
-  MAX_CONNECTIONS: parseEnvInt('DB_MAX_CONNECTIONS', 20),
-  MIN_CONNECTIONS: parseEnvInt('DB_MIN_CONNECTIONS', 5),
-  IDLE_TIMEOUT_MS: parseEnvInt('DB_IDLE_TIMEOUT_MS', 30000),
-  CONNECT_TIMEOUT_MS: parseEnvInt('DB_CONNECT_TIMEOUT_MS', 10000),
-  
-  // Query Performance
-  SLOW_QUERY_THRESHOLD_MS: parseEnvInt('DB_SLOW_QUERY_THRESHOLD_MS', 1000),
-  QUERY_TIMEOUT_MS: parseEnvInt('DB_QUERY_TIMEOUT_MS', 30000),
-  
-  // Caching
-  CACHE_TTL_SECONDS: parseEnvInt('DB_CACHE_TTL_SECONDS', 300), // 5 minutes
-  CACHE_MAX_SIZE: parseEnvInt('DB_CACHE_MAX_SIZE', 100),
-  
-  // Health Check
-  HEALTH_CHECK_INTERVAL_MS: parseEnvInt('DB_HEALTH_CHECK_INTERVAL_MS', 30000),
-  HEALTH_CHECK_TIMEOUT_MS: parseEnvInt('DB_HEALTH_CHECK_TIMEOUT_MS', 5000),
-} as const
+// Database Configuration moved to lib/db/config.ts for better organization
 
 // API Configuration
 export const API_CONFIG = {
@@ -169,7 +150,6 @@ export const ENV_CONFIG = {
 // Export all configs as a single object for convenience
 export const APP_CONFIG = {
   AUTH: AUTH_CONFIG,
-  DATABASE: DATABASE_CONFIG,
   API: API_CONFIG,
   EMAIL: EMAIL_CONFIG,
   UPLOAD: UPLOAD_CONFIG,
@@ -181,7 +161,6 @@ export const APP_CONFIG = {
 
 // Type exports for TypeScript support
 export type AuthConfig = typeof AUTH_CONFIG
-export type DatabaseConfig = typeof DATABASE_CONFIG
 export type ApiConfig = typeof API_CONFIG
 export type EmailConfig = typeof EMAIL_CONFIG
 export type UploadConfig = typeof UPLOAD_CONFIG

@@ -4,6 +4,7 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import postgres from 'postgres'
 import fs from 'fs'
 import path from 'path'
+import { getDatabaseUrl } from './config'
 
 export interface MigrationStatus {
   name: string
@@ -241,7 +242,7 @@ export class DatabaseMigrator {
 
 // CLI utility functions
 export async function runMigrations(connectionString?: string): Promise<void> {
-  const connString = connectionString || process.env.DATABASE_URL
+  const connString = connectionString || getDatabaseUrl()
   if (!connString) {
     throw new Error('Database connection string is required')
   }
@@ -256,7 +257,7 @@ export async function runMigrations(connectionString?: string): Promise<void> {
 }
 
 export async function getMigrationStatus(connectionString?: string): Promise<MigrationStatus[]> {
-  const connString = connectionString || process.env.DATABASE_URL
+  const connString = connectionString || getDatabaseUrl()
   if (!connString) {
     throw new Error('Database connection string is required')
   }
@@ -271,7 +272,7 @@ export async function getMigrationStatus(connectionString?: string): Promise<Mig
 }
 
 export async function validateDatabaseSchema(connectionString?: string): Promise<{ valid: boolean; issues: string[] }> {
-  const connString = connectionString || process.env.DATABASE_URL
+  const connString = connectionString || getDatabaseUrl()
   if (!connString) {
     throw new Error('Database connection string is required')
   }
@@ -287,11 +288,8 @@ export async function validateDatabaseSchema(connectionString?: string): Promise
 
 // Original simple migration runner for backward compatibility
 const runMigrate = async () => {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is not defined')
-  }
-
-  const connection = postgres(process.env.DATABASE_URL, { max: 1 })
+  const connectionString = getDatabaseUrl()
+  const connection = postgres(connectionString, { max: 1 })
   const db = drizzle(connection)
 
   console.log('Running migrations...')

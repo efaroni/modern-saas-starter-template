@@ -5,6 +5,7 @@ import postgres from 'postgres'
 import { config } from 'dotenv'
 import { users, apiKeys, userSessions, sessionActivity } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
+import { getDatabaseUrl } from '../lib/db/config'
 
 // Load environment variables
 config({ path: '.env.local' })
@@ -27,10 +28,13 @@ Examples:
   process.exit(0)
 }
 
-const DATABASE_URL = process.env.DATABASE_URL
-if (!DATABASE_URL) {
-  console.error('❌ DATABASE_URL is required in .env.local')
-  console.log('Please add DATABASE_URL to your .env.local file')
+// Get database URL from centralized configuration
+let DATABASE_URL: string
+try {
+  DATABASE_URL = getDatabaseUrl()
+} catch (error) {
+  console.error('❌ Database configuration error:', error.message)
+  console.log('Please ensure DATABASE_URL is set in your .env.local file')
   process.exit(1)
 }
 

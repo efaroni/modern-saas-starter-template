@@ -17,8 +17,11 @@ const getDb = async () => {
 
 // Check if we should use database or mock mode
 const shouldUseMock = () => {
-  // If no DATABASE_URL is set, always use mock
-  if (!process.env.DATABASE_URL) {
+  // Import here to avoid circular dependency
+  const { isRealDatabase } = require('@/lib/db/config')
+  
+  // If no database is configured, always use mock
+  if (!isRealDatabase()) {
     return true
   }
   // If config says database is disabled, use mock

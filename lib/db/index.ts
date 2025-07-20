@@ -1,8 +1,8 @@
 import postgres from 'postgres'
+import { getDatabaseUrl } from './config'
 
-// In development, Next.js loads .env.local automatically
-// For production, use actual environment variables
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/saas_template'
+// Get database URL from centralized configuration
+const connectionString = getDatabaseUrl()
 
 // For migrations
 export const migrationClient = postgres(connectionString, { max: 1 })
