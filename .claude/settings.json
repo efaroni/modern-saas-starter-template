@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(/usr/bin/grep:*)",
+      "Bash(/usr/bin/find:*)"
     ],
     "deny": []
   }

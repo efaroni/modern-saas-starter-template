@@ -6,8 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
+import { loginAction } from '@/app/actions/auth'
 import { OAuthButtons } from './oauth-buttons'
 
 const loginSchema = z.object({
@@ -28,7 +28,6 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess, onError, onForgotPassword }: LoginFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const authConfig = authService.getConfiguration()
 
   const {
     register,
@@ -41,7 +40,7 @@ export function LoginForm({ onSuccess, onError, onForgotPassword }: LoginFormPro
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true)
     try {
-      const result = await authService.signIn({
+      const result = await loginAction({
         email: data.email,
         password: data.password
       })
@@ -121,17 +120,6 @@ export function LoginForm({ onSuccess, onError, onForgotPassword }: LoginFormPro
 
       {/* OAuth Buttons */}
       <OAuthButtons onSuccess={onSuccess} onError={onError} />
-
-      {/* Test Credentials for Mock */}
-      {authConfig.provider === 'mock' && (
-        <div className="p-3 bg-blue-50 rounded-md">
-          <div className="text-sm">
-            <p className="font-medium text-blue-800">Test Credentials:</p>
-            <p className="text-blue-700">Email: test@example.com</p>
-            <p className="text-blue-700">Password: password</p>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

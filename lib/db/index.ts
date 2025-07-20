@@ -1,21 +1,14 @@
-import postgres from 'postgres'
-import { getDatabaseUrl } from './config'
+// Main database module - safe for client-side imports
+// For server-only functionality, import from './server'
 
-// Get database URL from centralized configuration
-const connectionString = getDatabaseUrl()
-
-// For migrations
-export const migrationClient = postgres(connectionString, { max: 1 })
-
-// For queries - use optimized connection pool
+// Export client-safe database connection and types
 export { db, getDatabasePool } from './connection-pool'
 
-// Export optimized query utilities
+// Export optimized query utilities (these don't use Node.js APIs)
 export { queryOptimizer, optimizedQueries } from './query-optimization'
 
-// Export migration utilities
-export { runMigrations, getMigrationStatus, validateDatabaseSchema } from './migrate'
-export { DatabaseMigrator } from './migrate'
-
-// Export schema
+// Export schema for both client and server use
 export * from './schema'
+
+// Export configuration utilities
+export { getDatabaseUrl, getDatabaseConfig, isRealDatabase } from './config'

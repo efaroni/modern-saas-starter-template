@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { authService } from '@/lib/auth/factory'
+// TODO: Implement avatar upload with server actions
 import { Spinner } from '@/components/ui/spinner'
 import type { AuthUser } from '@/lib/auth/types'
 
@@ -12,50 +12,27 @@ interface AvatarUploadProps {
   onError: (error: string) => void
 }
 
-export function AvatarUpload({ user, onSuccess, onError }: AvatarUploadProps) {
-  const [isUploading, setIsUploading] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+export function AvatarUpload({ user, onError }: AvatarUploadProps) {
+  const [isUploading, _setIsUploading] = useState(false)
+  const [isDeleting, _setIsDeleting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
-    setIsUploading(true)
-    try {
-      const result = await authService.uploadAvatar(user.id, file)
-      
-      if (result.success && result.user) {
-        onSuccess(result.user)
-      } else {
-        onError(result.error || 'Avatar upload failed')
-      }
-    } catch {
-      onError('An unexpected error occurred during upload')
-    } finally {
-      setIsUploading(false)
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
+    // TODO: Implement avatar upload server action
+    onError('Avatar upload not yet implemented')
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
 
   const handleDeleteAvatar = async () => {
-    setIsDeleting(true)
-    try {
-      const result = await authService.deleteAvatar(user.id)
-      
-      if (result.success && result.user) {
-        onSuccess(result.user)
-      } else {
-        onError(result.error || 'Avatar deletion failed')
-      }
-    } catch {
-      onError('An unexpected error occurred during deletion')
-    } finally {
-      setIsDeleting(false)
-    }
+    // TODO: Implement avatar deletion server action
+    onError('Avatar deletion not yet implemented')
   }
 
   const handleUploadClick = () => {

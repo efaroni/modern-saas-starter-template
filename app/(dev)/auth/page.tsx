@@ -9,8 +9,8 @@ import { ChangePasswordForm } from './components/change-password-form'
 import { DeleteAccountForm } from './components/delete-account-form'
 import { PasswordResetRequestForm } from './components/password-reset-request-form'
 import { PasswordResetCompletionForm } from './components/password-reset-completion-form'
-import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
+import { logoutAction, getAuthConfigurationAction } from '@/app/actions/auth'
 
 export default function AuthPage() {
   const searchParams = useSearchParams()
@@ -18,14 +18,22 @@ export default function AuthPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [resetToken, setResetToken] = useState<string | null>(null)
+  const [authConfig, setAuthConfig] = useState({ provider: 'mock', oauthProviders: [] })
 
-  // Check for password reset token in URL
+  // Check for password reset token in URL and load auth config
   useEffect(() => {
     const token = searchParams.get('token')
     if (token) {
       setResetToken(token)
       setActiveTab('reset-complete')
     }
+    
+    // Load auth configuration
+    getAuthConfigurationAction().then(config => {
+      setAuthConfig(config)
+    }).catch(() => {
+      setAuthConfig({ provider: 'mock', oauthProviders: [] })
+    })
   }, [searchParams])
 
   const handleSuccess = (user: AuthUser) => {
@@ -45,7 +53,7 @@ export default function AuthPage() {
   }
 
   const handleSignOut = async () => {
-    await authService.signOut()
+    await logoutAction()
     setCurrentUser(null)
     setMessage(null)
     setActiveTab('login')
@@ -101,8 +109,6 @@ export default function AuthPage() {
     setActiveTab('login')
     setResetToken(null)
   }
-
-  const authConfig = authService.getConfiguration()
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

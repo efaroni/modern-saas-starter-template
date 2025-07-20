@@ -209,7 +209,7 @@ export default function PerformancePage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Performance Dashboard</h1>
-          <p className="text-gray-600">Monitor and optimize your application's performance metrics</p>
+          <p className="text-gray-600">Monitor and optimize your application&apos;s performance metrics</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -507,7 +507,7 @@ export default function PerformancePage() {
               <CardHeader>
                 <CardTitle>Performance Insights</CardTitle>
                 <CardDescription>
-                  Key observations about your application's performance
+                  Key observations about your application&apos;s performance
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -526,7 +526,7 @@ export default function PerformancePage() {
               <CardHeader>
                 <CardTitle>Recommendations</CardTitle>
                 <CardDescription>
-                  Suggestions to improve your application's performance
+                  Suggestions to improve your application&apos;s performance
                 </CardDescription>
               </CardHeader>
               <CardContent>

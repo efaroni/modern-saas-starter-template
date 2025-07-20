@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { authService } from '@/lib/auth/factory'
+import { requestPasswordResetAction } from '@/app/actions/auth'
 
 const passwordResetSchema = z.object({
   email: z.string().email('Please enter a valid email address')
@@ -33,7 +33,7 @@ export function PasswordResetRequestForm({ onSuccess, onError, onBackToLogin }: 
     setIsLoading(true)
     
     try {
-      const result = await authService.requestPasswordReset(data.email)
+      const result = await requestPasswordResetAction(data.email)
       
       if (result.success) {
         onSuccess('If an account with that email exists, we have sent you a password reset link.')

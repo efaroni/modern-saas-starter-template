@@ -6,8 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
+import { signupAction } from '@/app/actions/auth'
 
 const signupSchema = z.object({
   email: z.string()
@@ -28,7 +28,6 @@ interface SignupFormProps {
 
 export function SignupForm({ onSuccess, onError }: SignupFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const authConfig = authService.getConfiguration()
 
   const {
     register,
@@ -41,7 +40,7 @@ export function SignupForm({ onSuccess, onError }: SignupFormProps) {
   const onSubmit = async (data: SignupFormData) => {
     setIsSubmitting(true)
     try {
-      const result = await authService.signUp({
+      const result = await signupAction({
         email: data.email,
         password: data.password,
         name: data.name
@@ -67,7 +66,7 @@ export function SignupForm({ onSuccess, onError }: SignupFormProps) {
           <span className="font-medium">Auth Service Status:</span>
           <span className="text-green-600">✅</span>
           <span className="text-gray-600">
-            {authConfig.provider === 'mock' ? 'Mock Auth' : 'Real Auth'} Configured
+            Server-side Auth Configured
           </span>
         </div>
       </div>
@@ -140,15 +139,13 @@ export function SignupForm({ onSuccess, onError }: SignupFormProps) {
         </button>
       </form>
 
-      {/* Note for Mock */}
-      {authConfig.provider === 'mock' && (
-        <div className="p-3 bg-green-50 rounded-md">
-          <div className="text-sm">
-            <p className="font-medium text-green-800">Mock Mode:</p>
-            <p className="text-green-700">You can create any new user account for testing</p>
-          </div>
+      {/* Note for Development */}
+      <div className="p-3 bg-green-50 rounded-md">
+        <div className="text-sm">
+          <p className="font-medium text-green-800">Development Mode:</p>
+          <p className="text-green-700">You can create any new user account for testing</p>
         </div>
-      )}
+      </div>
     </div>
   )
 }

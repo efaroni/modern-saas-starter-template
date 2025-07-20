@@ -18,6 +18,7 @@ const getDb = async () => {
 // Check if we should use database or mock mode
 const shouldUseMock = () => {
   // Import here to avoid circular dependency
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { isRealDatabase } = require('@/lib/db/config')
   
   // If no database is configured, always use mock

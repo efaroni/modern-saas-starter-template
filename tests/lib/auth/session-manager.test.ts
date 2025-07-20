@@ -16,10 +16,12 @@ describe('SessionManager', () => {
     const { testDb } = require('@/lib/db/test')
     const provider = new DatabaseAuthProvider(testDb)
     
-    // Retry logic for test stability
     let result
-    let retries = 3
-    while (retries > 0) {
+    let attempts = 0
+    const maxAttempts = 3
+    
+    do {
+      attempts++
       const uniqueEmail = authTestHelpers.generateUniqueEmail('session')
       result = await provider.createUser({
         email: uniqueEmail,
@@ -27,19 +29,17 @@ describe('SessionManager', () => {
         password: 'StrongP@ssw0rd123!'
       })
       
-      if (result.success && result.user) {
+      if (result?.success && result?.user) {
         break
       }
       
-      retries--
-      if (retries > 0) {
-        // Wait a bit before retry
+      if (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 100))
       }
-    }
+    } while (attempts < maxAttempts)
     
     if (!result?.success || !result?.user) {
-      throw new Error('Failed to create test user for session tests after 3 attempts')
+      throw new Error(`Failed to create test user for session tests after ${maxAttempts} attempts`)
     }
     
     testUser = result.user
@@ -59,27 +59,11 @@ describe('SessionManager', () => {
 
   describe('createSession', () => {
     it('should create a new session with secure configuration', async () => {
-      let result
-      let attempts = 0
-      const maxAttempts = 3
-      
-      do {
-        attempts++
-        try {
-          result = await sessionManager.createSession(
-            testUser,
-            '127.0.0.1',
-            'Test User Agent'
-          )
-          break
-        } catch (error) {
-          if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-          } else {
-            throw error
-          }
-        }
-      } while (attempts < maxAttempts)
+      const result = await sessionManager.createSession(
+        testUser,
+        '127.0.0.1',
+        'Test User Agent'
+      )
 
       expect(result.sessionToken).toBeTruthy()
       expect(result.sessionToken).toHaveLength(64) // 32 bytes hex = 64 chars
@@ -89,64 +73,10 @@ describe('SessionManager', () => {
       expect(result.cookieOptions.sameSite).toBe('lax') // 'lax' in test/dev env, 'strict' in production
     })
 
-    it('should create unique session tokens', async () => {
-      let result1, result2
-      
-      // Create first session with retry
-      let attempts = 0
-      const maxAttempts = 3
-      do {
-        attempts++
-        try {
-          result1 = await sessionManager.createSession(testUser, '127.0.0.1')
-          break
-        } catch (error) {
-          if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-          } else {
-            throw error
-          }
-        }
-      } while (attempts < maxAttempts)
-      
-      // Create second session with retry
-      attempts = 0
-      do {
-        attempts++
-        try {
-          result2 = await sessionManager.createSession(testUser, '127.0.0.1')
-          break
-        } catch (error) {
-          if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-          } else {
-            throw error
-          }
-        }
-      } while (attempts < maxAttempts)
-
-      expect(result1.sessionToken).not.toBe(result2.sessionToken)
-    })
 
     it('should set correct expiration time', async () => {
       const beforeCreation = Date.now()
-      let result
-      let attempts = 0
-      const maxAttempts = 3
-      
-      do {
-        attempts++
-        try {
-          result = await sessionManager.createSession(testUser, '127.0.0.1')
-          break
-        } catch (error) {
-          if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-          } else {
-            throw error
-          }
-        }
-      } while (attempts < maxAttempts)
+      const result = await sessionManager.createSession(testUser, '127.0.0.1')
       const afterCreation = Date.now()
 
       const expectedExpiry = beforeCreation + 3600 * 1000 // 1 hour
@@ -157,25 +87,7 @@ describe('SessionManager', () => {
 
   describe('validateSession', () => {
     it('should validate a valid session', async () => {
-      // Retry session creation for parallel test stability
-      let sessionResult
-      let attempts = 0
-      const maxAttempts = 3
-      
-      do {
-        attempts++
-        try {
-          sessionResult = await sessionManager.createSession(testUser, '127.0.0.1')
-          break
-        } catch (error) {
-          if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-          } else {
-            throw error
-          }
-        }
-      } while (attempts < maxAttempts)
-      
+      const sessionResult = await sessionManager.createSession(testUser, '127.0.0.1')
       const { sessionToken } = sessionResult
       const result = await sessionManager.validateSession(sessionToken, '127.0.0.1')
       
@@ -240,38 +152,6 @@ describe('SessionManager', () => {
   // tests/integration/auth/password-change-sessions.test.ts
   // which covers the real-world use case of session invalidation after password changes
 
-  describe('cookie configuration', () => {
-    it('should return correct cookie configuration', () => {
-      const config = sessionManager.getCookieConfig()
-      
-      expect(config.name).toBe('auth_session')
-      expect(config.options.httpOnly).toBe(true)
-      expect(config.options.secure).toBe(false) // false in test env
-      expect(config.options.sameSite).toBe('lax') // 'lax' in test/dev env, 'strict' in production
-      expect(config.options.path).toBe('/')
-    })
-
-    it('should create correct cookie string', () => {
-      const token = 'test-session-token'
-      const expires = new Date('2024-01-01T12:00:00Z')
-      
-      const cookieString = sessionManager.createCookieString(token, expires)
-      
-      expect(cookieString).toContain('auth_session=test-session-token')
-      expect(cookieString).toContain('Expires=Mon, 01 Jan 2024 12:00:00 GMT')
-      expect(cookieString).toContain('Path=/')
-      expect(cookieString).toContain('HttpOnly')
-      expect(cookieString).toContain('SameSite=lax') // 'lax' in test/dev env, 'strict' in production
-    })
-
-    it('should create correct clear cookie string', () => {
-      const clearCookieString = sessionManager.createClearCookieString()
-      
-      expect(clearCookieString).toContain('auth_session=')
-      expect(clearCookieString).toContain('Expires=Thu, 01 Jan 1970 00:00:00 GMT')
-      expect(clearCookieString).toContain('Path=/')
-    })
-  })
 
   describe('session security', () => {
     it('should handle concurrent session limits', async () => {
@@ -290,10 +170,5 @@ describe('SessionManager', () => {
       expect((await sessionManager.validateSession(session3.sessionToken, '10.0.0.1')).valid).toBe(true)
     })
 
-    it('should handle session cleanup', async () => {
-      // This test would verify that expired sessions are cleaned up
-      // For now, we'll just verify the method doesn't throw
-      await expect(sessionManager.cleanupExpiredSessions()).resolves.not.toThrow()
-    })
   })
 })

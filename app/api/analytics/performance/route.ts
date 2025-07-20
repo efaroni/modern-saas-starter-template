@@ -197,7 +197,7 @@ function categorizeUrl(url: string) {
     if (pathname.startsWith('/dev/')) return 'dev'
     
     return 'other'
-  } catch (error) {
+  } catch (_error) {
     return 'unknown'
   }
 }

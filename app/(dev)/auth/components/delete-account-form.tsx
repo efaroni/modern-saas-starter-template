@@ -6,8 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
+// import { deleteAccountAction } from '@/app/actions/auth' // TODO: Implement when ready
 
 const deleteAccountSchema = z.object({
   confirmText: z.string().refine((val) => val === 'DELETE', {
@@ -23,8 +23,8 @@ interface DeleteAccountFormProps {
   onError: (error: string) => void
 }
 
-export function DeleteAccountForm({ user, onSuccess, onError }: DeleteAccountFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export function DeleteAccountForm({ user: _user, onSuccess: _onSuccess, onError }: DeleteAccountFormProps) {
+  const [isSubmitting, _setIsSubmitting] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
 
   const {
@@ -36,22 +36,9 @@ export function DeleteAccountForm({ user, onSuccess, onError }: DeleteAccountFor
     resolver: zodResolver(deleteAccountSchema)
   })
 
-  const onSubmit = async (_data: DeleteAccountFormData) => {
-    setIsSubmitting(true)
-    try {
-      const result = await authService.deleteUserAccount(user.id)
-
-      if (result.success) {
-        reset()
-        onSuccess()
-      } else {
-        onError(result.error || 'Account deletion failed')
-      }
-    } catch {
-      onError('An unexpected error occurred')
-    } finally {
-      setIsSubmitting(false)
-    }
+  const onSubmit = async () => {
+    // TODO: Implement account deletion with server action
+    onError('Account deletion not yet implemented')
   }
 
   const handleDeleteClick = () => {

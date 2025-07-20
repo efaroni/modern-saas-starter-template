@@ -201,7 +201,7 @@ export const createHookTest = (
       ...(testInitialState ? [{
         name: 'should return initial state',
         test: async () => {
-          const { renderHook } = require('@testing-library/react')
+          const { renderHook } = await import('@testing-library/react')
           const { result } = renderHook(() => hookFunction())
           
           if (initialValue !== undefined) {
@@ -215,7 +215,7 @@ export const createHookTest = (
       ...(testStateChanges && stateChanges.length > 0 ? stateChanges.map(change => ({
         name: `should handle ${change.action}`,
         test: async () => {
-          const { renderHook, act } = require('@testing-library/react')
+          const { renderHook, act } = await import('@testing-library/react')
           const { result } = renderHook(() => hookFunction())
           
           // This would need to be customized based on the hook's API
@@ -384,7 +384,7 @@ export const createPerformanceTest = (
       ...(testRenderTime ? [{
         name: 'should render within acceptable time',
         test: async () => {
-          const { performanceUtils } = require('./component-utils')
+          const { performanceUtils } = await import('./component-utils')
           const result = await performanceUtils.measureRenderTime(component)
           
           expect(result.average).toBeLessThan(maxRenderTime)
@@ -394,7 +394,7 @@ export const createPerformanceTest = (
       ...(testLargeData ? [{
         name: 'should handle large datasets efficiently',
         test: async () => {
-          const { performanceUtils } = require('./component-utils')
+          const { performanceUtils } = await import('./component-utils')
           const Component = component.type as React.ComponentType<any>
           const results = await performanceUtils.testWithLargeData(
             Component,

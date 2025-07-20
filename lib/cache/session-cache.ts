@@ -1,5 +1,5 @@
 import { redisCache } from './redis'
-import { db } from '@/lib/db'
+import { db } from '@/lib/db/server'
 import { userSessions, users } from '@/lib/db/schema'
 import { eq, and, gte } from 'drizzle-orm'
 import { authLogger } from '@/lib/auth/logger'

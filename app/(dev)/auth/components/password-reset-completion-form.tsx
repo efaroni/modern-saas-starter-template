@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { authService } from '@/lib/auth/factory'
+import { resetPasswordAction } from '@/app/actions/auth'
 
 const passwordResetCompletionSchema = z.object({
   newPassword: z.string().min(8, 'Password must be at least 8 characters'),
@@ -38,7 +38,7 @@ export function PasswordResetCompletionForm({ token, onSuccess, onError, onBackT
     setIsLoading(true)
     
     try {
-      const result = await authService.resetPassword(token, data.newPassword)
+      const result = await resetPasswordAction({ token, newPassword: data.newPassword })
       
       if (result.success) {
         onSuccess('Your password has been reset successfully. You can now log in with your new password.')

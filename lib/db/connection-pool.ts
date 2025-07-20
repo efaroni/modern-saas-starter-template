@@ -368,8 +368,9 @@ let dbPool: DatabaseConnectionPool | null = null
 export function getDatabasePool(): DatabaseConnectionPool {
   if (!dbPool) {
     // Import here to avoid circular dependency
-    const { getDatabaseUrl } = require('./config')
-    const connectionString = getDatabaseUrl()
+    // Import the module synchronously
+    const configModule = require('./config')
+    const connectionString = configModule.getDatabaseUrl()
     
     // Use the centralized default pool configuration
     dbPool = new DatabaseConnectionPool(connectionString, DEFAULT_POOL_CONFIG)

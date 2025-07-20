@@ -6,8 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
+import { changePasswordAction } from '@/app/actions/auth'
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
@@ -26,7 +26,7 @@ interface ChangePasswordFormProps {
   onError: (error: string) => void
 }
 
-export function ChangePasswordForm({ user, onSuccess, onError }: ChangePasswordFormProps) {
+export function ChangePasswordForm({ user: _user, onSuccess, onError }: ChangePasswordFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
@@ -41,7 +41,7 @@ export function ChangePasswordForm({ user, onSuccess, onError }: ChangePasswordF
   const onSubmit = async (data: ChangePasswordFormData) => {
     setIsSubmitting(true)
     try {
-      const result = await authService.changePassword(user.id, {
+      const result = await changePasswordAction({
         currentPassword: data.currentPassword,
         newPassword: data.newPassword
       })

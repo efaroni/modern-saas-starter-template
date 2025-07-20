@@ -6,8 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
+import { updateProfileAction } from '@/app/actions/auth'
 import { AvatarUpload } from './avatar-upload'
 
 const profileSchema = z.object({
@@ -48,7 +48,7 @@ export function UserProfileForm({ user, onSuccess, onError }: UserProfileFormPro
   const onSubmit = async (data: ProfileFormData) => {
     setIsSubmitting(true)
     try {
-      const result = await authService.updateUserProfile(user.id, {
+      const result = await updateProfileAction({
         name: data.name,
         email: data.email,
         image: data.image || undefined
@@ -68,18 +68,8 @@ export function UserProfileForm({ user, onSuccess, onError }: UserProfileFormPro
   }
 
   const handleVerifyEmail = async () => {
-    try {
-      const result = await authService.verifyEmail(user.id)
-      
-      if (result.success && result.user) {
-        setEmailVerified(true)
-        onSuccess(result.user)
-      } else {
-        onError(result.error || 'Email verification failed')
-      }
-    } catch {
-      onError('An unexpected error occurred during email verification')
-    }
+    // TODO: Implement email verification server action
+    onError('Email verification not yet implemented')
   }
 
   return (

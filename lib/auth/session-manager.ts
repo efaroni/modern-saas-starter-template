@@ -1,6 +1,6 @@
 import { DatabaseSessionStorage, SessionConfig, DEFAULT_SESSION_CONFIG } from './database-session-storage'
 import { AuthUser } from './types'
-import { db } from '@/lib/db'
+import { db } from '@/lib/db/server'
 import { AUTH_CONFIG } from '@/lib/config/app-config'
 
 export interface SessionSecurityConfig {

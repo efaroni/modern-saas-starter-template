@@ -9,7 +9,7 @@
       ],
       "env": {
         "DB_HOST": "localhost",
-        "DB_PORT": "5432", 
+        "DB_PORT": "5432",
         "DB_USER": "postgres",
         "DB_PASSWORD": "postgres",
         "DB_NAME": "saas_template"
@@ -25,10 +25,16 @@
       "env": {
         "TEST_DB_HOST": "localhost",
         "TEST_DB_PORT": "5433",
-        "TEST_DB_USER": "test_user", 
+        "TEST_DB_USER": "test_user",
         "TEST_DB_PASSWORD": "test_pass",
         "TEST_DB_NAME": "saas_template_test"
       }
     }
+  },
+  "permissions": {
+    "tools": [
+      "Bash(grep:*)",
+      "Bash(find:*)"
+    ]
   }
 }

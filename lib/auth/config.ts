@@ -2,7 +2,7 @@ import { NextAuthConfig } from 'next-auth'
 import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import Google from 'next-auth/providers/google'
 import GitHub from 'next-auth/providers/github'
-import { db } from '@/lib/db'
+import { db } from '@/lib/db/server'
 import { accounts, sessions, users, verificationTokens } from '@/lib/db/schema'
 import { AUTH_CONFIG } from '@/lib/config/app-config'
 

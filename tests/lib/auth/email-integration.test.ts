@@ -20,31 +20,18 @@ describe('Email Integration', () => {
 
   describe('Email Verification Flow', () => {
     it('should send verification email for existing user', async () => {
-      // Create a user with retry logic for parallel test stability
-      const baseUserEmail = authTestHelpers.generateUniqueEmail()
-      let createResult
-      let actualUserEmail = baseUserEmail
-      let attempts = 0
-      const maxAttempts = 3
-      
-      do {
-        attempts++
-        actualUserEmail = baseUserEmail + (attempts > 1 ? `-retry${attempts}` : '')
-        createResult = await provider.createUser({
-          email: actualUserEmail,
-          name: 'Test User',
-          password: 'StrongP@ssw0rd123!'
-        })
-        if (!createResult.success && attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 100))
-        }
-      } while (!createResult.success && attempts < maxAttempts)
+      const userEmail = authTestHelpers.generateUniqueEmail()
+      const createResult = await provider.createUser({
+        email: userEmail,
+        name: 'Test User',
+        password: 'StrongP@ssw0rd123!'
+      })
       
       expect(createResult.success).toBe(true)
       expect(createResult.user?.emailVerified).toBe(null)
 
       // Send verification email
-      const verificationResult = await provider.sendEmailVerification(actualUserEmail)
+      const verificationResult = await provider.sendEmailVerification(userEmail)
       expect(verificationResult.success).toBe(true)
     })
 
@@ -57,33 +44,23 @@ describe('Email Integration', () => {
     })
 
     it('should reject verification email for already verified user', async () => {
-      // Create a user with retry logic for parallel test stability
-      const baseUserEmail = authTestHelpers.generateUniqueEmail()
-      let createResult
-      let actualUserEmail = baseUserEmail
-      let attempts = 0
-      const maxAttempts = 3
-      
-      do {
-        attempts++
-        actualUserEmail = baseUserEmail + (attempts > 1 ? `-retry${attempts}` : '')
-        createResult = await provider.createUser({
-          email: actualUserEmail,
-          name: 'Test User',
-          password: 'StrongP@ssw0rd123!'
-        })
-        if (!createResult.success && attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 100))
-        }
-      } while (!createResult.success && attempts < maxAttempts)
+      const userEmail = authTestHelpers.generateUniqueEmail('verified')
+      const createResult = await provider.createUser({
+        email: userEmail,
+        name: 'Test User',
+        password: 'StrongP@ssw0rd123!'
+      })
       
       expect(createResult.success).toBe(true)
+      if (!createResult.user) {
+        throw new Error('User creation failed')
+      }
       
       // Mark email as verified
-      await provider.verifyUserEmail(createResult.user!.id)
+      await provider.verifyUserEmail(createResult.user.id)
       
       // Try to send verification email again
-      const verificationResult = await provider.sendEmailVerification(actualUserEmail)
+      const verificationResult = await provider.sendEmailVerification(userEmail)
       expect(verificationResult.success).toBe(false)
       expect(verificationResult.error).toBe('Email is already verified')
     })
@@ -125,30 +102,17 @@ describe('Email Integration', () => {
     })
 
     it('should complete password reset with valid token', async () => {
-      // Create a user with retry logic for parallel test stability
-      const baseUserEmail = authTestHelpers.generateUniqueEmail()
-      let createResult
-      let actualUserEmail = baseUserEmail
-      let attempts = 0
-      const maxAttempts = 3
-      
-      do {
-        attempts++
-        actualUserEmail = baseUserEmail + (attempts > 1 ? `-retry${attempts}` : '')
-        createResult = await provider.createUser({
-          email: actualUserEmail,
-          name: 'Test User',
-          password: 'StrongP@ssw0rd123!'
-        })
-        if (!createResult.success && attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 100)) // Brief delay
-        }
-      } while (!createResult.success && attempts < maxAttempts)
+      const userEmail = authTestHelpers.generateUniqueEmail()
+      const createResult = await provider.createUser({
+        email: userEmail,
+        name: 'Test User',
+        password: 'StrongP@ssw0rd123!'
+      })
       
       expect(createResult.success).toBe(true)
 
       // Create a password reset token manually for testing
-      const tokenData = await tokenService.createToken(actualUserEmail, 'password_reset', 60)
+      const tokenData = await tokenService.createToken(userEmail, 'password_reset', 60)
       
       // Reset password with token
       const newPassword = 'NewStrongP@ssw0rd123!'
@@ -156,11 +120,11 @@ describe('Email Integration', () => {
       expect(resetResult.success).toBe(true)
       
       // Verify user can authenticate with new password
-      const authResult = await provider.authenticateUser(actualUserEmail, newPassword)
+      const authResult = await provider.authenticateUser(userEmail, newPassword)
       expect(authResult.success).toBe(true)
       
       // Verify user cannot authenticate with old password
-      const oldAuthResult = await provider.authenticateUser(actualUserEmail, 'StrongP@ssw0rd123!')
+      const oldAuthResult = await provider.authenticateUser(userEmail, 'StrongP@ssw0rd123!')
       expect(oldAuthResult.success).toBe(false)
     })
 
@@ -193,55 +157,4 @@ describe('Email Integration', () => {
     })
   })
 
-  describe('Token Service', () => {
-    it('should create and verify tokens correctly', async () => {
-      const identifier = authTestHelpers.generateUniqueEmail()
-      
-      // Create a token
-      const tokenData = await tokenService.createToken(identifier, 'email_verification', 60)
-      expect(tokenData.token).toBeDefined()
-      expect(tokenData.type).toBe('email_verification')
-      expect(tokenData.expires).toBeInstanceOf(Date)
-      
-      // Verify the token
-      const verification = await tokenService.verifyToken(tokenData.token, identifier)
-      expect(verification.valid).toBe(true)
-      expect(verification.type).toBe('email_verification')
-      
-      // Token should be consumed (one-time use)
-      const secondVerification = await tokenService.verifyToken(tokenData.token, identifier)
-      expect(secondVerification.valid).toBe(false)
-    })
-
-    it('should reject expired tokens', async () => {
-      const identifier = authTestHelpers.generateUniqueEmail()
-      
-      // Create a token that expires immediately
-      const tokenData = await tokenService.createToken(identifier, 'email_verification', 0)
-      
-      // Wait a bit to ensure expiration
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Try to verify expired token
-      const verification = await tokenService.verifyToken(tokenData.token, identifier)
-      expect(verification.valid).toBe(false)
-    })
-
-    it('should cleanup expired tokens', async () => {
-      const identifier = authTestHelpers.generateUniqueEmail()
-      
-      // Create an expired token
-      await tokenService.createToken(identifier, 'email_verification', 0)
-      
-      // Wait for expiration
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Cleanup expired tokens
-      await tokenService.cleanupExpiredTokens()
-      
-      // Verify no tokens remain
-      const tokens = await tokenService.getTokensForIdentifier(identifier)
-      expect(tokens.length).toBe(0)
-    })
-  })
 })

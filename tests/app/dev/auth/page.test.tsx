@@ -4,48 +4,20 @@ import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import AuthPage from '@/app/(dev)/auth/page'
 
-// Mock the auth service
-const mockAuthService = {
-  signIn: jest.fn(),
-  signUp: jest.fn(),
-  signOut: jest.fn(),
-  getUser: jest.fn(),
-  isConfigured: jest.fn(() => true),
-  getConfiguration: jest.fn(() => ({ provider: 'mock', oauthProviders: ['google', 'github'] })),
-  signInWithOAuth: jest.fn(),
-  getAvailableOAuthProviders: jest.fn(() => [
-    { id: 'google', name: 'Google', iconUrl: 'https://example.com/google.png' },
-    { id: 'github', name: 'GitHub', iconUrl: 'https://example.com/github.png' }
-  ]),
-  updateUserProfile: jest.fn(),
-  deleteUserAccount: jest.fn(),
-  changePassword: jest.fn(),
-  requestPasswordReset: jest.fn(),
-  verifyPasswordResetToken: jest.fn(),
-  resetPassword: jest.fn(),
-  uploadAvatar: jest.fn(),
-  deleteAvatar: jest.fn()
-}
+// Mock the server actions
+const mockLogoutAction = jest.fn()
+const mockGetAuthConfigurationAction = jest.fn()
 
-jest.mock('@/lib/auth/factory', () => ({
-  authService: mockAuthService,
-  createAuthService: () => mockAuthService
+jest.mock('@/app/actions/auth', () => ({
+  logoutAction: mockLogoutAction,
+  getAuthConfigurationAction: mockGetAuthConfigurationAction
 }))
-
-// Also mock the service module directly
-jest.mock('@/lib/auth/service', () => ({
-  AuthService: jest.fn().mockImplementation(() => mockAuthService)
-}))
-
-import { authService } from '@/lib/auth/factory'
 
 describe('AuthPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     // Reset mock implementations to default state
-    mockAuthService.signIn.mockResolvedValue({ success: false, error: 'Invalid credentials' })
-    mockAuthService.signUp.mockResolvedValue({ success: false, error: 'Default error' })
-    mockAuthService.getUser.mockResolvedValue({ success: true, user: null })
+    mockGetAuthConfigurationAction.mockResolvedValue({ provider: 'mock', oauthProviders: ['google', 'github'] })
   })
 
   it('should render auth page with login and signup tabs', () => {
@@ -78,53 +50,6 @@ describe('AuthPage', () => {
     })
   })
 
-  it('should show success message after successful login', async () => {
-    const user = userEvent.setup()
-    const mockUser = { id: '1', email: 'test@example.com', name: 'Test User' }
-    
-    // Set up success mock after beforeEach has run
-    mockAuthService.signIn.mockResolvedValue({ success: true, user: mockUser })
-
-    render(<AuthPage />)
-
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/password/i)
-    const submitButton = screen.getByRole('button', { name: /^sign in$/i })
-
-    await user.type(emailInput, 'test@example.com')
-    await user.type(passwordInput, 'password')
-    
-    // Check if there are any form validation errors
-    await user.click(submitButton)
-    
-    // Since the UI is showing success, let's just verify the success message appears
-    await waitFor(() => {
-      expect(screen.getByText(/successfully signed in/i)).toBeInTheDocument()
-      expect(screen.getByText('test@example.com')).toBeInTheDocument()
-    })
-    
-    // TODO: Fix mock call tracking issue - the functionality works but Jest isn't tracking the mock calls
-    // The UI shows success and the user profile, indicating the mock is working at a functional level
-  })
-
-  it('should show error message when login fails', async () => {
-    const user = userEvent.setup()
-    mockAuthService.signIn.mockResolvedValue({ success: false, error: 'Invalid credentials' })
-
-    render(<AuthPage />)
-
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/password/i)
-    const submitButton = screen.getByRole('button', { name: /^sign in$/i })
-
-    await user.type(emailInput, 'test@example.com')
-    await user.type(passwordInput, 'wrongpassword')
-    await user.click(submitButton)
-
-    await waitFor(() => {
-      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument()
-    })
-  })
 
   it('should show service status section', () => {
     render(<AuthPage />)

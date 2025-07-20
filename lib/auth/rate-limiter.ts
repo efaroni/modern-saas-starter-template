@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { db } from '@/lib/db/server'
 import { authAttempts } from '@/lib/db/schema'
 import { eq, and, gte } from 'drizzle-orm'
 import { addMinutes, getDaysAgo } from '@/lib/utils/date-time'

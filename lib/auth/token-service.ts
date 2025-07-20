@@ -1,4 +1,4 @@
-import { db } from '@/lib/db'
+import { db } from '@/lib/db/server'
 import { verificationTokens } from '@/lib/db/schema'
 import { eq, and, lt, like } from 'drizzle-orm'
 import { addMinutes } from '@/lib/utils/date-time'

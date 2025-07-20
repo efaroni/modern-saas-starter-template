@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Spinner } from '@/components/ui/spinner'
-import { authService } from '@/lib/auth/factory'
 import type { AuthUser } from '@/lib/auth/types'
 
 interface OAuthButtonsProps {
@@ -12,7 +11,7 @@ interface OAuthButtonsProps {
 
 export function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
-  const oauthProviders = authService.getAvailableOAuthProviders()
+  const oauthProviders = [] // TODO: Implement OAuth server actions
 
   if (oauthProviders.length === 0) {
     return null
@@ -21,17 +20,9 @@ export function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
   const handleOAuthSignIn = async (providerId: string) => {
     setLoadingProvider(providerId)
     try {
-      const result = await authService.signInWithOAuth(providerId)
-      
-      if (result.success && result.redirectUrl) {
-        // Redirect to OAuth provider
-        window.location.href = result.redirectUrl
-      } else if (result.success && result.user) {
-        onSuccess(result.user)
-      } else {
-        onError(result.error || 'OAuth sign in failed')
-        setLoadingProvider(null)
-      }
+      // TODO: Implement OAuth server action
+      onError('OAuth sign-in not yet implemented')
+      setLoadingProvider(null)
     } catch {
       onError('An unexpected error occurred during OAuth sign in')
       setLoadingProvider(null)

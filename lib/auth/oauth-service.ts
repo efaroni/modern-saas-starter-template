@@ -1,5 +1,5 @@
 import { signIn as nextAuthSignIn } from '@/lib/auth/auth'
-import { db } from '@/lib/db'
+import { db } from '@/lib/db/server'
 import { users, accounts } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { AuthUser, OAuthResult } from './types'

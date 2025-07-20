@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     
     // Get statistics for all types or specific type
     const types = type ? [type] : ['login', 'signup', 'api', 'passwordReset', 'upload']
-    const stats: Record<string, any> = {}
+    const stats: Record<string, unknown> = {}
     
     for (const rateLimitType of types) {
       const typeStats = await rateLimiter.getRateLimitStats(
