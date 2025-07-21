@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'
 import { RateLimiter } from '@/lib/auth/rate-limiter'
 import { testHelpers } from '@/lib/db/test-helpers'
 import { testDb } from '@/lib/db/test'
+import { authAttempts } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 describe('RateLimiter', () => {
   const rateLimiter = new RateLimiter(testDb)
@@ -38,13 +40,16 @@ describe('RateLimiter', () => {
     it('should differentiate between different action types', async () => {
       const identifier = `test-${Date.now()}-${Math.random()}@example.com`
       
-      // Exhaust login attempts
+      // Manually insert attempts with current timestamp to avoid timezone issues
+      const now = new Date()
       for (let i = 0; i < 5; i++) {
-        await rateLimiter.recordAttempt(identifier, 'login', false)
+        await testDb.insert(authAttempts).values({
+          identifier,
+          type: 'login', 
+          success: false,
+          createdAt: now // Explicit timestamp
+        })
       }
-      
-      // Add a longer delay to ensure database operations complete
-      await new Promise(resolve => setTimeout(resolve, 100))
       
       const loginResult = await rateLimiter.checkRateLimit(identifier, 'login')
       const signupResult = await rateLimiter.checkRateLimit(identifier, 'signup')

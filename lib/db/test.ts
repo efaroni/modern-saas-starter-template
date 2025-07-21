@@ -35,6 +35,16 @@ export const testDb = drizzle(testClient, { schema })
 // Initialize test database (run migrations)
 export async function initializeTestDatabase() {
   try {
+    // First, validate the test database connection
+    console.log('Validating test database connection...')
+    try {
+      await testClient`SELECT 1 as test`
+      console.log('Test database connection successful')
+    } catch (connectionError) {
+      console.error('Cannot connect to test database:', connectionError.message)
+      console.error('Please ensure the test database exists and is accessible')
+      return false
+    }
     // Check if all required tables exist
     const requiredTables = [
       'users',
@@ -75,16 +85,27 @@ export async function initializeTestDatabase() {
       const execAsync = util.promisify(exec)
       
       try {
+        // Add explicit timeout and kill signal to prevent hanging
         await execAsync('npm run db:push', { 
           env: { 
             ...process.env, 
             DATABASE_URL: TEST_DATABASE_URL 
-          } 
+          },
+          timeout: 30000, // 30 second timeout
+          killSignal: 'SIGKILL' // Force kill if timeout
         })
         console.log('Migrations completed successfully')
       } catch (migrationError) {
         console.error('Migration failed:', migrationError)
+        
+        // If it's a timeout, be more explicit
+        if (migrationError.code === 'TIMEOUT') {
+          console.error('Migration timed out after 30 seconds - this may indicate a database connection issue')
+        }
+        
         // Continue anyway - tests will fail if tables don't exist
+        // But return false to indicate initialization problems
+        return false
       }
     }
     
@@ -194,10 +215,15 @@ export async function clearWorkerTestData() {
 // Close test database connection
 export async function closeTestDatabase() {
   try {
+    console.log('Closing test database connection...')
     await testClient.end()
+    console.log('Test database connection closed successfully')
   } catch (error) {
-    console.log('Error closing test database:', error)
+    console.error('Error closing test database:', error)
   }
+  
+  // Add a small delay to ensure connections are fully closed
+  await new Promise(resolve => setTimeout(resolve, 100))
 }
 
 // Test database helpers for isolation

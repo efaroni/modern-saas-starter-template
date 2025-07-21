@@ -35,9 +35,9 @@ const DATABASE_ENVIRONMENTS = {
   },
   test: {
     host: process.env.TEST_DB_HOST || 'localhost',
-    port: parseEnvInt('TEST_DB_PORT', 5433),
-    username: process.env.TEST_DB_USER || 'test_user',
-    password: process.env.TEST_DB_PASSWORD || 'test_pass',
+    port: parseEnvInt('TEST_DB_PORT', 5432),
+    username: process.env.TEST_DB_USER || 'efaroni',
+    password: process.env.TEST_DB_PASSWORD || '',
     database: process.env.TEST_DB_NAME || 'saas_template_test',
     ssl: false,
   },
@@ -57,16 +57,18 @@ const DATABASE_ENVIRONMENTS = {
 function buildDatabaseUrl(components: DatabaseConnectionComponents): string {
   const { host, port, username, password, database, ssl } = components
   
-  // Validate required components
-  if (!host || !username || !password || !database) {
+  // Validate required components (password can be empty for local development)
+  if (!host || !username || !database) {
     throw new Error(
-      'Database connection requires host, username, password, and database name. ' +
+      'Database connection requires host, username, and database name. ' +
       'Please check your environment variables.'
     )
   }
   
-  // Build the connection string
-  const baseUrl = `postgresql://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${database}`
+  // Build the connection string (handle empty password)
+  const baseUrl = password 
+    ? `postgresql://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${database}`
+    : `postgresql://${encodeURIComponent(username)}@${host}:${port}/${database}`
   
   // Add SSL parameter if needed
   if (ssl) {
@@ -135,8 +137,8 @@ export function getDatabaseUrl(): string {
       envConfig = DATABASE_ENVIRONMENTS.development
     }
     
-    // If we have all required components, build the URL
-    if (envConfig.host && envConfig.username && envConfig.password && envConfig.database) {
+    // If we have all required components, build the URL (password can be empty)
+    if (envConfig.host && envConfig.username && envConfig.database) {
       return buildDatabaseUrl(envConfig)
     }
   } catch (error) {
