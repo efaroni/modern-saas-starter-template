@@ -18,29 +18,54 @@ cat > .git/hooks/pre-commit << 'EOF'
 
 echo "🔍 Running pre-commit checks..."
 
-# Get list of staged files
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|mjs|json|md|css|scss|yaml|yml)$')
+# Create temporary file for safe file list handling
+TEMP_FILE_LIST="/tmp/staged_files_$$"
+git diff --cached --name-only --diff-filter=ACM | \
+  grep -E '\.(ts|tsx|js|jsx|mjs|json|md|css|scss|yaml|yml)$' > "$TEMP_FILE_LIST"
 
-if [ -z "$STAGED_FILES" ]; then
+# Check if we have any files to process
+if [ ! -s "$TEMP_FILE_LIST" ]; then
   echo "ℹ️  No lintable files staged, skipping lint/format checks"
+  rm -f "$TEMP_FILE_LIST"
 else
-  echo "📋 Checking staged files: $(echo $STAGED_FILES | wc -w) files"
+  FILE_COUNT=$(wc -l < "$TEMP_FILE_LIST")
+  echo "📋 Checking $FILE_COUNT staged files"
   
-  # Run ESLint check on staged files only
+  # Run ESLint check on staged files only - secure file processing
   echo "🔧 Running ESLint..."
-  npx eslint $STAGED_FILES
+  if command -v xargs >/dev/null 2>&1; then
+    # Use xargs with null delimiter for safety (handles spaces and special chars)
+    tr '\n' '\0' < "$TEMP_FILE_LIST" | xargs -0 npx eslint
+  else
+    # Fallback: process files one by one (safer but slower)
+    while IFS= read -r file; do
+      npx eslint "$file"
+    done < "$TEMP_FILE_LIST"
+  fi
   ESLINT_EXIT_CODE=$?
   
   if [ $ESLINT_EXIT_CODE -ne 0 ]; then
     echo "❌ ESLint found issues."
     echo "💡 Run 'npm run lint:fix' to auto-fix some issues, then re-stage your files."
+    rm -f "$TEMP_FILE_LIST"
     exit 1
   fi
   
-  # Run Prettier check on staged files only
+  # Run Prettier check on staged files only - secure file processing
   echo "🎨 Running Prettier check..."
-  npx prettier --check $STAGED_FILES
+  if command -v xargs >/dev/null 2>&1; then
+    # Use xargs with null delimiter for safety
+    tr '\n' '\0' < "$TEMP_FILE_LIST" | xargs -0 npx prettier --check
+  else
+    # Fallback: process files one by one
+    while IFS= read -r file; do
+      npx prettier --check "$file"
+    done < "$TEMP_FILE_LIST"
+  fi
   PRETTIER_EXIT_CODE=$?
+  
+  # Clean up temp file
+  rm -f "$TEMP_FILE_LIST"
   
   if [ $PRETTIER_EXIT_CODE -ne 0 ]; then
     echo "❌ Code formatting issues found."
