@@ -59,14 +59,14 @@ export function LoginForm({ onSuccess, onError, onForgotPassword }: LoginFormPro
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             Email
           </label>
           <Input
             {...register('email')}
-            type="text"
+            type="email"
             id="email"
             variant={errors.email ? 'error' : 'default'}
             className="mt-1 block w-full"

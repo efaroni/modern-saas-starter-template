@@ -5,6 +5,7 @@ import GitHub from 'next-auth/providers/github'
 import { db } from '@/lib/db/server'
 import { accounts, sessions, users, verificationTokens } from '@/lib/db/schema'
 import { AUTH_CONFIG } from '@/lib/config/app-config'
+import { authLogger } from '@/lib/auth/logger'
 
 export const authConfig = {
   adapter: DrizzleAdapter(db, {
@@ -82,19 +83,30 @@ export const authConfig = {
   events: {
     async signIn({ user, account, profile: _profile, isNewUser }) {
       // Log OAuth sign-ins for security monitoring
-      console.log('OAuth sign-in:', {
+      authLogger.logAuthEvent({
+        type: 'oauth_login',
         userId: user.id,
-        provider: account?.provider,
-        isNewUser,
         email: user.email,
+        success: true,
+        timestamp: new Date(),
+        metadata: {
+          provider: account?.provider,
+          isNewUser
+        }
       })
     },
     async linkAccount({ user, account, profile: _profile }) {
       // Log account linking
-      console.log('Account linked:', {
+      authLogger.logAuthEvent({
+        type: 'oauth_login',
         userId: user.id,
-        provider: account.provider,
         email: user.email,
+        success: true,
+        timestamp: new Date(),
+        metadata: {
+          provider: account.provider,
+          isAccountLink: true
+        }
       })
     },
   },

@@ -225,36 +225,3 @@ export function generateCustomToken(options: TokenOptions): string {
   
   return generateSecureToken(TokenSecurityLevel.MEDIUM, mergedOptions)
 }
-
-/**
- * Legacy token generation methods for backward compatibility
- * 
- * ⚠️ SECURITY WARNING: These methods use Math.random() which is NOT cryptographically secure!
- * - Use ONLY for non-security-critical operations (UI state, temporary IDs, etc.)
- * - NEVER use for passwords, tokens, session IDs, or any security-sensitive data
- * - Prefer generateSecureToken() or TokenGenerators for all security-critical use cases
- */
-export const LegacyTokens = {
-  /**
-   * ⚠️ INSECURE: Uses Math.random() - only for non-security-critical operations
-   */
-  random: (length: number = 32): string => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    let token = ''
-    
-    for (let i = 0; i < length; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    
-    return token
-  },
-  
-  /**
-   * Generates a simple numeric code
-   */
-  numericCode: (length: number = 6): string => {
-    return Math.floor(Math.random() * Math.pow(10, length))
-      .toString()
-      .padStart(length, '0')
-  }
-}

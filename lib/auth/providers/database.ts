@@ -13,6 +13,7 @@ import { AUTH_CONFIG, VALIDATION_CONFIG } from '@/lib/config/app-config'
 import { validateEmail, validateUUID } from '@/lib/utils/validators'
 import { ErrorFactory, withErrorContext } from '@/lib/utils/error-handler'
 import { SessionManager, DEFAULT_SECURITY_CONFIG } from '../session-manager'
+import { TokenGenerators } from '@/lib/utils/token-generator'
 
 export class DatabaseAuthProvider implements AuthProvider {
   private readonly bcryptRounds = AUTH_CONFIG.BCRYPT_ROUNDS
@@ -885,7 +886,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Generate state for CSRF protection
-      const state = Math.random().toString(36).substring(2, 15)
+      const state = TokenGenerators.csrf()
       
       // Create OAuth redirect URL
       const redirectUrl = `/api/auth/signin/${provider}?state=${state}`
