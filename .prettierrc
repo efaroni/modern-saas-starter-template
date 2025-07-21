@@ -17,6 +17,5 @@
   "proseWrap": "preserve",
   "requirePragma": false,
   "plugins": ["prettier-plugin-tailwindcss"],
-  "tailwindConfig": "./tailwind.config.js",
   "tailwindFunctions": ["clsx", "cn", "cva"]
 }
