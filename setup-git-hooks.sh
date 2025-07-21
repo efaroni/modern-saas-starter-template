@@ -16,10 +16,43 @@ mkdir -p .git/hooks
 cat > .git/hooks/pre-commit << 'EOF'
 #!/bin/sh
 
-# Run unit tests before commit
-echo "Running unit tests before commit..."
+echo "🔍 Running pre-commit checks..."
 
-# Run jest tests
+# Get list of staged files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|mjs|json|md|css|scss|yaml|yml)$')
+
+if [ -z "$STAGED_FILES" ]; then
+  echo "ℹ️  No lintable files staged, skipping lint/format checks"
+else
+  echo "📋 Checking staged files: $(echo $STAGED_FILES | wc -w) files"
+  
+  # Run ESLint check on staged files only
+  echo "🔧 Running ESLint..."
+  npx eslint $STAGED_FILES
+  ESLINT_EXIT_CODE=$?
+  
+  if [ $ESLINT_EXIT_CODE -ne 0 ]; then
+    echo "❌ ESLint found issues."
+    echo "💡 Run 'npm run lint:fix' to auto-fix some issues, then re-stage your files."
+    exit 1
+  fi
+  
+  # Run Prettier check on staged files only
+  echo "🎨 Running Prettier check..."
+  npx prettier --check $STAGED_FILES
+  PRETTIER_EXIT_CODE=$?
+  
+  if [ $PRETTIER_EXIT_CODE -ne 0 ]; then
+    echo "❌ Code formatting issues found."
+    echo "💡 Run 'npm run format' to fix formatting, then re-stage your files."
+    exit 1
+  fi
+  
+  echo "✅ Linting and formatting checks passed!"
+fi
+
+# Run unit tests
+echo "🧪 Running unit tests..."
 npm test
 
 # Check if tests passed
@@ -28,7 +61,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "✅ All unit tests passed!"
+echo "✅ All pre-commit checks passed!"
 exit 0
 EOF
 
@@ -38,7 +71,10 @@ chmod +x .git/hooks/pre-commit
 # Verify the hook is executable
 if [ -x .git/hooks/pre-commit ]; then
   echo "✅ Git hooks setup complete!"
-  echo "Unit tests will now run automatically before each commit."
+  echo "Pre-commit hook will now run:"
+  echo "  🔧 ESLint (code quality)"
+  echo "  🎨 Prettier (code formatting)"
+  echo "  🧪 Unit tests"
 else
   echo "⚠️  Warning: Could not make pre-commit hook executable."
   echo "Please run: chmod +x .git/hooks/pre-commit"
