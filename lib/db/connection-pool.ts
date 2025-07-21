@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
-import { getDatabaseConfig } from './config'
+import { getDatabaseConfig, getDatabaseUrl } from './config'
 
 export interface ConnectionPoolConfig {
   // Connection pool settings
@@ -367,10 +367,7 @@ let dbPool: DatabaseConnectionPool | null = null
 
 export function getDatabasePool(): DatabaseConnectionPool {
   if (!dbPool) {
-    // Import here to avoid circular dependency
-    // Import the module synchronously
-    const configModule = require('./config')
-    const connectionString = configModule.getDatabaseUrl()
+    const connectionString = getDatabaseUrl()
     
     // Use the centralized default pool configuration
     dbPool = new DatabaseConnectionPool(connectionString, DEFAULT_POOL_CONFIG)

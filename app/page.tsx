@@ -143,7 +143,7 @@ export default function HomePage() {
 
         <div className="mt-12 text-center text-gray-500">
           <p className="text-sm">
-            Click on any "Ready" section to explore its features
+            Click on any &ldquo;Ready&rdquo; section to explore its features
           </p>
         </div>
       </div>
