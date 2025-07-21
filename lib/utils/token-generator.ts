@@ -2,6 +2,15 @@ import { randomBytes } from 'crypto'
 
 /**
  * Token generation utilities for consistent and secure token creation
+ * 
+ * SECURITY GUIDELINES:
+ * 1. Always use crypto.randomBytes() for cryptographically secure tokens
+ * 2. Use appropriate security levels based on token purpose:
+ *    - HIGH for password reset, email verification (security-critical)
+ *    - MEDIUM for session tokens (moderate security)
+ *    - LOW only for non-sensitive operations (UI state, etc.)
+ * 3. Never use Math.random() for security-critical operations
+ * 4. Legacy functions are provided for backward compatibility only
  */
 
 export interface TokenOptions {
@@ -104,6 +113,7 @@ function generateBase62Token(length: number): string {
 
 /**
  * Generates an alphanumeric token (legacy method for compatibility)
+ * ⚠️ SECURITY WARNING: Uses Math.random() - avoid for security-critical operations
  */
 function generateAlphanumericToken(length: number): string {
   const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -218,10 +228,15 @@ export function generateCustomToken(options: TokenOptions): string {
 
 /**
  * Legacy token generation methods for backward compatibility
+ * 
+ * ⚠️ SECURITY WARNING: These methods use Math.random() which is NOT cryptographically secure!
+ * - Use ONLY for non-security-critical operations (UI state, temporary IDs, etc.)
+ * - NEVER use for passwords, tokens, session IDs, or any security-sensitive data
+ * - Prefer generateSecureToken() or TokenGenerators for all security-critical use cases
  */
 export const LegacyTokens = {
   /**
-   * Generates a token using Math.random() (less secure, for non-critical use)
+   * ⚠️ INSECURE: Uses Math.random() - only for non-security-critical operations
    */
   random: (length: number = 32): string => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'

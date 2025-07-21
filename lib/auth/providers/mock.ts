@@ -1,5 +1,14 @@
 import { AuthProvider, AuthResult, AuthUser, SignUpRequest, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest } from '../types'
 import { validateEmail } from '@/lib/utils/validators'
+import { hashSync, compareSync } from '@node-rs/bcrypt'
+
+/**
+ * SECURITY NOTE: This MockAuthProvider demonstrates proper password security patterns.
+ * Even in mock implementations, we use proper bcrypt hashing to:
+ * 1. Set good security precedents for developers
+ * 2. Prevent accidental production deployment of insecure patterns
+ * 3. Provide realistic testing of secure authentication flows
+ */
 
 interface MockUserWithPassword extends AuthUser {
   password: string
@@ -13,7 +22,7 @@ export class MockAuthProvider implements AuthProvider {
       name: 'Test User',
       image: null,
       emailVerified: new Date(),
-      password: 'password' // Mock hashed password
+      password: hashSync('password', 12) // Properly hashed password (test password: 'password')
     }]
   ])
   private userIdCounter = 0
@@ -22,7 +31,8 @@ export class MockAuthProvider implements AuthProvider {
     // Find user by email
     const user = Array.from(this.mockUsers.values()).find(u => u.email === email)
     
-    if (user && user.password === password) {
+    // Use secure password comparison even in mock implementation
+    if (user && compareSync(password, user.password)) {
       // Return user without password
       const { password: _, ...authUser } = user
       return {
@@ -66,14 +76,14 @@ export class MockAuthProvider implements AuthProvider {
       }
     }
 
-    // Create new user
+    // Create new user with securely hashed password
     const newUser: MockUserWithPassword = {
       id: `user-${Date.now()}-${++this.userIdCounter}`,
       email,
       name: name || null,
       image: null,
       emailVerified: null,
-      password // Store mock password
+      password: hashSync(password, 12) // Securely hash password even in mock
     }
 
     this.mockUsers.set(newUser.id, newUser)
@@ -126,7 +136,7 @@ export class MockAuthProvider implements AuthProvider {
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
     
-    // Mock OAuth providers
+    // Mock OAuth providers with properly hashed passwords
     const oauthUsers = {
       google: {
         id: 'google-user-id',
@@ -134,7 +144,7 @@ export class MockAuthProvider implements AuthProvider {
         name: 'Google User',
         image: 'https://lh3.googleusercontent.com/a/default-user=s96-c',
         emailVerified: new Date(),
-        password: 'oauth-google' // Mock OAuth password
+        password: hashSync('oauth-google', 12) // Securely hashed OAuth mock password
       },
       github: {
         id: 'github-user-id',
@@ -142,7 +152,7 @@ export class MockAuthProvider implements AuthProvider {
         name: 'GitHub User',
         image: 'https://avatars.githubusercontent.com/u/123456?v=4',
         emailVerified: new Date(),
-        password: 'oauth-github' // Mock OAuth password
+        password: hashSync('oauth-github', 12) // Securely hashed OAuth mock password
       }
     }
 
@@ -285,8 +295,8 @@ export class MockAuthProvider implements AuthProvider {
       }
     }
 
-    // Verify current password
-    if (user.password !== currentPassword) {
+    // Verify current password using secure comparison
+    if (!compareSync(currentPassword, user.password)) {
       return {
         success: false,
         error: 'Current password is incorrect'
@@ -301,8 +311,8 @@ export class MockAuthProvider implements AuthProvider {
       }
     }
 
-    // Update password
-    user.password = newPassword
+    // Update password with secure hashing
+    user.password = hashSync(newPassword, 12)
 
     // Return user without password
     const { password: _, ...authUser } = user
@@ -330,8 +340,8 @@ export class MockAuthProvider implements AuthProvider {
       }
     }
 
-    // Update password (no current password verification needed for reset)
-    user.password = newPassword
+    // Update password with secure hashing (no current password verification needed for reset)
+    user.password = hashSync(newPassword, 12)
 
     // Return user without password
     const { password: _, ...authUser } = user
