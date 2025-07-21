@@ -26,8 +26,8 @@ export const authConfig = {
     }),
   ],
   pages: {
-    signIn: '/dev/auth',
-    error: '/dev/auth',
+    signIn: '/auth',
+    error: '/auth',
   },
   callbacks: {
     async signIn({ user, account, profile: _profile }) {
@@ -69,7 +69,7 @@ export const authConfig = {
     async redirect({ url, baseUrl }) {
       // Redirect to our auth page after OAuth success
       if (url.includes('/api/auth/callback/')) {
-        return `${baseUrl}/dev/auth?oauth=success`
+        return `${baseUrl}/auth?oauth=success`
       }
       
       // Allows relative callback URLs

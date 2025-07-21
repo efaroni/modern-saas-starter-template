@@ -11,7 +11,7 @@ export class OAuthService {
   async signIn(provider: string, redirectTo?: string): Promise<OAuthResult> {
     try {
       const result = await nextAuthSignIn(provider, {
-        redirectTo: redirectTo || '/dev/auth',
+        redirectTo: redirectTo || '/auth',
       })
       
       return {

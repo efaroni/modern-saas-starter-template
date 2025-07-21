@@ -465,7 +465,7 @@ export class AuthService {
     })
 
     // Generate reset URL
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dev/auth/reset-password?token=${resetToken}`
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`
 
     // Send reset email
     const emailResult = await this.emailService.sendPasswordResetEmail(email, {

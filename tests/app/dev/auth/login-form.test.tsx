@@ -10,7 +10,7 @@ jest.mock('@/app/actions/auth', () => ({
   loginAction: mockLoginAction
 }))
 
-import { LoginForm } from '@/app/(dev)/auth/components/login-form'
+import { LoginForm } from '@/app/(auth)/auth/components/login-form'
 
 describe('LoginForm', () => {
   const mockOnSuccess = jest.fn()

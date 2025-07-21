@@ -35,7 +35,8 @@ export class OAuthIntegration {
   async syncOAuthUser(oauthUser: any): Promise<AuthUser | null> {
     try {
       // Check if user exists in our system
-      const existingUser = await authService.getUserByEmail(oauthUser.email)
+      const service = await authService
+      const existingUser = await service.getUserByEmail(oauthUser.email)
       
       if (existingUser.success && existingUser.user) {
         // User exists, return existing user
@@ -43,7 +44,7 @@ export class OAuthIntegration {
       }
 
       // User doesn't exist, create new user
-      const newUser = await authService.createUser({
+      const newUser = await service.createUser({
         email: oauthUser.email,
         name: oauthUser.name,
         password: '', // OAuth users don't have passwords
@@ -88,7 +89,8 @@ export class OAuthIntegration {
       
       if (conflictResult.existingUserId) {
         // User exists, get user data
-        const existingUser = await authService.getUserById(conflictResult.existingUserId)
+        const service = await authService
+        const existingUser = await service.getUserById(conflictResult.existingUserId)
         if (existingUser.success && existingUser.user) {
           user = existingUser.user
         }

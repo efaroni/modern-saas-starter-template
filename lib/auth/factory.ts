@@ -5,7 +5,7 @@ import { createSessionStorage } from './session-storage'
 import { emailService } from '@/lib/email/service'
 import { uploadService } from '@/lib/upload/service'
 
-export function createAuthService(): AuthService {
+export async function createAuthService(): Promise<AuthService> {
   // Use appropriate provider based on environment
   const isTestEnvironment = process.env.NODE_ENV === 'test'
   const isClientSide = typeof window !== 'undefined'
@@ -17,13 +17,11 @@ export function createAuthService(): AuthService {
     provider = new MockAuthProvider()
   } else if (isTestEnvironment) {
     // Use test database provider for server-side tests
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { DatabaseTestAuthProvider } = require('./providers/database-test')
+    const { DatabaseTestAuthProvider } = await import('./providers/database-test')
     provider = new DatabaseTestAuthProvider()
   } else {
     // Use full database provider for production server-side
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { DatabaseAuthProvider } = require('./providers/database')
+    const { DatabaseAuthProvider } = await import('./providers/database')
     provider = new DatabaseAuthProvider()
   }
   
@@ -32,4 +30,29 @@ export function createAuthService(): AuthService {
   return new AuthService(provider, sessionStorage, emailService, uploadService)
 }
 
-export const authService = createAuthService()
+// Create auth service instance - will be initialized lazily
+let _authService: AuthService | null = null
+let _authServicePromise: Promise<AuthService> | null = null
+
+export function getAuthService(): Promise<AuthService> {
+  // Return existing promise if already initializing
+  if (_authServicePromise) {
+    return _authServicePromise
+  }
+  
+  // Return cached instance if already initialized
+  if (_authService) {
+    return Promise.resolve(_authService)
+  }
+  
+  // Initialize and cache the promise
+  _authServicePromise = createAuthService().then(service => {
+    _authService = service
+    return service
+  })
+  
+  return _authServicePromise
+}
+
+// For backward compatibility, export a promise that resolves to the service
+export const authService = getAuthService()

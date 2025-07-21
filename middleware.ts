@@ -7,13 +7,22 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Allow access to development auth pages
-  if (request.nextUrl.pathname.startsWith('/dev/auth')) {
+  // Allow access to auth pages
+  if (request.nextUrl.pathname.startsWith('/auth')) {
     return NextResponse.next()
   }
 
-  // Allow access to other dev pages
-  if (request.nextUrl.pathname.startsWith('/dev/')) {
+  // Allow access to all sections (configuration, generators, etc.)
+  if (request.nextUrl.pathname.startsWith('/configuration') || 
+      request.nextUrl.pathname.startsWith('/generators') ||
+      request.nextUrl.pathname.startsWith('/performance') ||
+      request.nextUrl.pathname.startsWith('/rate-limiting') ||
+      request.nextUrl.pathname.startsWith('/debug') ||
+      request.nextUrl.pathname.startsWith('/test') ||
+      request.nextUrl.pathname.startsWith('/service-test') ||
+      request.nextUrl.pathname.startsWith('/config-test') ||
+      request.nextUrl.pathname.startsWith('/minimal-config') ||
+      request.nextUrl.pathname.startsWith('/debug-error')) {
     return NextResponse.next()
   }
 

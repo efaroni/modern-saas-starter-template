@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
-import AuthPage from '@/app/(dev)/auth/page'
+import AuthPage from '@/app/(auth)/auth/page'
 
 // Mock the server actions
 const mockLogoutAction = jest.fn()
