@@ -1,4 +1,5 @@
 import type { SessionData } from './types'
+import { encrypt, decrypt } from '@/lib/encryption'
 
 export interface SessionStorage {
   getSession(): Promise<SessionData | null>
@@ -24,11 +25,13 @@ export class LocalSessionStorage implements SessionStorage {
     }
 
     try {
-      const sessionData = localStorage.getItem(this.key)
-      if (!sessionData) {
+      const encryptedSessionData = localStorage.getItem(this.key)
+      if (!encryptedSessionData) {
         return null
       }
 
+      // Decrypt the session data before parsing
+      const sessionData = decrypt(encryptedSessionData)
       const session = JSON.parse(sessionData) as SessionData
       
       // Restore Date objects from JSON serialization
@@ -56,7 +59,10 @@ export class LocalSessionStorage implements SessionStorage {
     }
 
     try {
-      localStorage.setItem(this.key, JSON.stringify(session))
+      // Encrypt the session data before storing
+      const sessionData = JSON.stringify(session)
+      const encryptedSessionData = encrypt(sessionData)
+      localStorage.setItem(this.key, encryptedSessionData)
     } catch {
       // Storage might be full or disabled, fail silently
     }

@@ -50,6 +50,13 @@
       "when": 1752643200000,
       "tag": "0006_add_performance_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1753111552677,
+      "tag": "0007_reflective_arachne",
+      "breakpoints": true
     }
   ]
 }

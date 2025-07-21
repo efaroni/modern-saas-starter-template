@@ -51,6 +51,7 @@ export async function initializeTestDatabase() {
       'user_api_keys',
       'auth_attempts',
       'password_history',
+      'password_reset_tokens',
       'user_sessions', 
       'session_activity',
       'accounts',

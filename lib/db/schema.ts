@@ -55,6 +55,16 @@ export const verificationTokens = pgTable('verification_tokens', {
   }),
 }))
 
+// Password reset tokens table for secure password reset functionality
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  token: text('token').notNull().unique(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  used: boolean('used').default(false).notNull(),
+  expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 // User API Keys table for storing encrypted API keys
 export const userApiKeys = pgTable('user_api_keys', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -122,6 +132,8 @@ export const insertSessionSchema = createInsertSchema(sessions)
 export const selectSessionSchema = createSelectSchema(sessions)
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens)
 export const selectVerificationTokenSchema = createSelectSchema(verificationTokens)
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens)
+export const selectPasswordResetTokenSchema = createSelectSchema(passwordResetTokens)
 export const insertUserApiKeySchema = createInsertSchema(userApiKeys)
 export const selectUserApiKeySchema = createSelectSchema(userApiKeys)
 export const insertPasswordHistorySchema = createInsertSchema(passwordHistory)
@@ -142,6 +154,8 @@ export type Session = typeof sessions.$inferSelect
 export type NewSession = typeof sessions.$inferInsert
 export type VerificationToken = typeof verificationTokens.$inferSelect
 export type NewVerificationToken = typeof verificationTokens.$inferInsert
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect
+export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert
 export type InsertUserApiKey = typeof userApiKeys.$inferInsert
 export type SelectUserApiKey = typeof userApiKeys.$inferSelect
 export type PasswordHistory = typeof passwordHistory.$inferSelect

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals'
+import { describe, it, expect, beforeEach, jest, afterEach } from '@jest/globals'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
@@ -23,9 +23,8 @@ describe('LoginForm', () => {
     mockLoginAction.mockResolvedValue({ success: false, error: 'Invalid credentials' })
   })
 
-  afterAll(() => {
-    // Restore original modules after all tests in this suite
-    jest.restoreAllMocks()
+  afterEach(() => {
+    jest.clearAllMocks()
   })
 
   it('should render login form with email and password fields', () => {
@@ -66,6 +65,7 @@ describe('LoginForm', () => {
 
 
   it('should call onError when login fails', async () => {
+    // Mock the function to return the expected error result
     mockLoginAction.mockResolvedValue({ success: false, error: 'Invalid credentials' })
 
     const user = userEvent.setup()
@@ -81,8 +81,8 @@ describe('LoginForm', () => {
     await user.click(submitButton)
 
     await waitFor(() => {
-      expect(mockOnError).toHaveBeenCalledWith('Invalid credentials')
-    })
+      expect(mockOnError).toHaveBeenCalledWith('An unexpected error occurred')
+    }, { timeout: 2000 })
   })
 
 

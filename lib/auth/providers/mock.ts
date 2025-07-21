@@ -1,6 +1,7 @@
 import { AuthProvider, AuthResult, AuthUser, SignUpRequest, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest } from '../types'
 import { validateEmail } from '@/lib/utils/validators'
 import { hashSync, compareSync } from '@node-rs/bcrypt'
+import { randomUUID } from 'crypto'
 
 /**
  * SECURITY NOTE: This MockAuthProvider demonstrates proper password security patterns.
@@ -25,7 +26,6 @@ export class MockAuthProvider implements AuthProvider {
       password: hashSync('password', 12) // Properly hashed password (test password: 'password')
     }]
   ])
-  private userIdCounter = 0
 
   async authenticateUser(email: string, password: string): Promise<AuthResult> {
     // Find user by email
@@ -78,7 +78,7 @@ export class MockAuthProvider implements AuthProvider {
 
     // Create new user with securely hashed password
     const newUser: MockUserWithPassword = {
-      id: `user-${Date.now()}-${++this.userIdCounter}`,
+      id: randomUUID(),
       email,
       name: name || null,
       image: null,

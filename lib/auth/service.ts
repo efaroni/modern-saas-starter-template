@@ -10,11 +10,14 @@ import { addHours } from '@/lib/utils/date-time'
 import { TokenGenerators } from '@/lib/utils/token-generator'
 import { ErrorFactory, withErrorContext } from '@/lib/utils/error-handler'
 import { authLogger } from '@/lib/auth/logger'
+import { db } from '@/lib/db/server'
+import { passwordResetTokens } from '@/lib/db/schema'
+import { eq, and, lt } from 'drizzle-orm'
 
 export class AuthService {
   private currentSession: SessionData | null = null
-  private passwordResetTokens = new Map<string, PasswordResetToken>()
   private hasStorageWriteFailure: boolean = false
+  private passwordResetTokens = new Map<string, PasswordResetToken>() // Fallback for mock provider
   private sessionStorage: SessionStorage
   private emailService: EmailService
   private uploadService: UploadService
@@ -31,6 +34,10 @@ export class AuthService {
     this.uploadService = uploadSvc || uploadService
     this.initializeSession()
     this.startCleanupTimer()
+  }
+
+  private isMockProvider(): boolean {
+    return this.provider.constructor.name === 'MockAuthProvider'
   }
 
   private async initializeSession(): Promise<void> {
@@ -57,19 +64,24 @@ export class AuthService {
     }
   }
 
-  private cleanupExpiredTokens(): void {
-    const now = Date.now()
-    let removedCount = 0
-    
-    for (const [token, tokenData] of this.passwordResetTokens.entries()) {
-      if (now > tokenData.expiresAt) {
-        this.passwordResetTokens.delete(token)
-        removedCount++
+  private async cleanupExpiredTokens(): Promise<void> {
+    try {
+      const now = new Date()
+      
+      // Delete expired or used tokens from database
+      const result = await db.delete(passwordResetTokens)
+        .where(
+          and(
+            lt(passwordResetTokens.expiresAt, now)
+          )
+        )
+      
+      const removedCount = result.rowCount || 0
+      if (removedCount > 0) {
+        console.log(`[AUTH] Cleaned up ${removedCount} expired password reset tokens`)
       }
-    }
-    
-    if (removedCount > 0) {
-      console.log(`[AUTH] Cleaned up ${removedCount} expired password reset tokens`)
+    } catch (error) {
+      console.error('[AUTH] Failed to cleanup expired tokens:', error)
     }
   }
 
@@ -240,11 +252,7 @@ export class AuthService {
       
       // Store session (fail silently if storage fails)
       try {
-        try {
         await this.sessionStorage.setSession(this.currentSession)
-      } catch {
-        // Storage write failed, but we keep the session in memory
-      }
       } catch {
         // Storage write failed, but we keep the session in memory
       }
@@ -456,14 +464,6 @@ export class AuthService {
     const resetToken = this.generateResetToken()
     const expiresAt = addHours(3) // 3 hours from now
 
-    // Store reset token
-    this.passwordResetTokens.set(resetToken, {
-      token: resetToken,
-      userId: userResult.user.id,
-      expiresAt,
-      used: false
-    })
-
     // Generate reset URL
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`
 
@@ -484,66 +484,152 @@ export class AuthService {
       }
     }
 
+    // Store reset token (in database for real providers, in memory for mock provider)
+    if (this.isMockProvider()) {
+      // For mock provider, use in-memory storage
+      this.passwordResetTokens.set(resetToken, {
+        token: resetToken,
+        userId: userResult.user.id,
+        expiresAt,
+        used: false
+      })
+    } else {
+      // For real providers, use database storage
+      try {
+        await db.insert(passwordResetTokens).values({
+          token: resetToken,
+          userId: userResult.user.id,
+          expiresAt,
+          used: false
+        })
+      } catch (error) {
+        // Token storage failed, but email was sent
+        // Log the error but don't fail the request since user got the email
+        console.error('Failed to store password reset token in database:', error)
+      }
+    }
+
     return {
       success: true
     }
   }
 
   async verifyPasswordResetToken(token: string): Promise<AuthResult> {
-    const resetToken = this.passwordResetTokens.get(token)
-    
-    if (!resetToken || resetToken.used || resetToken.expiresAt.getTime() < Date.now()) {
+    try {
+      let resetToken: PasswordResetToken | undefined
+
+      if (this.isMockProvider()) {
+        // For mock provider, check in-memory storage
+        resetToken = this.passwordResetTokens.get(token)
+      } else {
+        // For real providers, check database
+        const resetTokens = await db.select()
+          .from(passwordResetTokens)
+          .where(eq(passwordResetTokens.token, token))
+          .limit(1)
+        resetToken = resetTokens[0]
+      }
+      
+      if (!resetToken || resetToken.used || resetToken.expiresAt.getTime() < Date.now()) {
+        return {
+          success: false,
+          error: 'Invalid or expired reset token'
+        }
+      }
+
+      // Get user for the token
+      const userResult = await this.provider.getUserById(resetToken.userId)
+      
+      return {
+        success: true,
+        user: userResult.user
+      }
+    } catch (error) {
       return {
         success: false,
         error: 'Invalid or expired reset token'
       }
-    }
-
-    // Get user for the token
-    const userResult = await this.provider.getUserById(resetToken.userId)
-    
-    return {
-      success: true,
-      user: userResult.user
     }
   }
 
   async resetPassword(token: string, newPassword: string): Promise<AuthResult> {
-    const resetToken = this.passwordResetTokens.get(token)
-    
-    if (!resetToken || resetToken.used || resetToken.expiresAt.getTime() < Date.now()) {
+    try {
+      let resetToken: PasswordResetToken | undefined
+
+      if (this.isMockProvider()) {
+        // For mock provider, check in-memory storage
+        resetToken = this.passwordResetTokens.get(token)
+      } else {
+        // For real providers, check database
+        const resetTokens = await db.select()
+          .from(passwordResetTokens)
+          .where(eq(passwordResetTokens.token, token))
+          .limit(1)
+        resetToken = resetTokens[0]
+      }
+      
+      if (!resetToken || resetToken.used || resetToken.expiresAt.getTime() < Date.now()) {
+        return {
+          success: false,
+          error: 'Invalid or expired reset token'
+        }
+      }
+
+      // Validate new password
+      if (newPassword.length < 8) {
+        return {
+          success: false,
+          error: 'Password must be at least 8 characters'
+        }
+      }
+
+      // Reset the password
+      const result = await this.provider.resetUserPassword(resetToken.userId, newPassword)
+      
+      if (result.success) {
+        // Mark token as used
+        if (this.isMockProvider()) {
+          // For mock provider, update in-memory storage
+          resetToken.used = true
+        } else {
+          // For real providers, update database
+          await db.update(passwordResetTokens)
+            .set({ used: true })
+            .where(eq(passwordResetTokens.token, token))
+        }
+      }
+
+      return result
+    } catch (error) {
       return {
         success: false,
         error: 'Invalid or expired reset token'
       }
     }
-
-    // Validate new password
-    if (newPassword.length < 8) {
-      return {
-        success: false,
-        error: 'Password must be at least 8 characters'
-      }
-    }
-
-    // Reset the password
-    const result = await this.provider.resetUserPassword(resetToken.userId, newPassword)
-    
-    if (result.success) {
-      // Mark token as used
-      resetToken.used = true
-    }
-
-    return result
   }
 
   async cleanupExpiredResetTokens(): Promise<void> {
-    const now = Date.now()
-    
-    for (const [token, resetToken] of this.passwordResetTokens.entries()) {
-      if (resetToken.expiresAt.getTime() < now || resetToken.used) {
-        this.passwordResetTokens.delete(token)
+    try {
+      const now = new Date()
+      
+      if (this.isMockProvider()) {
+        // For mock provider, cleanup in-memory storage
+        for (const [token, resetToken] of this.passwordResetTokens.entries()) {
+          if (resetToken.expiresAt.getTime() < now.getTime() || resetToken.used) {
+            this.passwordResetTokens.delete(token)
+          }
+        }
+      } else {
+        // For real providers, cleanup database
+        await db.delete(passwordResetTokens)
+          .where(
+            and(
+              lt(passwordResetTokens.expiresAt, now)
+            )
+          )
       }
+    } catch (error) {
+      console.error('[AUTH] Failed to cleanup expired reset tokens:', error)
     }
   }
 
