@@ -6,7 +6,16 @@ console.log('🔍 Checking your setup...\n');
 
 // Database
 console.log('📊 Database:');
-console.log(`  PostgreSQL: ${process.env.DATABASE_URL ? '✅ Configured' : '❌ Not configured'}`);
+// Check database configuration using centralized config
+let dbConfigured = false
+try {
+  const { getDatabaseUrl } = require('./lib/db/config')
+  getDatabaseUrl()
+  dbConfigured = true
+} catch (error) {
+  dbConfigured = false
+}
+console.log(`  PostgreSQL: ${dbConfigured ? '✅ Configured' : '❌ Not configured'}`);
 
 // Auth
 console.log('\n🔐 Authentication:');

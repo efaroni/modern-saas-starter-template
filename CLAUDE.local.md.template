@@ -1,0 +1,197 @@
+# Claude Local Development Guide
+
+This file contains machine-specific configurations and local development context. Copy this to `CLAUDE.local.md` and customize for your environment. Add `CLAUDE.local.md` to .gitignore to keep it private.
+
+## Local Development Environment
+
+### Machine Details
+- **OS**: [e.g., macOS 14.5, Ubuntu 22.04, Windows 11]
+- **Node Version**: [e.g., v20.10.0]
+- **Package Manager**: [e.g., npm 10.2.0]
+- **IDE**: [e.g., VS Code, Cursor]
+
+### Local Database
+- **PostgreSQL Version**: [e.g., 15.3]
+- **Connection String**: `postgresql://user:password@localhost:5432/saas_dev`
+- **Test Database**: `postgresql://user:password@localhost:5432/saas_test`
+- **Docker Command**: `docker-compose up -d postgres`
+
+### Local Services
+- **Redis**: `redis://localhost:6379`
+- **Mail Catcher**: [e.g., MailHog on localhost:1025]
+- **ngrok URL**: [if using for webhooks]
+
+## Claude Code Collaboration Preferences
+
+### Communication Style
+- **Verbosity**: Concise (brief explanations, focus on implementation)
+- **Code Review**: Lean on best practices + check existing config files in codebase
+- **Development Flow**: Claude writes all code following TDD approach
+
+### Testing Approach (TDD)
+- **Workflow**: Write tests first, then implement features
+- **Test Types**: Unit tests adjacent to files, integration tests in tests/
+- **Coverage**: Follow existing project standards
+- **Commands**: Use `npm run test:watch` during development
+
+### Claude Workflow Patterns
+```
+Preferred prompts:
+- "Write tests for [feature], then implement following [existing pattern]"
+- "Add [API endpoint] similar to [existing file] with proper validation"
+- "Create [component] using TDD approach, following [pattern file]"
+```
+
+### Code Review Checklist
+- Check ESLint/Prettier configs for style standards
+- Follow TypeScript strict mode patterns in codebase
+- Ensure auth flows follow existing security patterns
+- Verify database operations use transactions when needed
+- Tests must pass before implementation is complete
+
+## Personal Development Preferences
+
+### Code Style Preferences  
+- **Component naming**: Follow existing codebase patterns
+- **Import ordering**: Check existing files for consistency
+- **Comment style**: Minimal comments, self-documenting code preferred
+- **Git commit format**: Follow existing commit history style
+
+### Development Workflow
+- **TDD Cycle**: Red (test fails) → Green (make it pass) → Refactor
+- **Feature Development**: Tests first, implementation second
+- **Integration**: Ensure all tests pass before considering feature complete
+
+### Common Local Commands
+```bash
+# Your personal aliases or scripts
+alias dev="npm run dev"
+alias test="npm run test -- --watch"
+alias db="npm run db:studio"
+
+# Custom functions
+function reset-db() {
+  npm run db:drop && npm run db:push && npm run db:seed
+}
+```
+
+## Current Feature Work
+
+### Active Branch
+- **Branch**: `feature/user-onboarding`
+- **Related Issue**: #123
+- **Started**: 2024-01-15
+
+## Claude Collaboration Memory
+
+### Recent Features Built Together
+- [ ] [Feature name] - [Brief description, any gotchas discovered]
+- [ ] [Feature name] - [Patterns established, lessons learned]
+
+### Established Patterns in This Project
+- **Auth Flow**: [Custom patterns you've established with Claude]
+- **API Endpoints**: [Specific validation/response patterns]  
+- **Database Operations**: [Transaction patterns, query optimizations]
+- **Testing**: [Test organization, mock patterns]
+
+### Project-Specific Context Claude Should Remember
+- **Security Considerations**: [Specific to your implementation]
+- **Performance Optimizations**: [Database, API, frontend patterns]
+- **Integration Gotchas**: [External services, webhook handling]
+- **Local Development Quirks**: [Environment-specific issues]
+
+### Local Test Accounts
+```
+Admin: admin@local.dev / testpass123
+User: user@local.dev / testpass123
+Premium: premium@local.dev / testpass123
+```
+
+### API Keys (Development Only)
+```bash
+# Stripe Test Keys
+STRIPE_SECRET_KEY="sk_test_local_key_here"
+STRIPE_WEBHOOK_SECRET="whsec_local_secret"
+
+# Other test keys
+OPENAI_API_KEY="sk-local-test-key"
+```
+
+## Local Debugging
+
+### Common Issues & Solutions
+1. **Port 3000 in use**: `lsof -ti:3000 | xargs kill -9`
+2. **Database connection issues**: Check Docker is running
+3. **TypeScript errors**: `rm -rf .next && npm run dev`
+
+### Performance Profiling
+- **React DevTools**: [installed/configured]
+- **Database query logging**: Set `DB_LOG=true`
+- **API response timing**: Use `DEBUG=api:*`
+
+## Personal Notes & Claude Context
+
+### Active TODO Items (for Claude)
+- [ ] [Feature] - [What Claude should know about this task]
+- [ ] [Bug fix] - [Context Claude needs for debugging]
+- [ ] [Refactor] - [Patterns to follow]
+
+### Useful Code Snippets (for Claude)
+```typescript
+// Local debugging helper Claude can reference
+export function debugLog(data: any) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 DEBUG:', JSON.stringify(data, null, 2));
+  }
+}
+
+// TDD test pattern for this project
+describe('[Feature]', () => {
+  beforeEach(async () => {
+    // Setup pattern Claude should follow
+  });
+  
+  it('should [behavior]', async () => {
+    // Test pattern Claude should use
+  });
+});
+```
+
+### Claude Learning Context
+- **Recent Discoveries**: [Patterns that work well with Claude]
+- **Effective Prompts**: [Specific prompts that work for your style]
+- **Common Mistakes**: [What to avoid when working with Claude]
+
+## Project-Specific Context
+
+### Known Quirks
+- Test suite requires Redis to be running
+- Email preview only works with Resend API key
+- Stripe webhooks need ngrok in development
+
+### Performance Baselines
+- Page load: < 200ms
+- API response: < 100ms
+- Test suite: < 30s
+
+### Deployment Notes
+- Always run migrations before deploying
+- Check environment variables in Vercel
+- Monitor error rates after deployment
+
+---
+
+## Remember to:
+1. **Keep Claude context updated** - Update active work, recent features, patterns learned
+2. **Add to .gitignore** - Keep this file private to your machine
+3. **Update before each Claude session** - Refresh current focus and any new patterns
+4. **Document Claude workflows** - Note what prompts and approaches work best
+5. **Track pattern evolution** - Record how your collaboration with Claude improves
+6. **Include environment quirks** - Help Claude understand your specific setup
+
+## Quick Claude Context Checklist:
+- [ ] Current feature work updated
+- [ ] Recent Claude collaboration patterns documented  
+- [ ] Test accounts and API keys current
+- [ ] Any new project-specific gotchas noted
+- [ ] Effective prompts and workflows recorded

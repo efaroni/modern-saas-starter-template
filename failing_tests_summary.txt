@@ -1,0 +1,253 @@
+FAIL __tests__/lib/auth/providers/database-test.test.ts
+  ● DatabaseTestAuthProvider › authenticateUser › should authenticate user with correct credentials
+    expect(received).toBe(expected) // Object.is equality
+    Expected: true
+    Received: false
+      378 |   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+      379 |     expect(result).toHaveProperty('success')
+    > 380 |     expect(result.success).toBe(expectedSuccess)
+      382 |     if (expectedSuccess) {
+      383 |       if (expectUser) {
+      at Object.toBe [as assertAuthResult] (lib/db/test-helpers.ts:380:28)
+      at Object.assertAuthResult (__tests__/lib/auth/providers/database-test.test.ts:89:23)
+  ● DatabaseTestAuthProvider › getUserById › should get user by ID
+    expect(received).toBe(expected) // Object.is equality
+    Expected: true
+    Received: false
+      378 |   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+      379 |     expect(result).toHaveProperty('success')
+    > 380 |     expect(result.success).toBe(expectedSuccess)
+      382 |     if (expectedSuccess) {
+      383 |       if (expectUser) {
+      at Object.toBe [as assertAuthResult] (lib/db/test-helpers.ts:380:28)
+      at Object.assertAuthResult (__tests__/lib/auth/providers/database-test.test.ts:130:23)
+FAIL __tests__/lib/auth/password-expiration.test.ts
+  ● Console
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/password-expiration.test.ts:71:22) {
+      at Object.<anonymous> (__tests__/lib/auth/password-expiration.test.ts:71:22)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/password-expiration.test.ts:141:7) {
+      at Object.<anonymous> (__tests__/lib/auth/password-expiration.test.ts:141:7)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/password-expiration.test.ts:151:7)
+      at Object.<anonymous> (__tests__/lib/auth/password-expiration.test.ts:151:7)
+  ● PasswordExpirationService › checkPasswordExpiration › should return not expired for new password
+      at Object.createTestUser (lib/db/test-helpers.ts:311:28)
+      at Object.<anonymous> (__tests__/lib/auth/password-expiration.test.ts:13:16)
+  ● PasswordExpirationService › integration scenarios › should handle complete password expiration workflow
+      at Object.createTestUser (lib/db/test-helpers.ts:311:28)
+      at Object.<anonymous> (__tests__/lib/auth/password-expiration.test.ts:13:16)
+  ● PasswordExpirationService › integration scenarios › should handle expired password scenario
+      at Object.createTestUser (lib/db/test-helpers.ts:311:28)
+      at Object.<anonymous> (__tests__/lib/auth/password-expiration.test.ts:13:16)
+FAIL __tests__/lib/auth/rate-limiter.test.ts
+  ● RateLimiter › checkRateLimit › should block requests after rate limit exceeded
+    expect(received).toBe(expected) // Object.is equality
+    Expected: false
+    Received: true
+    > 37 |       expect(result.allowed).toBe(false)
+      38 |       expect(result.remaining).toBe(0)
+      39 |       expect(result.locked).toBe(true)
+      40 |       expect(result.lockoutEndTime).toBeInstanceOf(Date)
+      at Object.toBe (__tests__/lib/auth/rate-limiter.test.ts:37:30)
+  ● RateLimiter › checkRateLimit › should differentiate between different action types
+    expect(received).toBe(expected) // Object.is equality
+    Expected: false
+    Received: true
+    > 62 |       expect(loginResult.allowed).toBe(false)
+      63 |       expect(signupResult.allowed).toBe(true)
+      at Object.toBe (__tests__/lib/auth/rate-limiter.test.ts:62:35)
+  ● RateLimiter › integration with different rate limits › should apply correct limits for different actions
+    expect(received).toBe(expected) // Object.is equality
+    Expected: false
+    Received: true
+      220 |       expect(loginResult.allowed).toBe(false)
+    > 221 |       expect(signupResult.allowed).toBe(false)
+      at Object.toBe (__tests__/lib/auth/rate-limiter.test.ts:221:36)
+FAIL __tests__/lib/auth/session-manager.test.ts
+  ● Console
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/session-manager.test.ts:42:22) {
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:42:22)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/session-manager.test.ts:42:22)
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:42:22)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/session-manager.test.ts:57:23) {
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:57:23)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/session-manager.test.ts:57:23)
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:57:23)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/session-manager.test.ts:65:22) {
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:65:22)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/session-manager.test.ts:65:22)
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:65:22)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/session-manager.test.ts:16:20) {
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:16:20)
+  ● SessionManager › createSession › should create a new session with secure configuration
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:42:22)
+  ● SessionManager › createSession › should create unique session tokens
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:57:23)
+  ● SessionManager › createSession › should set correct expiration time
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:65:22)
+  ● SessionManager › validateSession › should validate a valid session
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:23:13)
+  ● SessionManager › destroySession › should successfully destroy a session
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:23:13)
+  ● SessionManager › invalidateUserSessions › should invalidate all sessions for a user
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:23:13)
+  ● SessionManager › cookie configuration › should return correct cookie configuration
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:23:13)
+FAIL __tests__/lib/auth/providers/database.test.ts (7.295 s)
+  ● Console
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/providers/database.test.ts:32:22) {
+      at Object.<anonymous> (__tests__/lib/auth/providers/database.test.ts:32:22)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/providers/database.test.ts:75:27) {
+      at Object.<anonymous> (__tests__/lib/auth/providers/database.test.ts:75:27)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/providers/database.test.ts:79:28) {
+      at Object.<anonymous> (__tests__/lib/auth/providers/database.test.ts:79:28)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/providers/database.test.ts:94:28) {
+      at Object.<anonymous> (__tests__/lib/auth/providers/database.test.ts:94:28)
+          at Object.<anonymous> (/Users/efaroni/Coding/modern-saas-starter-template/__tests__/lib/auth/providers/database.test.ts:117:26) {
+      at Object.<anonymous> (__tests__/lib/auth/providers/database.test.ts:117:26)
+  ● DatabaseAuthProvider › createUser › should create a user with hashed password
+    expect(received).toBe(expected) // Object.is equality
+    Expected: true
+    Received: false
+      378 |   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+      379 |     expect(result).toHaveProperty('success')
+    > 380 |     expect(result.success).toBe(expectedSuccess)
+      382 |     if (expectedSuccess) {
+      383 |       if (expectUser) {
+      at Object.toBe [as assertAuthResult] (lib/db/test-helpers.ts:380:28)
+      at Object.assertAuthResult (__tests__/lib/auth/providers/database.test.ts:34:23)
+  ● DatabaseAuthProvider › createUser › should reject duplicate emails
+    expect(received).toContain(expected) // indexOf
+    > 81 |       expect(secondResult.error).toContain('Email already exists')
+      at Object.toContain (__tests__/lib/auth/providers/database.test.ts:81:34)
+  ● DatabaseAuthProvider › authenticateUser › should authenticate user with correct credentials
+    expect(received).toBe(expected) // Object.is equality
+    Expected: true
+    Received: false
+      378 |   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+      379 |     expect(result).toHaveProperty('success')
+    > 380 |     expect(result.success).toBe(expectedSuccess)
+      382 |     if (expectedSuccess) {
+      383 |       if (expectUser) {
+      at Object.toBe [as assertAuthResult] (lib/db/test-helpers.ts:380:28)
+      at Object.assertAuthResult (__tests__/lib/auth/providers/database.test.ts:95:23)
+  ● DatabaseAuthProvider › updateUser › should reject duplicate email
+    expect(received).toBe(expected) // Object.is equality
+    Expected: false
+    Received: true
+      378 |   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+      379 |     expect(result).toHaveProperty('success')
+    > 380 |     expect(result.success).toBe(expectedSuccess)
+      382 |     if (expectedSuccess) {
+      383 |       if (expectUser) {
+      at Object.toBe [as assertAuthResult] (lib/db/test-helpers.ts:380:28)
+      at Object.assertAuthResult (__tests__/lib/auth/providers/database.test.ts:278:23)
+FAIL __tests__/lib/auth/providers/database-test.test.ts
+  ● DatabaseTestAuthProvider › authenticateUser › should authenticate user with correct credentials
+    expect(received).toBe(expected) // Object.is equality
+    Expected: true
+    Received: false
+      378 |   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+      379 |     expect(result).toHaveProperty('success')
+    > 380 |     expect(result.success).toBe(expectedSuccess)
+      382 |     if (expectedSuccess) {
+      383 |       if (expectUser) {
+      at Object.toBe [as assertAuthResult] (lib/db/test-helpers.ts:380:28)
+      at Object.assertAuthResult (__tests__/lib/auth/providers/database-test.test.ts:89:23)
+  ● DatabaseTestAuthProvider › getUserById › should get user by ID
+    expect(received).toBe(expected) // Object.is equality
+    Expected: true
+    Received: false
+      378 |   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+      379 |     expect(result).toHaveProperty('success')
+    > 380 |     expect(result.success).toBe(expectedSuccess)
+      382 |     if (expectedSuccess) {
+      383 |       if (expectUser) {
+      at Object.toBe [as assertAuthResult] (lib/db/test-helpers.ts:380:28)
+      at Object.assertAuthResult (__tests__/lib/auth/providers/database-test.test.ts:130:23)
+FAIL __tests__/lib/auth/password-expiration.test.ts
+  ● PasswordExpirationService › checkPasswordExpiration › should return not expired for new password
+      at Object.createTestUser (lib/db/test-helpers.ts:311:28)
+      at Object.<anonymous> (__tests__/lib/auth/password-expiration.test.ts:13:16)
+  ● PasswordExpirationService › integration scenarios › should handle complete password expiration workflow
+      at Object.createTestUser (lib/db/test-helpers.ts:311:28)
+      at Object.<anonymous> (__tests__/lib/auth/password-expiration.test.ts:13:16)
+  ● PasswordExpirationService › integration scenarios › should handle expired password scenario
+      at Object.createTestUser (lib/db/test-helpers.ts:311:28)
+      at Object.<anonymous> (__tests__/lib/auth/password-expiration.test.ts:13:16)
+FAIL __tests__/lib/auth/rate-limiter.test.ts
+  ● RateLimiter › checkRateLimit › should block requests after rate limit exceeded
+    expect(received).toBe(expected) // Object.is equality
+    Expected: false
+    Received: true
+    > 37 |       expect(result.allowed).toBe(false)
+      38 |       expect(result.remaining).toBe(0)
+      39 |       expect(result.locked).toBe(true)
+      40 |       expect(result.lockoutEndTime).toBeInstanceOf(Date)
+      at Object.toBe (__tests__/lib/auth/rate-limiter.test.ts:37:30)
+  ● RateLimiter › checkRateLimit › should differentiate between different action types
+    expect(received).toBe(expected) // Object.is equality
+    Expected: false
+    Received: true
+    > 62 |       expect(loginResult.allowed).toBe(false)
+      63 |       expect(signupResult.allowed).toBe(true)
+      at Object.toBe (__tests__/lib/auth/rate-limiter.test.ts:62:35)
+  ● RateLimiter › integration with different rate limits › should apply correct limits for different actions
+    expect(received).toBe(expected) // Object.is equality
+    Expected: false
+    Received: true
+      220 |       expect(loginResult.allowed).toBe(false)
+    > 221 |       expect(signupResult.allowed).toBe(false)
+      at Object.toBe (__tests__/lib/auth/rate-limiter.test.ts:221:36)
+FAIL __tests__/lib/auth/session-manager.test.ts
+  ● SessionManager › createSession › should create a new session with secure configuration
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:42:22)
+  ● SessionManager › createSession › should create unique session tokens
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:57:23)
+  ● SessionManager › createSession › should set correct expiration time
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:65:22)
+  ● SessionManager › validateSession › should validate a valid session
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:23:13)
+  ● SessionManager › destroySession › should successfully destroy a session
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:23:13)
+  ● SessionManager › invalidateUserSessions › should invalidate all sessions for a user
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:23:13)
+  ● SessionManager › cookie configuration › should return correct cookie configuration
+      at Object.<anonymous> (__tests__/lib/auth/session-manager.test.ts:23:13)
+FAIL __tests__/lib/auth/providers/database.test.ts (7.295 s)
+  ● DatabaseAuthProvider › createUser › should create a user with hashed password
+    expect(received).toBe(expected) // Object.is equality
+    Expected: true
+    Received: false
+      378 |   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+      379 |     expect(result).toHaveProperty('success')
+    > 380 |     expect(result.success).toBe(expectedSuccess)
+      382 |     if (expectedSuccess) {
+      383 |       if (expectUser) {
+      at Object.toBe [as assertAuthResult] (lib/db/test-helpers.ts:380:28)
+      at Object.assertAuthResult (__tests__/lib/auth/providers/database.test.ts:34:23)
+  ● DatabaseAuthProvider › createUser › should reject duplicate emails
+    expect(received).toContain(expected) // indexOf
+    > 81 |       expect(secondResult.error).toContain('Email already exists')
+      at Object.toContain (__tests__/lib/auth/providers/database.test.ts:81:34)
+  ● DatabaseAuthProvider › authenticateUser › should authenticate user with correct credentials
+    expect(received).toBe(expected) // Object.is equality
+    Expected: true
+    Received: false
+      378 |   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+      379 |     expect(result).toHaveProperty('success')
+    > 380 |     expect(result.success).toBe(expectedSuccess)
+      382 |     if (expectedSuccess) {
+      383 |       if (expectUser) {
+      at Object.toBe [as assertAuthResult] (lib/db/test-helpers.ts:380:28)
+      at Object.assertAuthResult (__tests__/lib/auth/providers/database.test.ts:95:23)
+  ● DatabaseAuthProvider › updateUser › should reject duplicate email
+    expect(received).toBe(expected) // Object.is equality
+    Expected: false
+    Received: true
+      378 |   assertAuthResult(result: any, expectedSuccess: boolean, expectUser: boolean = true): void {
+      379 |     expect(result).toHaveProperty('success')
+    > 380 |     expect(result.success).toBe(expectedSuccess)
+      382 |     if (expectedSuccess) {
+      383 |       if (expectUser) {
+      at Object.toBe [as assertAuthResult] (lib/db/test-helpers.ts:380:28)
+      at Object.assertAuthResult (__tests__/lib/auth/providers/database.test.ts:278:23)

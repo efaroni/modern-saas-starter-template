@@ -35,7 +35,7 @@ describe('API Key Validators', () => {
     })
 
     test('should return invalid when API throws error', async () => {
-      const { OpenAI } = require('openai')
+      const { OpenAI } = jest.requireMock('openai')
       OpenAI.mockImplementationOnce(() => ({
         models: {
           list: jest.fn().mockRejectedValue(new Error('Invalid API key'))
@@ -58,7 +58,7 @@ describe('API Key Validators', () => {
     })
 
     test('should return invalid when API throws error', async () => {
-      const { Resend } = require('resend')
+      const { Resend } = jest.requireMock('resend')
       Resend.mockImplementationOnce(() => ({
         apiKeys: {
           list: jest.fn().mockRejectedValue(new Error('Invalid API key'))

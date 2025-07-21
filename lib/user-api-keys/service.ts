@@ -17,8 +17,12 @@ const getDb = async () => {
 
 // Check if we should use database or mock mode
 const shouldUseMock = () => {
-  // If no DATABASE_URL is set, always use mock
-  if (!process.env.DATABASE_URL) {
+  // Import here to avoid circular dependency
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { isRealDatabase } = require('@/lib/db/config')
+  
+  // If no database is configured, always use mock
+  if (!isRealDatabase()) {
     return true
   }
   // If config says database is disabled, use mock
@@ -111,13 +115,13 @@ export const userApiKeyService = {
         privateKeyEncrypted: maskApiKey(data.privateKeyEncrypted),
         publicKey: data.publicKey ? maskApiKey(data.publicKey) : null,
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Check for unique constraint violation (Postgres error code 23505)
       // Handle both direct PostgreSQL errors and DrizzleQueryError with cause
-      const postgresError = error.cause || error
-      if (postgresError.code === '23505' || 
-          error.message?.includes('duplicate key value') ||
-          postgresError.message?.includes('duplicate key value')) {
+      const postgresError = (error as { cause?: unknown }).cause || error
+      if ((postgresError as { code?: string }).code === '23505' || 
+          (error as { message?: string }).message?.includes('duplicate key value') ||
+          (postgresError as { message?: string }).message?.includes('duplicate key value')) {
         throw new Error('API_KEY_DUPLICATE')
       }
       
@@ -145,7 +149,7 @@ export const userApiKeyService = {
         .returning()
       
       if (!deleted) throw new Error('API key not found')
-    } catch (error) {
+    } catch {
       throw new Error('Failed to delete API key')
     }
   },

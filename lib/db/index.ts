@@ -1,14 +1,14 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from './schema'
+// Main database module - safe for client-side imports
+// For server-only functionality, import from './server'
 
-// In development, Next.js loads .env.local automatically
-// For production, use actual environment variables
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/saas_template'
+// Export client-safe database connection and types
+export { db, getDatabasePool } from './connection-pool'
 
-// For migrations
-export const migrationClient = postgres(connectionString, { max: 1 })
+// Export optimized query utilities (these don't use Node.js APIs)
+export { queryOptimizer, optimizedQueries } from './query-optimization'
 
-// For queries
-const queryClient = postgres(connectionString)
-export const db = drizzle(queryClient, { schema })
+// Export schema for both client and server use
+export * from './schema'
+
+// Export configuration utilities
+export { getDatabaseUrl, getDatabaseConfig, isRealDatabase } from './config'

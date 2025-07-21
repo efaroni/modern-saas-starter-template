@@ -22,6 +22,41 @@
       "when": 1752247093156,
       "tag": "0002_plain_alex_power",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1752507135992,
+      "tag": "0003_married_robbie_robertson",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1752612806558,
+      "tag": "0004_curved_richard_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1752613629337,
+      "tag": "0005_same_devos",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1752643200000,
+      "tag": "0006_add_performance_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1753111552677,
+      "tag": "0007_reflective_arachne",
+      "breakpoints": true
     }
   ]
 }

@@ -8,7 +8,7 @@ export async function getUserApiKeys() {
   try {
     const apiKeys = await userApiKeyService.list()
     return { success: true, data: apiKeys }
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Failed to fetch API keys' }
   }
 }
@@ -17,7 +17,7 @@ export async function createUserApiKey(data: {
   provider: string
   privateKey: string
   publicKey?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }) {
   try {
     if (data.provider === 'openai' && !data.privateKey.startsWith('sk-')) {
@@ -64,10 +64,10 @@ export async function createUserApiKey(data: {
       metadata: data.metadata || {},
     })
 
-    revalidatePath('/dev/configuration')
+    revalidatePath('/configuration')
     return { success: true, data: created }
-  } catch (error: any) {
-    if (error.message === 'API_KEY_DUPLICATE') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'API_KEY_DUPLICATE') {
       return { 
         success: false, 
         error: 'API key already exists for this provider',
@@ -82,9 +82,9 @@ export async function createUserApiKey(data: {
 export async function deleteUserApiKey(id: string) {
   try {
     await userApiKeyService.delete(id)
-    revalidatePath('/dev/configuration')
+    revalidatePath('/configuration')
     return { success: true }
-  } catch (error) {
+  } catch {
     return { success: false, error: 'Failed to delete API key' }
   }
 }
@@ -122,10 +122,10 @@ export async function testUserApiKey(provider: string, privateKey: string) {
       success: true,
       message: 'API key is valid and working!'
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { 
       success: false, 
-      error: error.message || 'Failed to test API key' 
+      error: error instanceof Error ? error.message : 'Failed to test API key' 
     }
   }
 }
