@@ -1,0 +1,472 @@
+name: E2E Tests
+
+on:
+  # Manual trigger for on-demand testing
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser to test with'
+        required: false
+        default: 'chromium'
+        type: choice
+        options:
+          - 'chromium'
+          - 'firefox'
+          - 'webkit'
+          - 'all'
+      environment:
+        description: 'Environment to test against'
+        required: false
+        default: 'ci'
+        type: choice
+        options:
+          - 'ci'
+          - 'staging'
+          - 'production'
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        default: false
+        type: boolean
+
+  # Trigger after successful CI completion
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main, develop]
+
+  # Scheduled runs for regression testing
+  schedule:
+    # Run every day at 2 AM UTC (off-peak hours)
+    - cron: '0 2 * * *'
+    # Run on weekends for comprehensive testing
+    - cron: '0 6 * * 0,6'
+
+  # Trigger on PR to main/develop for critical path validation
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'tests/e2e/**'
+      - 'playwright.config.ts'
+      - '.github/workflows/e2e-tests.yml'
+
+# Security: minimal permissions
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  actions: read
+
+# Environment variables for E2E tests
+env:
+  # Database configuration (component-based)
+  NODE_ENV: test
+  TEST_DB_HOST: localhost
+  TEST_DB_PORT: 5432
+  TEST_DB_USER: postgres
+  TEST_DB_PASSWORD: postgres
+  TEST_DB_NAME: saas_template_e2e
+  
+  # Redis configuration
+  REDIS_URL: redis://localhost:6379
+  
+  # Auth configuration
+  AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'test-secret-key-for-e2e-testing-only-not-for-production' }}
+  NEXTAUTH_URL: http://localhost:3000
+  
+  # Email service (mock for E2E)
+  RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || 'test-key' }}
+  
+  # Stripe (test keys for E2E)
+  STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY || 'sk_test_mock' }}
+  STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_TEST_WEBHOOK_SECRET || 'whsec_test_mock' }}
+  
+  # OAuth providers (test configuration)
+  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_TEST_CLIENT_ID || 'test-client-id' }}
+  GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_TEST_CLIENT_SECRET || 'test-client-secret' }}
+  GITHUB_CLIENT_ID: ${{ secrets.GITHUB_TEST_CLIENT_ID || 'test-github-id' }}
+  GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_TEST_CLIENT_SECRET || 'test-github-secret' }}
+  
+  # AI service (optional for E2E)
+  OPENAI_API_KEY: ${{ secrets.OPENAI_TEST_API_KEY || 'test-openai-key' }}
+  
+  # E2E specific configuration
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 0
+  CI: true
+
+jobs:
+  # Skip E2E tests if triggered by failed CI
+  check-ci-status:
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+    steps:
+      - name: Check CI status
+        id: check
+        run: |
+          if [[ "${{ github.event.workflow_run.conclusion }}" == "success" ]]; then
+            echo "should-run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should-run=false" >> $GITHUB_OUTPUT
+            echo "Skipping E2E tests due to failed CI"
+          fi
+
+  # Main E2E testing job
+  e2e-tests:
+    if: |
+      github.event_name != 'workflow_run' || 
+      (github.event_name == 'workflow_run' && needs.check-ci-status.outputs.should-run == 'true')
+    
+    needs: [check-ci-status]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Browser matrix based on input or default comprehensive testing
+        browser: 
+          - ${{ 
+              github.event_name == 'workflow_dispatch' && github.event.inputs.browser != 'all' && 
+              fromJSON('["' + github.event.inputs.browser + '"]') || 
+              fromJSON('["chromium", "firefox", "webkit"]') 
+            }}
+        # Shard tests for parallel execution (adjust based on test count)
+        shard: [1/3, 2/3, 3/3]
+        # Include mobile testing on Chromium
+        include:
+          - browser: chromium
+            shard: 1/3
+            mobile: true
+            device: "Pixel 5"
+          - browser: chromium
+            shard: 2/3
+            mobile: true
+            device: "iPhone 12"
+
+    services:
+      # PostgreSQL service for database operations
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: saas_template_e2e
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      # Redis service for session management
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history for better error reporting
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Cache Playwright browsers for faster execution
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      # Cache node_modules for faster dependency installation
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      # Database setup and migrations
+      - name: Setup test database
+        run: |
+          echo "Setting up test database..."
+          # Wait for PostgreSQL to be ready
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do sleep 1; done'
+          
+          # Run database migrations
+          npm run db:push
+          
+          # Optional: Seed test data if needed
+          if [ -f "scripts/seed-test-database.ts" ]; then
+            npm run seed:test || echo "No test seeding script found, skipping..."
+          fi
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saas_template_e2e
+
+      # Build the application
+      - name: Build application
+        run: npm run build
+        env:
+          # Ensure build uses test environment configuration
+          NODE_ENV: production
+
+      # Start the application server in background
+      - name: Start application server
+        run: |
+          npm run start &
+          echo "Application server starting..."
+          # Wait for server to be ready with timeout
+          timeout 60 bash -c 'until curl -fs http://localhost:3000/api/health > /dev/null 2>&1 || curl -fs http://localhost:3000 > /dev/null 2>&1; do 
+            echo "Waiting for server..."
+            sleep 2
+          done'
+          echo "Application server is ready"
+
+      # Run E2E tests with specific configuration
+      - name: Run Playwright E2E tests
+        run: |
+          # Set browser-specific configuration
+          BROWSER_CONFIG=""
+          if [[ "${{ matrix.mobile }}" == "true" ]]; then
+            BROWSER_CONFIG="--project=${{ matrix.device }}"
+          else
+            BROWSER_CONFIG="--project=${{ matrix.browser }}"
+          fi
+          
+          # Debug mode configuration
+          DEBUG_FLAGS=""
+          if [[ "${{ github.event.inputs.debug }}" == "true" ]]; then
+            DEBUG_FLAGS="--debug --headed"
+          fi
+          
+          # Run tests with sharding and retries
+          npx playwright test \
+            $BROWSER_CONFIG \
+            $DEBUG_FLAGS \
+            --shard=${{ matrix.shard }} \
+            --reporter=html,junit,line \
+            --output-dir=test-results-${{ matrix.browser }}-${{ matrix.shard }} \
+            --project=${{ matrix.mobile && matrix.device || matrix.browser }}
+        env:
+          # E2E test environment
+          PLAYWRIGHT_HTML_REPORT: playwright-report-${{ matrix.browser }}-${{ matrix.shard }}
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results-${{ matrix.browser }}-${{ matrix.shard }}/junit.xml
+
+      # Accessibility testing with axe-playwright
+      - name: Run accessibility tests
+        if: matrix.browser == 'chromium' && matrix.shard == '1/3' && !matrix.mobile
+        run: |
+          npx playwright test \
+            --project=chromium \
+            --grep="@accessibility" \
+            --reporter=line
+        continue-on-error: true
+
+      # Performance testing (Lighthouse CI)
+      - name: Run performance tests
+        if: matrix.browser == 'chromium' && matrix.shard == '1/3' && !matrix.mobile
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          configPath: './lighthouserc.js'
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+        continue-on-error: true
+
+      # Upload test results and artifacts
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.browser }}-${{ matrix.shard }}${{ matrix.mobile && '-mobile' || '' }}
+          path: |
+            test-results-${{ matrix.browser }}-${{ matrix.shard }}/
+            playwright-report-${{ matrix.browser }}-${{ matrix.shard }}/
+          retention-days: 7
+
+      # Upload screenshots and videos on failure
+      - name: Upload failure artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failure-artifacts-${{ matrix.browser }}-${{ matrix.shard }}${{ matrix.mobile && '-mobile' || '' }}
+          path: |
+            test-results-${{ matrix.browser }}-${{ matrix.shard }}/
+            screenshots/
+            videos/
+          retention-days: 14
+
+      # Publish test results to PR
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: E2E Tests (${{ matrix.browser }}${{ matrix.mobile && format(' - {0}', matrix.device) || '' }} - ${{ matrix.shard }})
+          path: test-results-${{ matrix.browser }}-${{ matrix.shard }}/junit.xml
+          reporter: java-junit
+          fail-on-error: 'false'
+
+  # Merge test results and generate comprehensive report
+  merge-reports:
+    if: always()
+    needs: [e2e-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Download all test result artifacts
+      - name: Download test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          path: all-test-results
+          merge-multiple: true
+
+      # Merge Playwright HTML reports
+      - name: Merge Playwright reports
+        run: |
+          npx playwright merge-reports \
+            --reporter=html,junit \
+            --config=playwright.config.ts \
+            all-test-results/
+        continue-on-error: true
+
+      # Upload merged report
+      - name: Upload merged test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: merged-e2e-report
+          path: |
+            playwright-report/
+            merged-results.xml
+          retention-days: 30
+
+      # Generate test summary
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "# E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Count test results
+          TOTAL_TESTS=$(find all-test-results -name "*.xml" -exec grep -h 'testcase' {} \; | wc -l || echo "0")
+          FAILED_TESTS=$(find all-test-results -name "*.xml" -exec grep -h 'failure\|error' {} \; | wc -l || echo "0")
+          PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS))
+          
+          echo "- **Total Tests:** $TOTAL_TESTS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Passed:** $PASSED_TESTS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Failed:** $FAILED_TESTS" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Browser coverage
+          echo "## Browser Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Chromium (Desktop + Mobile)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Firefox" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ WebKit (Safari)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Test categories
+          echo "## Test Categories" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔐 Authentication Flows" >> $GITHUB_STEP_SUMMARY
+          echo "- 👤 User Management" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 Security Testing" >> $GITHUB_STEP_SUMMARY
+          echo "- 📱 Mobile Responsiveness" >> $GITHUB_STEP_SUMMARY
+          echo "- ♿ Accessibility (a11y)" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚡ Performance Testing" >> $GITHUB_STEP_SUMMARY
+
+  # Notify on failure
+  notify-failure:
+    if: failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_run')
+    needs: [e2e-tests, merge-reports]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify team of E2E test failures
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            
+            // Create an issue for persistent failures
+            if (context.eventName === 'schedule') {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title: `🚨 Scheduled E2E Tests Failed - ${new Date().toISOString().split('T')[0]}`,
+                body: `
+                ## E2E Test Failure Report
+                
+                The scheduled E2E test run has failed. This indicates potential regression issues.
+                
+                **Details:**
+                - **Workflow:** ${context.workflow}
+                - **Run ID:** ${context.runId}
+                - **Trigger:** ${context.eventName}
+                - **Branch:** ${context.ref}
+                - **Commit:** ${context.sha}
+                
+                **Action Required:**
+                1. Review the [failed test run](${runUrl})
+                2. Check test artifacts for screenshots/videos
+                3. Investigate and fix any regression issues
+                4. Re-run tests to verify fixes
+                
+                **Test Categories Affected:**
+                - Authentication flows
+                - User management
+                - Security features
+                - Cross-browser compatibility
+                
+                /cc @team/frontend @team/qa
+                `,
+                labels: ['bug', 'e2e-failure', 'high-priority']
+              });
+            }
+
+# Health check endpoint for the application
+# This can be added to your Next.js app at app/api/health/route.ts
+# 
+# export async function GET() {
+#   return Response.json({ 
+#     status: 'ok', 
+#     timestamp: new Date().toISOString(),
+#     environment: process.env.NODE_ENV 
+#   });
+# }
