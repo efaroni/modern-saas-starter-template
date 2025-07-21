@@ -194,7 +194,7 @@ function categorizeUrl(url: string) {
     if (pathname.startsWith('/auth/')) return 'auth'
     if (pathname.startsWith('/dashboard/')) return 'dashboard'
     if (pathname.startsWith('/api/')) return 'api'
-    if (pathname.startsWith('/dev/')) return 'dev'
+    if (pathname.startsWith('/configuration/') || pathname.startsWith('/generators/') || pathname.startsWith('/performance/') || pathname.startsWith('/rate-limiting/')) return 'dev'
     
     return 'other'
   } catch (_error) {

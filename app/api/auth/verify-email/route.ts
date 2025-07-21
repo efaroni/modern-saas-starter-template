@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { token } = verifyEmailSchema.parse(body)
 
-    const result = await authService.verifyEmailWithToken(token)
+    const service = await authService
+    const result = await service.verifyEmailWithToken(token)
     
     if (result.success) {
       return NextResponse.json({ 

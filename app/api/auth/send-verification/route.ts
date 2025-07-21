@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { email } = sendVerificationSchema.parse(body)
 
-    const result = await authService.sendEmailVerification(email)
+    const service = await authService
+    const result = await service.sendEmailVerification(email)
     
     if (result.success) {
       return NextResponse.json({ 

@@ -64,7 +64,7 @@ export async function createUserApiKey(data: {
       metadata: data.metadata || {},
     })
 
-    revalidatePath('/dev/configuration')
+    revalidatePath('/configuration')
     return { success: true, data: created }
   } catch (error: unknown) {
     if (error instanceof Error && error.message === 'API_KEY_DUPLICATE') {
@@ -82,7 +82,7 @@ export async function createUserApiKey(data: {
 export async function deleteUserApiKey(id: string) {
   try {
     await userApiKeyService.delete(id)
-    revalidatePath('/dev/configuration')
+    revalidatePath('/configuration')
     return { success: true }
   } catch {
     return { success: false, error: 'Failed to delete API key' }

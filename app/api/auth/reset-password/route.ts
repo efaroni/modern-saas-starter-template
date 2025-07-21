@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { token, newPassword } = resetPasswordSchema.parse(body)
 
-    const result = await authService.resetPasswordWithToken(token, newPassword)
+    const service = await authService
+    const result = await service.resetPasswordWithToken(token, newPassword)
     
     if (result.success) {
       return NextResponse.json({ 

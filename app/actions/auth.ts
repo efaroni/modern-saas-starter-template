@@ -9,7 +9,8 @@ export async function loginAction(data: {
   password: string
 }): Promise<{ success: boolean; user?: AuthUser; error?: string }> {
   try {
-    const result = await authService.signIn(data)
+    const service = await authService
+    const result = await service.signIn(data)
     
     if (result.success && result.user) {
       revalidatePath('/')
@@ -31,7 +32,8 @@ export async function signupAction(data: SignUpRequest): Promise<{
   error?: string 
 }> {
   try {
-    const result = await authService.signup(data)
+    const service = await authService
+    const result = await service.signUp(data)
     
     if (result.success && result.user) {
       revalidatePath('/')
@@ -49,7 +51,8 @@ export async function signupAction(data: SignUpRequest): Promise<{
 
 export async function logoutAction(): Promise<{ success: boolean; error?: string }> {
   try {
-    const result = await authService.logout()
+    const service = await authService
+    const result = await service.signOut()
     
     if (result.success) {
       revalidatePath('/')
@@ -71,7 +74,13 @@ export async function updateProfileAction(data: UpdateProfileRequest): Promise<{
   error?: string 
 }> {
   try {
-    const result = await authService.updateProfile(data)
+    const service = await authService
+    // Get current user first
+    const currentUser = await service.getUser()
+    if (!currentUser.success || !currentUser.user) {
+      return { success: false, error: 'User not authenticated' }
+    }
+    const result = await service.updateUserProfile(currentUser.user.id, data)
     
     if (result.success && result.user) {
       revalidatePath('/')
@@ -92,7 +101,16 @@ export async function changePasswordAction(data: {
   newPassword: string
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const result = await authService.changePassword(data.currentPassword, data.newPassword)
+    const service = await authService
+    // Get current user first
+    const currentUser = await service.getUser()
+    if (!currentUser.success || !currentUser.user) {
+      return { success: false, error: 'User not authenticated' }
+    }
+    const result = await service.changePassword(currentUser.user.id, {
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword
+    })
     
     if (result.success) {
       revalidatePath('/')
@@ -113,7 +131,8 @@ export async function requestPasswordResetAction(email: string): Promise<{
   error?: string 
 }> {
   try {
-    const result = await authService.requestPasswordReset(email)
+    const service = await authService
+    const result = await service.requestPasswordReset(email)
     
     if (result.success) {
       return { success: true }
@@ -133,7 +152,8 @@ export async function resetPasswordAction(data: {
   newPassword: string
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const result = await authService.resetPassword(data.token, data.newPassword)
+    const service = await authService
+    const result = await service.resetPasswordWithToken(data.token, data.newPassword)
     
     if (result.success) {
       revalidatePath('/')
@@ -154,7 +174,13 @@ export async function deleteAccountAction(password: string): Promise<{
   error?: string 
 }> {
   try {
-    const result = await authService.deleteAccount(password)
+    const service = await authService
+    // Get current user first
+    const currentUser = await service.getUser()
+    if (!currentUser.success || !currentUser.user) {
+      return { success: false, error: 'User not authenticated' }
+    }
+    const result = await service.deleteUserAccount(currentUser.user.id)
     
     if (result.success) {
       revalidatePath('/')
@@ -176,7 +202,9 @@ export async function getCurrentUserAction(): Promise<{
   error?: string 
 }> {
   try {
-    const user = await authService.getCurrentUser()
+    const service = await authService
+    const result = await service.getUser()
+    const user = result.success ? result.user : null
     return { success: true, user }
   } catch (error) {
     return { 
@@ -188,8 +216,12 @@ export async function getCurrentUserAction(): Promise<{
 
 export async function getAuthConfigurationAction() {
   try {
-    const config = authService.getConfiguration()
-    return config
+    // For now, return a basic configuration
+    // TODO: Add method to AuthService to expose provider configuration
+    return {
+      provider: 'database',
+      oauthProviders: []
+    }
   } catch {
     // Return mock config if service unavailable
     return {

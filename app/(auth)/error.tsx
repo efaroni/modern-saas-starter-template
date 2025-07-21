@@ -41,7 +41,7 @@ export default function AuthError({
           
           <Button
             variant="outline"
-            onClick={() => window.location.href = '/dev/auth'}
+            onClick={() => window.location.href = '/auth'}
             className="w-full"
           >
             Back to login
