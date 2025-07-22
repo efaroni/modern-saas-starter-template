@@ -45,6 +45,11 @@ next-env.d.ts
 /test-results
 /coverage
 
+# debug artifacts
+debug-*.png
+debug-*.jpg
+debug-*.jpeg
+
 # logs
 *.log
 npm-debug.log*
