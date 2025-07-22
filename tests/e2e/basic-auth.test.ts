@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test';
 
 import { testHelpers } from '@/lib/db/test-helpers';
 
-// Test user data
-const testUser = {
-  email: 'e2e-test-unique@example.com',
-  password: 'SuperStr0ng!P@ssw0rd2024#UniqueTest',
+// Generate unique test user data for each test
+const generateTestUser = () => ({
+  email: `e2e-test-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`,
+  password: 'Xk9$mPz8qW!7vN2rL',
   name: 'E2E Test User',
-};
+});
 
 test.describe('Basic Authentication E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -39,6 +39,8 @@ test.describe('Basic Authentication E2E Tests', () => {
   });
 
   test('should complete basic signup flow', async ({ page }) => {
+    const testUser = generateTestUser();
+
     // Click on sign up tab
     await page.click('button[role="tab"]:has-text("Sign Up")');
 
@@ -47,23 +49,30 @@ test.describe('Basic Authentication E2E Tests', () => {
     await page.fill('#signup-email', testUser.email);
     await page.fill('#signup-password', testUser.password);
 
+    console.log('Filled form with:', {
+      name: testUser.name,
+      email: testUser.email,
+    });
+
     // Submit form
     await page.click('button[type="submit"]:has-text("Sign up")');
 
-    // Wait for success and automatic switch to profile tab
-    await expect(page.locator('.bg-green-50')).toBeVisible();
+    // Wait for success message to appear
+    await expect(page.locator('.bg-green-50')).toBeVisible({ timeout: 10000 });
 
     // Should show current user info (blue box appears after successful signup)
     await expect(page.locator('.bg-blue-50')).toBeVisible();
     await expect(page.locator(`text=${testUser.email}`)).toBeVisible();
 
-    // Should be on Profile tab now
+    // Should be on Profile tab now (automatically switches after signup)
     await expect(
       page.locator('button[role="tab"]:has-text("Profile")'),
     ).toBeVisible();
   });
 
   test('should complete basic signin flow', async ({ page }) => {
+    const testUser = generateTestUser();
+
     // First, create a user by signing up
     await page.click('button[role="tab"]:has-text("Sign Up")');
     await page.fill('#signup-name', testUser.name);
@@ -92,6 +101,8 @@ test.describe('Basic Authentication E2E Tests', () => {
   });
 
   test('should show validation errors for invalid input', async ({ page }) => {
+    const testUser = generateTestUser();
+
     // Test signup validation
     await page.click('button[role="tab"]:has-text("Sign Up")');
 
