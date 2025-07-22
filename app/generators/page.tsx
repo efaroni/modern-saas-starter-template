@@ -156,11 +156,11 @@ const generators = [
 
 export default function GeneratorsPage() {
   const [selectedGenerator, setSelectedGenerator] = useState(generators[0]);
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [generatedCode, setGeneratedCode] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleFieldChange = (fieldName: string, value: any) => {
+  const handleFieldChange = (fieldName: string, value: unknown) => {
     setFormData(prev => ({
       ...prev,
       [fieldName]: value,
@@ -377,7 +377,7 @@ export default function GeneratorsPage() {
 }
 
 // Code generation functions
-function generateComponentCode(data: any) {
+function generateComponentCode(data: Record<string, unknown>) {
   const { componentName, componentType, withProps, withStyles } = data;
 
   let code = '';
@@ -404,7 +404,7 @@ function generateComponentCode(data: any) {
   return code;
 }
 
-function generateApiCode(data: any) {
+function generateApiCode(data: Record<string, unknown>) {
   const { routeName, methods, withAuth, withValidation } = data;
 
   let code = '';
@@ -458,7 +458,7 @@ function generateApiCode(data: any) {
   return code;
 }
 
-function generateModelCode(data: any) {
+function generateModelCode(data: Record<string, unknown>) {
   const { modelName, fields, withTimestamps, withRelations } = data;
 
   let code = `import { pgTable, uuid, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core'\n`;
@@ -473,7 +473,7 @@ function generateModelCode(data: any) {
 
   try {
     const parsedFields = JSON.parse(fields || '[]');
-    parsedFields.forEach((field: any) => {
+    parsedFields.forEach((field: Record<string, unknown>) => {
       let fieldDef = `  ${field.name}: `;
       switch (field.type) {
         case 'text':
@@ -502,7 +502,7 @@ function generateModelCode(data: any) {
 
       code += fieldDef + ',\n';
     });
-  } catch (e) {
+  } catch {
     code += `  // Add your fields here\n`;
   }
 
@@ -525,7 +525,7 @@ function generateModelCode(data: any) {
   return code;
 }
 
-function generateTestCode(data: any) {
+function generateTestCode(data: Record<string, unknown>) {
   const { testTarget, testType, withMocks, withSetup } = data;
 
   let code = `import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'\n`;

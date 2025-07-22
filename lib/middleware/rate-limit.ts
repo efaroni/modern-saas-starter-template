@@ -37,11 +37,14 @@ export function withRateLimit(options: RateLimitMiddlewareOptions) {
       );
 
       // Add rate limit headers
-      const response = result.allowed
-        ? await handler(req)
-        : options.onRateLimited
-          ? options.onRateLimited(req, result)
-          : createRateLimitResponse(result);
+      let response: Response;
+      if (result.allowed) {
+        response = await handler(req);
+      } else if (options.onRateLimited) {
+        response = options.onRateLimited(req, result);
+      } else {
+        response = createRateLimitResponse(result);
+      }
 
       // Add standard rate limit headers
       response.headers.set('X-RateLimit-Limit', result.remaining.toString());

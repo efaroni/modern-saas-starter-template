@@ -34,7 +34,7 @@ export function Select({ className = '', children, ...props }: SelectProps) {
 }
 
 export function SelectContent({ children }: SelectContentProps) {
-  return <>{children}</>;
+  return children;
 }
 
 export function SelectItem({ children, ...props }: SelectItemProps) {

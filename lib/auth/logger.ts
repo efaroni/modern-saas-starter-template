@@ -15,7 +15,7 @@ export interface AuthEvent {
   userAgent?: string;
   success: boolean;
   error?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
   duration?: number; // in milliseconds
   sessionId?: string;
@@ -34,7 +34,7 @@ export interface SecurityEvent {
   ipAddress?: string;
   userAgent?: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   timestamp: Date;
   actionTaken?: string;
 }
@@ -43,7 +43,7 @@ export interface PerformanceMetric {
   operation: string;
   duration: number;
   success: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: Date;
 }
 
@@ -53,7 +53,7 @@ export interface Logger {
   logAuthEvent(event: AuthEvent): void;
   logSecurityEvent(event: SecurityEvent): void;
   logPerformanceMetric(metric: PerformanceMetric): void;
-  log(level: LogLevel, message: string, metadata?: Record<string, any>): void;
+  log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void;
 }
 
 export class AuthLogger implements Logger {
@@ -151,7 +151,7 @@ export class AuthLogger implements Logger {
     }
   }
 
-  log(level: LogLevel, message: string, metadata?: Record<string, any>): void {
+  log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void {
     if (!this.shouldLog(level)) {
       return;
     }
@@ -179,7 +179,7 @@ export class AuthLogger implements Logger {
     return messageLevelIndex >= currentLevelIndex;
   }
 
-  private logToConsole(level: LogLevel, message: string, data: any): void {
+  private logToConsole(level: LogLevel, message: string, data: unknown): void {
     const colors = {
       debug: '\x1b[36m', // cyan
       info: '\x1b[32m', // green
@@ -233,7 +233,7 @@ export class AuthLogger implements Logger {
     return ip;
   }
 
-  private sendToMonitoring(eventType: string, data: any): void {
+  private sendToMonitoring(eventType: string, data: unknown): void {
     // In a real implementation, this would send to services like:
     // - DataDog
     // - New Relic
@@ -245,7 +245,7 @@ export class AuthLogger implements Logger {
     }
   }
 
-  private sendAlert(alertType: string, data: any): void {
+  private sendAlert(alertType: string, data: unknown): void {
     // In a real implementation, this would send to:
     // - Slack
     // - PagerDuty
@@ -264,7 +264,7 @@ export const authLogger = new AuthLogger(
 export function timeOperation<T>(
   operation: string,
   fn: () => Promise<T>,
-  metadata?: Record<string, any>,
+  metadata?: Record<string, unknown>,
 ): Promise<T> {
   const start = Date.now();
 

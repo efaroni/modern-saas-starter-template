@@ -55,16 +55,27 @@ export function calculateOverallScore(
       scores[key] = score;
 
       // Convert to numeric for averaging
-      totalScore +=
-        score === 'good' ? 3 : score === 'needs-improvement' ? 2 : 1;
+      if (score === 'good') {
+        totalScore += 3;
+      } else if (score === 'needs-improvement') {
+        totalScore += 2;
+      } else {
+        totalScore += 1;
+      }
       metricCount++;
     }
   });
 
   // Calculate overall score
   const avgScore = metricCount > 0 ? totalScore / metricCount : 3;
-  const overallScore: PerformanceScore =
-    avgScore >= 2.5 ? 'good' : avgScore >= 1.5 ? 'needs-improvement' : 'poor';
+  let overallScore: PerformanceScore;
+  if (avgScore >= 2.5) {
+    overallScore = 'good';
+  } else if (avgScore >= 1.5) {
+    overallScore = 'needs-improvement';
+  } else {
+    overallScore = 'poor';
+  }
 
   return { score: overallScore, details: scores };
 }

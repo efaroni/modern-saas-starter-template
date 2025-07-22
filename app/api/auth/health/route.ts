@@ -34,12 +34,12 @@ export async function GET(request: NextRequest) {
           );
       }
 
-      const statusCode =
-        result.status === 'healthy'
-          ? 200
-          : result.status === 'degraded'
-            ? 200
-            : 503;
+      let statusCode: number;
+      if (result.status === 'healthy' || result.status === 'degraded') {
+        statusCode = 200;
+      } else {
+        statusCode = 503;
+      }
 
       return NextResponse.json(result, { status: statusCode });
     }
@@ -47,12 +47,12 @@ export async function GET(request: NextRequest) {
     // Otherwise, return complete health status
     const healthStatus = await authHealthChecker.checkOverallHealth();
 
-    const statusCode =
-      healthStatus.overall.status === 'healthy'
-        ? 200
-        : healthStatus.overall.status === 'degraded'
-          ? 200
-          : 503;
+    let statusCode: number;
+    if (healthStatus.overall.status === 'healthy' || healthStatus.overall.status === 'degraded') {
+      statusCode = 200;
+    } else {
+      statusCode = 503;
+    }
 
     return NextResponse.json(healthStatus, { status: statusCode });
   } catch (error) {

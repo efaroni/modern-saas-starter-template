@@ -71,9 +71,9 @@ export async function validateResendKey(
   }
 }
 
-export async function validateStripeKey(
+export function validateStripeKey(
   apiKey: string,
-): Promise<ValidationResult> {
+): ValidationResult {
   // In test environment, skip real API calls
   if (process.env.NODE_ENV === 'test') {
     // Mock validation for tests
@@ -111,10 +111,10 @@ export async function validateStripeKey(
   }
 }
 
-export async function validateApiKey(
+export function validateApiKey(
   serviceType: string,
   apiKey: string,
-): Promise<ValidationResult> {
+): ValidationResult {
   const isMockKey = apiKey.includes('mock');
   const isProductionEnvironment =
     process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test';

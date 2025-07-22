@@ -505,12 +505,12 @@ export async function healthCheckMiddleware(): Promise<{
     const healthStatus = await healthMonitor.checkHealth();
 
     // Return appropriate HTTP status code
-    const statusCode =
-      healthStatus.status === 'healthy'
-        ? 200
-        : healthStatus.status === 'degraded'
-          ? 200
-          : 503;
+    let statusCode: number;
+    if (healthStatus.status === 'healthy' || healthStatus.status === 'degraded') {
+      statusCode = 200;
+    } else {
+      statusCode = 503;
+    }
 
     return {
       status: statusCode,

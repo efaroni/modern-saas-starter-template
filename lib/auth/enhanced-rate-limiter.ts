@@ -1,8 +1,8 @@
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, gte } from 'drizzle-orm';
 
 import { authAttempts } from '@/lib/db/schema';
 import { db } from '@/lib/db/server';
-import { addMinutes, getDaysAgo } from '@/lib/utils/date-time';
+import { addMinutes } from '@/lib/utils/date-time';
 
 export interface RateLimitConfig {
   maxAttempts: number;
@@ -91,7 +91,7 @@ export class EnhancedRateLimiter {
   async checkRateLimit(
     identifier: string,
     type: string,
-    ipAddress?: string,
+    _ipAddress?: string,
   ): Promise<RateLimitResult> {
     const config = this.config[type];
     if (!config) {

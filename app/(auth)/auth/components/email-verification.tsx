@@ -80,11 +80,11 @@ export function EmailVerification({
                 disabled={loading || success}
                 className='rounded-md bg-yellow-50 px-2 py-1.5 text-sm font-medium text-yellow-800 hover:bg-yellow-100 focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50 focus:outline-none disabled:opacity-50'
               >
-                {loading
-                  ? 'Sending...'
-                  : success
-                    ? 'Email Sent!'
-                    : 'Send Verification Email'}
+                {(() => {
+                  if (loading) return 'Sending...';
+                  if (success) return 'Email Sent!';
+                  return 'Send Verification Email';
+                })()}
               </button>
             </div>
           </div>

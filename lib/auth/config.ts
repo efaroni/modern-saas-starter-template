@@ -58,19 +58,19 @@ export const authConfig = {
       // For email/password sign-ins, we'll handle this through our custom auth
       return false;
     },
-    async session({ token, session }) {
+    session({ token, session }) {
       if (token.sub && session.user) {
         session.user.id = token.sub;
       }
       return session;
     },
-    async jwt({ user, token }) {
+    jwt({ user, token }) {
       if (user) {
         token.sub = user.id;
       }
       return token;
     },
-    async redirect({ url, baseUrl }) {
+    redirect({ url, baseUrl }) {
       // Redirect to our auth page after OAuth success
       if (url.includes('/api/auth/callback/')) {
         return `${baseUrl}/auth?oauth=success`;
@@ -84,7 +84,7 @@ export const authConfig = {
     },
   },
   events: {
-    async signIn({ user, account, profile: _profile, isNewUser }) {
+    signIn({ user, account, profile: _profile, isNewUser }) {
       // Log OAuth sign-ins for security monitoring
       authLogger.logAuthEvent({
         type: 'oauth_login',
@@ -98,7 +98,7 @@ export const authConfig = {
         },
       });
     },
-    async linkAccount({ user, account, profile: _profile }) {
+    linkAccount({ user, account, profile: _profile }) {
       // Log account linking
       authLogger.logAuthEvent({
         type: 'oauth_login',

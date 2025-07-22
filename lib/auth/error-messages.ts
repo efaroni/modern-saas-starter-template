@@ -331,12 +331,14 @@ export class AuthErrorMessageProvider {
     variant: 'error' | 'warning' | 'info';
     canRetry: boolean;
   } {
-    const variant =
-      error.severity === 'high'
-        ? 'error'
-        : error.severity === 'medium'
-          ? 'warning'
-          : 'info';
+    let variant: 'error' | 'warning' | 'info';
+    if (error.severity === 'high') {
+      variant = 'error';
+    } else if (error.severity === 'medium') {
+      variant = 'warning';
+    } else {
+      variant = 'info';
+    }
 
     return {
       title: error.title,

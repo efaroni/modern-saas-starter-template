@@ -130,11 +130,14 @@ export class OAuthTokenCache {
       }
 
       // Determine cache TTL based on token expiration
-      const ttl = isExpired
-        ? 60 // Cache expired tokens for 1 minute
-        : expiresIn
-          ? Math.min(expiresIn, this.config.tokenTTL)
-          : this.config.tokenTTL;
+      let ttl: number;
+      if (isExpired) {
+        ttl = 60; // Cache expired tokens for 1 minute
+      } else if (expiresIn) {
+        ttl = Math.min(expiresIn, this.config.tokenTTL);
+      } else {
+        ttl = this.config.tokenTTL;
+      }
 
       // Cache the token
       await this.cache.set(cacheKey, cachedToken, ttl);
@@ -285,11 +288,14 @@ export class OAuthTokenCache {
         }
 
         // Determine new TTL
-        const ttl = updated.isExpired
-          ? 60 // Cache expired tokens for 1 minute
-          : updated.expiresIn
-            ? Math.min(updated.expiresIn, this.config.tokenTTL)
-            : this.config.tokenTTL;
+        let ttl: number;
+        if (updated.isExpired) {
+          ttl = 60; // Cache expired tokens for 1 minute
+        } else if (updated.expiresIn) {
+          ttl = Math.min(updated.expiresIn, this.config.tokenTTL);
+        } else {
+          ttl = this.config.tokenTTL;
+        }
 
         await this.cache.set(cacheKey, updated, ttl);
 
@@ -375,12 +381,15 @@ export class OAuthTokenCache {
         accessToken: this.config.encryptTokens
           ? this.encryptToken(newTokenData.accessToken)
           : newTokenData.accessToken,
-        refreshToken:
-          newTokenData.refreshToken && this.config.includeRefreshToken
-            ? this.config.encryptTokens
-              ? this.encryptToken(newTokenData.refreshToken)
-              : newTokenData.refreshToken
-            : undefined,
+        refreshToken: (() => {
+          if (!newTokenData.refreshToken || !this.config.includeRefreshToken) {
+            return undefined;
+          }
+          if (this.config.encryptTokens) {
+            return this.encryptToken(newTokenData.refreshToken);
+          }
+          return newTokenData.refreshToken;
+        })(),
         expiresAt: newTokenData.expiresAt,
         tokenType: newTokenData.tokenType,
         scope: newTokenData.scope,

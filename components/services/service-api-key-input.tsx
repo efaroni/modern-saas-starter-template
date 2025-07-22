@@ -104,13 +104,11 @@ export function ServiceApiKeyInput({
               })}
               type='password'
               id={`${service}-key`}
-              variant={
-                !isValidating && message?.type === 'error'
-                  ? 'error'
-                  : !isValidating && hasValidatedKey
-                    ? 'success'
-                    : 'default'
-              }
+              variant={(() => {
+                if (!isValidating && message?.type === 'error') return 'error';
+                if (!isValidating && hasValidatedKey) return 'success';
+                return 'default';
+              })()}
               className='flex-1'
               placeholder='Enter your API key...'
               onPaste={handlePaste}
@@ -142,13 +140,11 @@ export function ServiceApiKeyInput({
 
         {message && (
           <div
-            className={`rounded-md p-3 ${
-              message.type === 'success'
-                ? 'bg-green-50 text-green-800'
-                : message.type === 'error'
-                  ? 'bg-red-50 text-red-800'
-                  : 'bg-blue-50 text-blue-800'
-            }`}
+            className={`rounded-md p-3 ${(() => {
+              if (message.type === 'success') return 'bg-green-50 text-green-800';
+              if (message.type === 'error') return 'bg-red-50 text-red-800';
+              return 'bg-blue-50 text-blue-800';
+            })()}`}
           >
             {message.text}
           </div>

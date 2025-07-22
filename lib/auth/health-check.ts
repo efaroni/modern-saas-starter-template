@@ -329,12 +329,17 @@ export class AuthHealthChecker {
     };
 
     // Log health check results
+    let logLevel: 'info' | 'warn' | 'error';
+    if (overallStatus === 'healthy') {
+      logLevel = 'info';
+    } else if (overallStatus === 'degraded') {
+      logLevel = 'warn';
+    } else {
+      logLevel = 'error';
+    }
+
     authLogger.log(
-      overallStatus === 'healthy'
-        ? 'info'
-        : overallStatus === 'degraded'
-          ? 'warn'
-          : 'error',
+      logLevel,
       `Auth health check completed: ${overallStatus}`,
       {
         overall: overall.status,
