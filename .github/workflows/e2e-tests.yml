@@ -98,9 +98,8 @@ env:
   CI: true
 
 jobs:
-  # Skip E2E tests if triggered by failed CI
+  # Always check CI status but pass-through for non-workflow_run events
   check-ci-status:
-    if: github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
     outputs:
       should-run: ${{ steps.check.outputs.should-run }}
@@ -108,19 +107,22 @@ jobs:
       - name: Check CI status
         id: check
         run: |
-          if [[ "${{ github.event.workflow_run.conclusion }}" == "success" ]]; then
-            echo "should-run=true" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            if [[ "${{ github.event.workflow_run.conclusion }}" == "success" ]]; then
+              echo "should-run=true" >> $GITHUB_OUTPUT
+              echo "CI passed - running E2E tests"
+            else
+              echo "should-run=false" >> $GITHUB_OUTPUT
+              echo "Skipping E2E tests due to failed CI"
+            fi
           else
-            echo "should-run=false" >> $GITHUB_OUTPUT
-            echo "Skipping E2E tests due to failed CI"
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "Non-workflow_run event - running E2E tests"
           fi
 
   # Main E2E testing job
   e2e-tests:
-    if: |
-      github.event_name != 'workflow_run' || 
-      (github.event_name == 'workflow_run' && needs.check-ci-status.outputs.should-run == 'true')
-
+    if: needs.check-ci-status.outputs.should-run == 'true'
     needs: [check-ci-status]
     runs-on: ubuntu-latest
     timeout-minutes: 30
