@@ -254,7 +254,8 @@ jobs:
       - name: Convert npm audit to SARIF
         if: always()
         run: |
-          npm install -g @microsoft/sarif-multitool
+          # Use npx to avoid global installation conflicts
+          echo "Processing SARIF results with Microsoft SARIF multitool..."
 
           # Create SARIF from npm audit results
           node -e "
@@ -470,7 +471,18 @@ jobs:
       - name: Build Docker image
         if: steps.dockerfile-check.outputs.dockerfile_exists == 'true'
         run: |
-          docker build -t saas-security-scan:latest .
+          echo "Building Docker image with proper dependency resolution..."
+          # Build with --no-cache to ensure fresh build and catch dependency issues
+          docker build --no-cache -t saas-security-scan:latest . || {
+            echo "Docker build failed. Checking for common issues..."
+            echo "Ensuring dependencies are available..."
+            if [ -f "package.json" ]; then
+              echo "package.json found - dependencies should be handled by Dockerfile"
+            else
+              echo "No package.json found - this might cause build issues"
+            fi
+            exit 1
+          }
 
       - name: Run Trivy container scan
         if: steps.dockerfile-check.outputs.dockerfile_exists == 'true'
