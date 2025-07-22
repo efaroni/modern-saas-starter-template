@@ -26,15 +26,15 @@ test.describe('Basic Authentication E2E Tests', () => {
   test('should load auth page successfully', async ({ page }) => {
     // Should see the auth page title
     await expect(
-      page.locator('text=Authentication & User Management')
+      page.locator('text=Authentication & User Management'),
     ).toBeVisible();
 
     // Should see both login and signup tabs
     await expect(
-      page.locator('button[role="tab"]:has-text("Login")')
+      page.locator('button[role="tab"]:has-text("Login")'),
     ).toBeVisible();
     await expect(
-      page.locator('button[role="tab"]:has-text("Sign Up")')
+      page.locator('button[role="tab"]:has-text("Sign Up")'),
     ).toBeVisible();
   });
 
@@ -59,7 +59,7 @@ test.describe('Basic Authentication E2E Tests', () => {
 
     // Should be on Profile tab now
     await expect(
-      page.locator('button[role="tab"]:has-text("Profile")')
+      page.locator('button[role="tab"]:has-text("Profile")'),
     ).toBeVisible();
   });
 
@@ -77,7 +77,7 @@ test.describe('Basic Authentication E2E Tests', () => {
 
     // Should be back to login tab and user info should be gone
     await expect(
-      page.locator('button[role="tab"]:has-text("Login")')
+      page.locator('button[role="tab"]:has-text("Login")'),
     ).toBeVisible();
     await expect(page.locator('.bg-blue-50')).toBeHidden();
 
@@ -109,7 +109,7 @@ test.describe('Basic Authentication E2E Tests', () => {
     await page.click('button[type="submit"]:has-text("Sign up")');
 
     await expect(
-      page.locator('text=Password must be at least 8 characters')
+      page.locator('text=Password must be at least 8 characters'),
     ).toBeVisible();
   });
 

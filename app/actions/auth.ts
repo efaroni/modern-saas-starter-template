@@ -45,7 +45,7 @@ export async function loginAction(data: {
       rateLimit = await rateLimiter.checkRateLimit(
         data.email,
         'login',
-        clientIP
+        clientIP,
       );
 
       if (!rateLimit.allowed) {
@@ -71,7 +71,7 @@ export async function loginAction(data: {
         result.success,
         clientIP,
         (await headers()).get('user-agent') || undefined,
-        result.user?.id
+        result.user?.id,
       );
     } catch (recordError) {
       // If recording fails, log but don't fail the auth request
@@ -92,7 +92,7 @@ export async function loginAction(data: {
         'login',
         false,
         clientIP,
-        (await headers()).get('user-agent') || undefined
+        (await headers()).get('user-agent') || undefined,
       );
     } catch (recordError) {
       console.warn('Failed to record failed auth attempt:', recordError);
@@ -118,7 +118,7 @@ export async function signupAction(data: SignUpRequest): Promise<{
     const rateLimit = await rateLimiter.checkRateLimit(
       data.email,
       'signup',
-      clientIP
+      clientIP,
     );
 
     if (!rateLimit.allowed) {
@@ -139,7 +139,7 @@ export async function signupAction(data: SignUpRequest): Promise<{
       result.success,
       clientIP,
       (await headers()).get('user-agent') || undefined,
-      result.user?.id
+      result.user?.id,
     );
 
     if (result.success && result.user) {
@@ -155,7 +155,7 @@ export async function signupAction(data: SignUpRequest): Promise<{
       'signup',
       false,
       clientIP,
-      (await headers()).get('user-agent') || undefined
+      (await headers()).get('user-agent') || undefined,
     );
 
     return {
@@ -263,7 +263,7 @@ export async function requestPasswordResetAction(email: string): Promise<{
     const rateLimit = await rateLimiter.checkRateLimit(
       email,
       'passwordReset',
-      clientIP
+      clientIP,
     );
 
     if (!rateLimit.allowed) {
@@ -283,7 +283,7 @@ export async function requestPasswordResetAction(email: string): Promise<{
       'passwordReset',
       result.success,
       clientIP,
-      (await headers()).get('user-agent') || undefined
+      (await headers()).get('user-agent') || undefined,
     );
 
     if (result.success) {
@@ -301,7 +301,7 @@ export async function requestPasswordResetAction(email: string): Promise<{
       'passwordReset',
       false,
       clientIP,
-      (await headers()).get('user-agent') || undefined
+      (await headers()).get('user-agent') || undefined,
     );
 
     return {
@@ -320,7 +320,7 @@ export async function resetPasswordAction(data: {
     const service = await authService;
     const result = await service.resetPasswordWithToken(
       data.token,
-      data.newPassword
+      data.newPassword,
     );
 
     if (result.success) {
@@ -388,10 +388,11 @@ export async function getCurrentUserAction(): Promise<{
   }
 }
 
-export function getAuthConfigurationAction() {
+export async function getAuthConfigurationAction() {
   try {
     // For now, return a basic configuration
     // TODO: Add method to AuthService to expose provider configuration
+    await Promise.resolve(); // Add await to satisfy ESLint require-await
     return {
       provider: 'database',
       oauthProviders: [],
