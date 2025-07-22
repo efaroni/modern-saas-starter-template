@@ -19,7 +19,7 @@ export function AvatarUpload({ user, onError }: AvatarUploadProps) {
   const [isDeleting, _setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -32,7 +32,7 @@ export function AvatarUpload({ user, onError }: AvatarUploadProps) {
     }
   };
 
-  const handleDeleteAvatar = async () => {
+  const handleDeleteAvatar = () => {
     // TODO: Implement avatar deletion server action
     onError('Avatar deletion not yet implemented');
   };

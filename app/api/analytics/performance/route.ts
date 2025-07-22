@@ -73,7 +73,7 @@ async function handler(request: NextRequest) {
 
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('Performance metrics received:', {
+      console.warn('Performance metrics received:', {
         url: body.url,
         coreWebVitals: {
           lcp: body.metrics.lcp,
@@ -198,7 +198,7 @@ function categorizeUrl(url: string) {
     if (pathname.startsWith('/configuration/') || pathname.startsWith('/generators/') || pathname.startsWith('/performance/') || pathname.startsWith('/rate-limiting/')) return 'dev';
 
     return 'other';
-  } catch (_error) {
+  } catch {
     return 'unknown';
   }
 }
@@ -207,7 +207,7 @@ function categorizeUrl(url: string) {
 export const POST = withRateLimit(handler);
 
 // GET endpoint for retrieving aggregated performance data
-export async function GET(request: NextRequest) {
+export function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const timeRange = searchParams.get('timeRange') || '24h';

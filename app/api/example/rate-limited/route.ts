@@ -5,7 +5,7 @@ import { rateLimitPresets } from '@/lib/middleware/rate-limit';
 // Apply rate limiting to this API route
 const withRateLimit = rateLimitPresets.api('api');
 
-async function handler(req: NextRequest) {
+function handler(req: NextRequest) {
   // Your API logic here
   return NextResponse.json({
     message: 'This endpoint is rate limited',

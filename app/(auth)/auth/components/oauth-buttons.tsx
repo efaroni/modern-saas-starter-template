@@ -10,7 +10,7 @@ interface OAuthButtonsProps {
   onError: (error: string) => void
 }
 
-export function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
+export function OAuthButtons({ onSuccess: _onSuccess, onError }: OAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
   const oauthProviders = []; // TODO: Implement OAuth server actions
 
@@ -18,7 +18,7 @@ export function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
     return null;
   }
 
-  const handleOAuthSignIn = async (providerId: string) => {
+  const handleOAuthSignIn = (providerId: string) => {
     setLoadingProvider(providerId);
     try {
       // TODO: Implement OAuth server action

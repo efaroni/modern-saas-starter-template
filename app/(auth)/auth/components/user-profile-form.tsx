@@ -70,7 +70,7 @@ export function UserProfileForm({ user, onSuccess, onError }: UserProfileFormPro
     }
   };
 
-  const handleVerifyEmail = async () => {
+  const handleVerifyEmail = () => {
     // TODO: Implement email verification server action
     onError('Email verification not yet implemented');
   };

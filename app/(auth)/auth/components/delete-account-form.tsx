@@ -38,7 +38,7 @@ export function DeleteAccountForm({ user: _user, onSuccess: _onSuccess, onError 
     resolver: zodResolver(deleteAccountSchema),
   });
 
-  const onSubmit = async () => {
+  const onSubmit = () => {
     // TODO: Implement account deletion with server action
     onError('Account deletion not yet implemented');
   };
