@@ -360,7 +360,7 @@ export const mockUtils = {
   /**
    * Create mock function with tracking
    */
-  createMockFunction<T extends (...args: any[]) => any>(
+  createMockFunction<T extends(...args: any[]) => any>(
     name: string,
     implementation?: T,
   ): jest.MockedFunction<T> {
