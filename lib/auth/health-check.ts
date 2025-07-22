@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+// import { eq } from 'drizzle-orm';
 
 import { users } from '@/lib/db/schema';
 import { db } from '@/lib/db/server';
@@ -10,7 +10,7 @@ export interface HealthCheckResult {
   timestamp: Date;
   responseTime?: number;
   error?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface AuthHealthStatus {
@@ -116,7 +116,7 @@ export class AuthHealthChecker {
     try {
       const { responseTime } = await this.timeHealthCheck(
         'session_storage',
-        async () => {
+        () => {
           // Test session storage by attempting to read session config
           const sessionConfig = {
             maxAge: process.env.SESSION_MAX_AGE || '86400',
@@ -165,7 +165,7 @@ export class AuthHealthChecker {
     try {
       const { responseTime } = await this.timeHealthCheck(
         'email_service',
-        async () => {
+        () => {
           // Check if email service is configured
           const resendApiKey = process.env.RESEND_API_KEY;
           const fromEmail = process.env.RESEND_FROM_EMAIL;
@@ -221,7 +221,7 @@ export class AuthHealthChecker {
     try {
       const { responseTime } = await this.timeHealthCheck(
         `oauth_${provider}`,
-        async () => {
+        () => {
           let clientId: string | undefined;
           let clientSecret: string | undefined;
 
@@ -338,18 +338,14 @@ export class AuthHealthChecker {
       logLevel = 'error';
     }
 
-    authLogger.log(
-      logLevel,
-      `Auth health check completed: ${overallStatus}`,
-      {
-        overall: overall.status,
-        database: database.status,
-        sessionStorage: sessionStorage.status,
-        emailService: emailService.status,
-        googleOAuth: googleOAuth.status,
-        githubOAuth: githubOAuth.status,
-      },
-    );
+    authLogger.log(logLevel, `Auth health check completed: ${overallStatus}`, {
+      overall: overall.status,
+      database: database.status,
+      sessionStorage: sessionStorage.status,
+      emailService: emailService.status,
+      googleOAuth: googleOAuth.status,
+      githubOAuth: githubOAuth.status,
+    });
 
     return {
       overall,

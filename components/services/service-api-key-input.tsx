@@ -141,7 +141,8 @@ export function ServiceApiKeyInput({
         {message && (
           <div
             className={`rounded-md p-3 ${(() => {
-              if (message.type === 'success') return 'bg-green-50 text-green-800';
+              if (message.type === 'success')
+                return 'bg-green-50 text-green-800';
               if (message.type === 'error') return 'bg-red-50 text-red-800';
               return 'bg-blue-50 text-blue-800';
             })()}`}

@@ -152,7 +152,7 @@ export class HealthMonitor {
   /**
    * Check error handler health
    */
-  private async checkErrorHandlerHealth(): Promise<ServiceHealth> {
+  private checkErrorHandlerHealth(): ServiceHealth {
     const startTime = Date.now();
 
     try {
@@ -207,7 +207,7 @@ export class HealthMonitor {
   /**
    * Check logger health
    */
-  private async checkLoggerHealth(): Promise<ServiceHealth> {
+  private checkLoggerHealth(): ServiceHealth {
     const startTime = Date.now();
 
     try {
@@ -239,7 +239,7 @@ export class HealthMonitor {
   /**
    * Check memory health
    */
-  private async checkMemoryHealth(): Promise<ServiceHealth> {
+  private checkMemoryHealth(): ServiceHealth {
     const startTime = Date.now();
 
     try {
@@ -302,7 +302,7 @@ export class HealthMonitor {
   /**
    * Check process health
    */
-  private async checkProcessHealth(): Promise<ServiceHealth> {
+  private checkProcessHealth(): ServiceHealth {
     const startTime = Date.now();
 
     try {
@@ -506,7 +506,10 @@ export async function healthCheckMiddleware(): Promise<{
 
     // Return appropriate HTTP status code
     let statusCode: number;
-    if (healthStatus.status === 'healthy' || healthStatus.status === 'degraded') {
+    if (
+      healthStatus.status === 'healthy' ||
+      healthStatus.status === 'degraded'
+    ) {
       statusCode = 200;
     } else {
       statusCode = 503;

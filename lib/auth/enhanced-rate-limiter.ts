@@ -264,11 +264,11 @@ export class EnhancedRateLimiter {
   /**
    * Token bucket rate limiting for smooth traffic handling
    */
-  private async checkTokenBucket(
+  private checkTokenBucket(
     identifier: string,
     type: string,
     config: RateLimitConfig,
-  ): Promise<RateLimitResult> {
+  ): RateLimitResult {
     const bucketKey = `${identifier}:${type}`;
     const now = new Date();
 
@@ -345,11 +345,11 @@ export class EnhancedRateLimiter {
   /**
    * Update adaptive factors based on user behavior
    */
-  async updateAdaptiveFactors(
+  updateAdaptiveFactors(
     identifier: string,
     type: string,
     success: boolean,
-  ): Promise<void> {
+  ): void {
     const config = this.config[type];
     if (!config?.adaptiveScaling) {
       return;
@@ -501,7 +501,9 @@ export class EnhancedRateLimiter {
   /**
    * Helper methods
    */
-  private getConsecutiveFailures(failures: any[]): number {
+  private getConsecutiveFailures(
+    failures: Array<{ success: boolean }>,
+  ): number {
     if (failures.length === 0) return 0;
 
     let consecutive = 0;
@@ -515,7 +517,7 @@ export class EnhancedRateLimiter {
     return consecutive;
   }
 
-  private defaultAllowedResult(type: string): RateLimitResult {
+  private defaultAllowedResult(_type: string): RateLimitResult {
     return {
       allowed: true,
       remaining: 999,

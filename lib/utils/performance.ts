@@ -221,7 +221,7 @@ export function getPerformanceInsights(
 /**
  * Performance monitoring decorators
  */
-export function measurePerformance<T extends(...args: any[]) => any>(
+export function measurePerformance<T extends (...args: unknown[]) => unknown>(
   target: T,
   name?: string,
 ): T {

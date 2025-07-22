@@ -71,9 +71,7 @@ export async function validateResendKey(
   }
 }
 
-export function validateStripeKey(
-  apiKey: string,
-): ValidationResult {
+export function validateStripeKey(apiKey: string): ValidationResult {
   // In test environment, skip real API calls
   if (process.env.NODE_ENV === 'test') {
     // Mock validation for tests

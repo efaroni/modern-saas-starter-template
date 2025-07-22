@@ -48,7 +48,10 @@ export async function GET(request: NextRequest) {
     const healthStatus = await authHealthChecker.checkOverallHealth();
 
     let statusCode: number;
-    if (healthStatus.overall.status === 'healthy' || healthStatus.overall.status === 'degraded') {
+    if (
+      healthStatus.overall.status === 'healthy' ||
+      healthStatus.overall.status === 'degraded'
+    ) {
       statusCode = 200;
     } else {
       statusCode = 503;

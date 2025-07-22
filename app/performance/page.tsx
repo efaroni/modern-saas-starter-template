@@ -121,13 +121,13 @@ export default function PerformancePage() {
           },
         },
         historicalData: Array.from({ length: 24 }, (_, i) => ({
-          timestamp: Date.now() - ((23 - i) * 60 * 60 * 1000),
+          timestamp: Date.now() - (23 - i) * 60 * 60 * 1000,
           metrics: {
-            lcp: 2000 + (Math.random() * 400),
-            fid: 80 + (Math.random() * 40),
-            cls: 0.05 + (Math.random() * 0.1),
-            fcp: 1500 + (Math.random() * 300),
-            ttfb: 300 + (Math.random() * 200),
+            lcp: 2000 + Math.random() * 400,
+            fid: 80 + Math.random() * 40,
+            cls: 0.05 + Math.random() * 0.1,
+            fcp: 1500 + Math.random() * 300,
+            ttfb: 300 + Math.random() * 200,
           },
         })),
         scores: {

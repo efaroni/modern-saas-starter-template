@@ -14,7 +14,14 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type');
 
     // Convert timeRange to hours
-    const hours = timeRange === '1h' ? 1 : timeRange === '7d' ? 168 : 24;
+    let hours: number;
+    if (timeRange === '1h') {
+      hours = 1;
+    } else if (timeRange === '7d') {
+      hours = 168;
+    } else {
+      hours = 24;
+    }
 
     // Get statistics for all types or specific type
     const types = type
@@ -46,7 +53,7 @@ export async function GET(request: NextRequest) {
         identifier: 'user@example.com',
         type: 'login',
         remaining: 3,
-        resetTime: new Date(Date.now() + (10 * 60 * 1000)).toISOString(),
+        resetTime: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         locked: false,
         algorithm: 'sliding-window',
       },
@@ -54,7 +61,7 @@ export async function GET(request: NextRequest) {
         identifier: '192.168.1.100',
         type: 'api',
         remaining: 87,
-        resetTime: new Date(Date.now() + (45 * 60 * 1000)).toISOString(),
+        resetTime: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
         locked: false,
         algorithm: 'token-bucket',
       },

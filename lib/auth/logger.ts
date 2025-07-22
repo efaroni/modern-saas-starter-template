@@ -53,7 +53,11 @@ export interface Logger {
   logAuthEvent(event: AuthEvent): void;
   logSecurityEvent(event: SecurityEvent): void;
   logPerformanceMetric(metric: PerformanceMetric): void;
-  log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void;
+  log(
+    level: LogLevel,
+    message: string,
+    metadata?: Record<string, unknown>,
+  ): void;
 }
 
 export class AuthLogger implements Logger {
@@ -151,7 +155,11 @@ export class AuthLogger implements Logger {
     }
   }
 
-  log(level: LogLevel, message: string, metadata?: Record<string, unknown>): void {
+  log(
+    level: LogLevel,
+    message: string,
+    metadata?: Record<string, unknown>,
+  ): void {
     if (!this.shouldLog(level)) {
       return;
     }
