@@ -3,10 +3,10 @@ import { encrypt, decrypt } from '@/lib/encryption';
 import type { SessionData } from './types';
 
 export interface SessionStorage {
-  getSession(): Promise<SessionData | null>
-  setSession(session: SessionData): Promise<void>
-  removeSession(): Promise<void>
-  isAvailable(): boolean
+  getSession(): Promise<SessionData | null>;
+  setSession(session: SessionData): Promise<void>;
+  removeSession(): Promise<void>;
+  isAvailable(): boolean;
 }
 
 export class LocalSessionStorage implements SessionStorage {
@@ -36,7 +36,10 @@ export class LocalSessionStorage implements SessionStorage {
       const session = JSON.parse(sessionData) as SessionData;
 
       // Restore Date objects from JSON serialization
-      if (session.user?.emailVerified && typeof session.user.emailVerified === 'string') {
+      if (
+        session.user?.emailVerified &&
+        typeof session.user.emailVerified === 'string'
+      ) {
         session.user.emailVerified = new Date(session.user.emailVerified);
       }
 
@@ -91,7 +94,10 @@ export class MemorySessionStorage implements SessionStorage {
 
   async getSession(): Promise<SessionData | null> {
     // Check if session is expired
-    if (this.session?.expires && new Date(this.session.expires).getTime() < Date.now()) {
+    if (
+      this.session?.expires &&
+      new Date(this.session.expires).getTime() < Date.now()
+    ) {
       this.session = null;
       return null;
     }

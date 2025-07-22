@@ -3,39 +3,39 @@ import { getDatabasePool } from '@/lib/db/connection-pool';
 import { ErrorHandler } from '@/lib/utils/error-handler';
 
 export interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy'
-  timestamp: string
-  version: string
-  uptime: number
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  timestamp: string;
+  version: string;
+  uptime: number;
   services: {
-    database: ServiceHealth
-    errorHandler: ServiceHealth
-    logger: ServiceHealth
-    memory: ServiceHealth
-    process: ServiceHealth
-  }
+    database: ServiceHealth;
+    errorHandler: ServiceHealth;
+    logger: ServiceHealth;
+    memory: ServiceHealth;
+    process: ServiceHealth;
+  };
   metrics: {
-    errorRates: Record<string, number>
-    responseTime: number
-    memoryUsage: NodeJS.MemoryUsage
-  }
-  alerts: HealthAlert[]
+    errorRates: Record<string, number>;
+    responseTime: number;
+    memoryUsage: NodeJS.MemoryUsage;
+  };
+  alerts: HealthAlert[];
 }
 
 export interface ServiceHealth {
-  status: 'healthy' | 'degraded' | 'unhealthy'
-  responseTime?: number
-  lastCheck: string
-  error?: string
-  details?: Record<string, unknown>
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  responseTime?: number;
+  lastCheck: string;
+  error?: string;
+  details?: Record<string, unknown>;
 }
 
 export interface HealthAlert {
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  message: string
-  timestamp: string
-  service: string
-  details?: Record<string, unknown>
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  timestamp: string;
+  service: string;
+  details?: Record<string, unknown>;
 }
 
 export class HealthMonitor {
@@ -57,13 +57,14 @@ export class HealthMonitor {
     const startTime = Date.now();
 
     // Check all services
-    const [database, errorHandler, logger, memory, process] = await Promise.allSettled([
-      this.checkDatabaseHealth(),
-      this.checkErrorHandlerHealth(),
-      this.checkLoggerHealth(),
-      this.checkMemoryHealth(),
-      this.checkProcessHealth(),
-    ]);
+    const [database, errorHandler, logger, memory, process] =
+      await Promise.allSettled([
+        this.checkDatabaseHealth(),
+        this.checkErrorHandlerHealth(),
+        this.checkLoggerHealth(),
+        this.checkMemoryHealth(),
+        this.checkProcessHealth(),
+      ]);
 
     const responseTime = Date.now() - startTime;
 
@@ -142,7 +143,8 @@ export class HealthMonitor {
         status: 'unhealthy',
         responseTime: Date.now() - startTime,
         lastCheck: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown database error',
+        error:
+          error instanceof Error ? error.message : 'Unknown database error',
       };
     }
   }
@@ -159,7 +161,10 @@ export class HealthMonitor {
       const responseTime = Date.now() - startTime;
 
       // Check error rates
-      const totalErrors = Object.values(metrics).reduce((sum, count) => sum + count, 0);
+      const totalErrors = Object.values(metrics).reduce(
+        (sum, count) => sum + count,
+        0,
+      );
       const criticalErrors = metrics['security_critical'] || 0;
 
       if (criticalErrors > 0) {
@@ -193,7 +198,8 @@ export class HealthMonitor {
         status: 'unhealthy',
         responseTime: Date.now() - startTime,
         lastCheck: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Error handler check failed',
+        error:
+          error instanceof Error ? error.message : 'Error handler check failed',
       };
     }
   }
@@ -351,7 +357,9 @@ export class HealthMonitor {
   /**
    * Calculate overall status from service statuses
    */
-  private calculateOverallStatus(services: Record<string, ServiceHealth>): 'healthy' | 'degraded' | 'unhealthy' {
+  private calculateOverallStatus(
+    services: Record<string, ServiceHealth>,
+  ): 'healthy' | 'degraded' | 'unhealthy' {
     const statuses = Object.values(services).map(service => service.status);
 
     if (statuses.some(status => status === 'unhealthy')) {
@@ -370,7 +378,11 @@ export class HealthMonitor {
    */
   private updateAlerts(
     services: Record<string, ServiceHealth>,
-    metrics: { errorRates: Record<string, number>; responseTime: number; memoryUsage: NodeJS.MemoryUsage },
+    metrics: {
+      errorRates: Record<string, number>;
+      responseTime: number;
+      memoryUsage: NodeJS.MemoryUsage;
+    },
   ): void {
     const now = new Date().toISOString();
 
@@ -407,7 +419,10 @@ export class HealthMonitor {
     }
 
     // Check for high error rates
-    const totalErrors = Object.values(metrics.errorRates).reduce((sum, count) => sum + count, 0);
+    const totalErrors = Object.values(metrics.errorRates).reduce(
+      (sum, count) => sum + count,
+      0,
+    );
     if (totalErrors > 100) {
       this.addAlert({
         severity: 'critical',
@@ -441,7 +456,9 @@ export class HealthMonitor {
   /**
    * Get alerts by severity
    */
-  getAlertsBySeverity(severity: 'low' | 'medium' | 'high' | 'critical'): HealthAlert[] {
+  getAlertsBySeverity(
+    severity: 'low' | 'medium' | 'high' | 'critical',
+  ): HealthAlert[] {
     return this.alerts.filter(alert => alert.severity === severity);
   }
 
@@ -456,11 +473,11 @@ export class HealthMonitor {
    * Get system metrics
    */
   getSystemMetrics(): {
-    memory: NodeJS.MemoryUsage
-    uptime: number
-    version: string
-    platform: string
-    nodeVersion: string
+    memory: NodeJS.MemoryUsage;
+    uptime: number;
+    version: string;
+    platform: string;
+    nodeVersion: string;
   } {
     return {
       memory: process.memoryUsage(),
@@ -481,15 +498,19 @@ export const healthMonitor = HealthMonitor.getInstance();
  * Express middleware for health check endpoint
  */
 export async function healthCheckMiddleware(): Promise<{
-  status: number
-  body: HealthStatus
+  status: number;
+  body: HealthStatus;
 }> {
   try {
     const healthStatus = await healthMonitor.checkHealth();
 
     // Return appropriate HTTP status code
-    const statusCode = healthStatus.status === 'healthy' ? 200 :
-                      healthStatus.status === 'degraded' ? 200 : 503;
+    const statusCode =
+      healthStatus.status === 'healthy'
+        ? 200
+        : healthStatus.status === 'degraded'
+          ? 200
+          : 503;
 
     return {
       status: statusCode,
@@ -504,24 +525,48 @@ export async function healthCheckMiddleware(): Promise<{
         version: process.env.npm_package_version || '1.0.0',
         uptime: process.uptime(),
         services: {
-          database: { status: 'unhealthy', lastCheck: new Date().toISOString(), error: 'Health check failed' },
-          errorHandler: { status: 'unhealthy', lastCheck: new Date().toISOString(), error: 'Health check failed' },
-          logger: { status: 'unhealthy', lastCheck: new Date().toISOString(), error: 'Health check failed' },
-          memory: { status: 'unhealthy', lastCheck: new Date().toISOString(), error: 'Health check failed' },
-          process: { status: 'unhealthy', lastCheck: new Date().toISOString(), error: 'Health check failed' },
+          database: {
+            status: 'unhealthy',
+            lastCheck: new Date().toISOString(),
+            error: 'Health check failed',
+          },
+          errorHandler: {
+            status: 'unhealthy',
+            lastCheck: new Date().toISOString(),
+            error: 'Health check failed',
+          },
+          logger: {
+            status: 'unhealthy',
+            lastCheck: new Date().toISOString(),
+            error: 'Health check failed',
+          },
+          memory: {
+            status: 'unhealthy',
+            lastCheck: new Date().toISOString(),
+            error: 'Health check failed',
+          },
+          process: {
+            status: 'unhealthy',
+            lastCheck: new Date().toISOString(),
+            error: 'Health check failed',
+          },
         },
         metrics: {
           errorRates: {},
           responseTime: 0,
           memoryUsage: process.memoryUsage(),
         },
-        alerts: [{
-          severity: 'critical',
-          message: 'Health check system failure',
-          timestamp: new Date().toISOString(),
-          service: 'health_monitor',
-          details: { error: error instanceof Error ? error.message : String(error) },
-        }],
+        alerts: [
+          {
+            severity: 'critical',
+            message: 'Health check system failure',
+            timestamp: new Date().toISOString(),
+            service: 'health_monitor',
+            details: {
+              error: error instanceof Error ? error.message : String(error),
+            },
+          },
+        ],
       },
     };
   }

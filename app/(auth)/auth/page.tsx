@@ -17,11 +17,25 @@ import { UserProfileForm } from './components/user-profile-form';
 
 export default function AuthPage() {
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'login' | 'signup' | 'profile' | 'password' | 'delete' | 'reset-request' | 'reset-complete'>('login');
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    | 'login'
+    | 'signup'
+    | 'profile'
+    | 'password'
+    | 'delete'
+    | 'reset-request'
+    | 'reset-complete'
+  >('login');
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [resetToken, setResetToken] = useState<string | null>(null);
-  const [authConfig, setAuthConfig] = useState({ provider: 'mock', oauthProviders: [] });
+  const [authConfig, setAuthConfig] = useState({
+    provider: 'mock',
+    oauthProviders: [],
+  });
 
   // Check for password reset token in URL and load auth config
   useEffect(() => {
@@ -32,11 +46,13 @@ export default function AuthPage() {
     }
 
     // Load auth configuration
-    getAuthConfigurationAction().then(config => {
-      setAuthConfig(config);
-    }).catch(() => {
-      setAuthConfig({ provider: 'mock', oauthProviders: [] });
-    });
+    getAuthConfigurationAction()
+      .then(config => {
+        setAuthConfig(config);
+      })
+      .catch(() => {
+        setAuthConfig({ provider: 'mock', oauthProviders: [] });
+      });
   }, [searchParams]);
 
   const handleSuccess = (user: AuthUser) => {
@@ -114,31 +130,33 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">
+    <div className='min-h-screen bg-gray-50 py-8'>
+      <div className='mx-auto max-w-md'>
+        <div className='rounded-lg bg-white p-6 shadow'>
+          <div className='mb-6 text-center'>
+            <h1 className='text-2xl font-bold text-gray-900'>
               Authentication & User Management
             </h1>
-            <p className="text-sm text-gray-600 mt-2">
+            <p className='mt-2 text-sm text-gray-600'>
               Section 2: Auth.js + user CRUD + OAuth
             </p>
           </div>
 
           {/* Service Status */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-md">
-            <h3 className="font-medium text-gray-900 mb-2">Auth Service Status</h3>
-            <div className="space-y-1 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-green-600">✅ Configured</span>
-                <span className="text-gray-600">
+          <div className='mb-6 rounded-md bg-gray-50 p-4'>
+            <h3 className='mb-2 font-medium text-gray-900'>
+              Auth Service Status
+            </h3>
+            <div className='space-y-1 text-sm'>
+              <div className='flex items-center gap-2'>
+                <span className='text-green-600'>✅ Configured</span>
+                <span className='text-gray-600'>
                   {authConfig.provider === 'mock' ? 'Mock Auth' : 'Real Auth'}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-blue-600">🔧 OAuth:</span>
-                <span className="text-gray-600">
+              <div className='flex items-center gap-2'>
+                <span className='text-blue-600'>🔧 OAuth:</span>
+                <span className='text-gray-600'>
                   {authConfig.oauthProviders.join(', ')} (coming soon)
                 </span>
               </div>
@@ -148,7 +166,7 @@ export default function AuthPage() {
           {/* Success/Error Messages */}
           {message && (
             <div
-              className={`p-3 rounded-md mb-4 ${
+              className={`mb-4 rounded-md p-3 ${
                 message.type === 'success'
                   ? 'bg-green-50 text-green-800'
                   : 'bg-red-50 text-red-800'
@@ -160,16 +178,24 @@ export default function AuthPage() {
 
           {/* Current User Info */}
           {currentUser && (
-            <div className="mb-6 p-4 bg-blue-50 rounded-md">
-              <h3 className="font-medium text-blue-900 mb-2">Current User</h3>
-              <div className="text-sm text-blue-800">
-                <p><strong>ID:</strong> {currentUser.id}</p>
-                <p><strong>Email:</strong> {currentUser.email}</p>
-                {currentUser.name && <p><strong>Name:</strong> {currentUser.name}</p>}
+            <div className='mb-6 rounded-md bg-blue-50 p-4'>
+              <h3 className='mb-2 font-medium text-blue-900'>Current User</h3>
+              <div className='text-sm text-blue-800'>
+                <p>
+                  <strong>ID:</strong> {currentUser.id}
+                </p>
+                <p>
+                  <strong>Email:</strong> {currentUser.email}
+                </p>
+                {currentUser.name && (
+                  <p>
+                    <strong>Name:</strong> {currentUser.name}
+                  </p>
+                )}
               </div>
               <button
                 onClick={handleSignOut}
-                className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                className='mt-2 rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700'
               >
                 Sign Out
               </button>
@@ -177,28 +203,28 @@ export default function AuthPage() {
           )}
 
           {/* Tabs */}
-          <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
+          <div className='mb-6 flex overflow-x-auto border-b border-gray-200'>
             {!currentUser ? (
               <>
                 <button
                   onClick={() => setActiveTab('login')}
-                  className={`flex-1 py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                  className={`flex-1 px-4 py-2 text-sm font-medium whitespace-nowrap ${
                     activeTab === 'login'
                       ? 'border-b-2 border-blue-500 text-blue-600'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  role="tab"
+                  role='tab'
                 >
                   Login
                 </button>
                 <button
                   onClick={() => setActiveTab('signup')}
-                  className={`flex-1 py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                  className={`flex-1 px-4 py-2 text-sm font-medium whitespace-nowrap ${
                     activeTab === 'signup'
                       ? 'border-b-2 border-blue-500 text-blue-600'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  role="tab"
+                  role='tab'
                 >
                   Sign Up
                 </button>
@@ -207,34 +233,34 @@ export default function AuthPage() {
               <>
                 <button
                   onClick={() => setActiveTab('profile')}
-                  className={`flex-1 py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                  className={`flex-1 px-4 py-2 text-sm font-medium whitespace-nowrap ${
                     activeTab === 'profile'
                       ? 'border-b-2 border-blue-500 text-blue-600'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  role="tab"
+                  role='tab'
                 >
                   Profile
                 </button>
                 <button
                   onClick={() => setActiveTab('password')}
-                  className={`flex-1 py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                  className={`flex-1 px-4 py-2 text-sm font-medium whitespace-nowrap ${
                     activeTab === 'password'
                       ? 'border-b-2 border-blue-500 text-blue-600'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  role="tab"
+                  role='tab'
                 >
                   Password
                 </button>
                 <button
                   onClick={() => setActiveTab('delete')}
-                  className={`flex-1 py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                  className={`flex-1 px-4 py-2 text-sm font-medium whitespace-nowrap ${
                     activeTab === 'delete'
                       ? 'border-b-2 border-red-500 text-red-600'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  role="tab"
+                  role='tab'
                 >
                   Delete
                 </button>

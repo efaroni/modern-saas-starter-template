@@ -7,36 +7,36 @@ import { db } from '@/lib/db/server';
 import { redisCache } from './redis';
 
 export interface CachedOAuthToken {
-  userId: string
-  provider: string
-  providerAccountId: string
-  accessToken?: string
-  refreshToken?: string
-  expiresAt?: number
-  tokenType?: string
-  scope?: string
-  idToken?: string
-  sessionState?: string
-  isExpired: boolean
-  expiresIn?: number // seconds until expiration
+  userId: string;
+  provider: string;
+  providerAccountId: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number;
+  tokenType?: string;
+  scope?: string;
+  idToken?: string;
+  sessionState?: string;
+  isExpired: boolean;
+  expiresIn?: number; // seconds until expiration
 }
 
 export interface OAuthTokenCacheConfig {
-  tokenTTL: number          // Token cache TTL in seconds
-  refreshTokenTTL: number   // Refresh token cache TTL in seconds
-  includeIdToken: boolean   // Whether to cache ID tokens
-  includeRefreshToken: boolean // Whether to cache refresh tokens
-  keyPrefix: string         // Cache key prefix
-  encryptTokens: boolean    // Whether to encrypt tokens in cache
+  tokenTTL: number; // Token cache TTL in seconds
+  refreshTokenTTL: number; // Refresh token cache TTL in seconds
+  includeIdToken: boolean; // Whether to cache ID tokens
+  includeRefreshToken: boolean; // Whether to cache refresh tokens
+  keyPrefix: string; // Cache key prefix
+  encryptTokens: boolean; // Whether to encrypt tokens in cache
 }
 
 export const DEFAULT_OAUTH_TOKEN_CACHE_CONFIG: OAuthTokenCacheConfig = {
-  tokenTTL: 300,            // 5 minutes
-  refreshTokenTTL: 3600,    // 1 hour
-  includeIdToken: false,    // Don't cache ID tokens by default (security)
+  tokenTTL: 300, // 5 minutes
+  refreshTokenTTL: 3600, // 1 hour
+  includeIdToken: false, // Don't cache ID tokens by default (security)
   includeRefreshToken: true, // Cache refresh tokens for token refresh
   keyPrefix: 'oauth:',
-  encryptTokens: true,       // Encrypt tokens in cache
+  encryptTokens: true, // Encrypt tokens in cache
 };
 
 export class OAuthTokenCache {
@@ -48,7 +48,10 @@ export class OAuthTokenCache {
   }
 
   // Get OAuth token from cache or database
-  async getOAuthToken(userId: string, provider: string): Promise<CachedOAuthToken | null> {
+  async getOAuthToken(
+    userId: string,
+    provider: string,
+  ): Promise<CachedOAuthToken | null> {
     const startTime = Date.now();
 
     try {
@@ -73,10 +76,7 @@ export class OAuthTokenCache {
         .select()
         .from(accounts)
         .where(
-          and(
-            eq(accounts.userId, userId),
-            eq(accounts.provider, provider),
-          ),
+          and(eq(accounts.userId, userId), eq(accounts.provider, provider)),
         )
         .limit(1);
 
@@ -95,15 +95,18 @@ export class OAuthTokenCache {
       // Check if token is expired
       const now = Math.floor(Date.now() / 1000);
       const isExpired = account.expires_at ? account.expires_at < now : false;
-      const expiresIn = account.expires_at ? account.expires_at - now : undefined;
+      const expiresIn = account.expires_at
+        ? account.expires_at - now
+        : undefined;
 
       // Build cached token
       const cachedToken: CachedOAuthToken = {
         userId: account.userId,
         provider: account.provider,
         providerAccountId: account.providerAccountId,
-        accessToken: this.config.encryptTokens ?
-          this.encryptToken(account.access_token) : account.access_token,
+        accessToken: this.config.encryptTokens
+          ? this.encryptToken(account.access_token)
+          : account.access_token,
         tokenType: account.token_type || undefined,
         scope: account.scope || undefined,
         expiresAt: account.expires_at || undefined,
@@ -114,20 +117,24 @@ export class OAuthTokenCache {
 
       // Include refresh token if enabled
       if (this.config.includeRefreshToken && account.refresh_token) {
-        cachedToken.refreshToken = this.config.encryptTokens ?
-          this.encryptToken(account.refresh_token) : account.refresh_token;
+        cachedToken.refreshToken = this.config.encryptTokens
+          ? this.encryptToken(account.refresh_token)
+          : account.refresh_token;
       }
 
       // Include ID token if enabled
       if (this.config.includeIdToken && account.id_token) {
-        cachedToken.idToken = this.config.encryptTokens ?
-          this.encryptToken(account.id_token) : account.id_token;
+        cachedToken.idToken = this.config.encryptTokens
+          ? this.encryptToken(account.id_token)
+          : account.id_token;
       }
 
       // Determine cache TTL based on token expiration
-      const ttl = isExpired ? 60 : // Cache expired tokens for 1 minute
-                 expiresIn ? Math.min(expiresIn, this.config.tokenTTL) :
-                 this.config.tokenTTL;
+      const ttl = isExpired
+        ? 60 // Cache expired tokens for 1 minute
+        : expiresIn
+          ? Math.min(expiresIn, this.config.tokenTTL)
+          : this.config.tokenTTL;
 
       // Cache the token
       await this.cache.set(cacheKey, cachedToken, ttl);
@@ -190,15 +197,18 @@ export class OAuthTokenCache {
         // Check if token is expired
         const now = Math.floor(Date.now() / 1000);
         const isExpired = account.expires_at ? account.expires_at < now : false;
-        const expiresIn = account.expires_at ? account.expires_at - now : undefined;
+        const expiresIn = account.expires_at
+          ? account.expires_at - now
+          : undefined;
 
         // Build cached token
         const cachedToken: CachedOAuthToken = {
           userId: account.userId,
           provider: account.provider,
           providerAccountId: account.providerAccountId,
-          accessToken: this.config.encryptTokens ?
-            this.encryptToken(account.access_token) : account.access_token,
+          accessToken: this.config.encryptTokens
+            ? this.encryptToken(account.access_token)
+            : account.access_token,
           tokenType: account.token_type || undefined,
           scope: account.scope || undefined,
           expiresAt: account.expires_at || undefined,
@@ -209,14 +219,16 @@ export class OAuthTokenCache {
 
         // Include refresh token if enabled
         if (this.config.includeRefreshToken && account.refresh_token) {
-          cachedToken.refreshToken = this.config.encryptTokens ?
-            this.encryptToken(account.refresh_token) : account.refresh_token;
+          cachedToken.refreshToken = this.config.encryptTokens
+            ? this.encryptToken(account.refresh_token)
+            : account.refresh_token;
         }
 
         // Include ID token if enabled
         if (this.config.includeIdToken && account.id_token) {
-          cachedToken.idToken = this.config.encryptTokens ?
-            this.encryptToken(account.id_token) : account.id_token;
+          cachedToken.idToken = this.config.encryptTokens
+            ? this.encryptToken(account.id_token)
+            : account.id_token;
         }
 
         cachedTokens.push(cachedToken);
@@ -239,7 +251,9 @@ export class OAuthTokenCache {
         operation: 'user_oauth_tokens_cache_error',
         duration: Date.now() - startTime,
         success: false,
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
+        metadata: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
         timestamp: new Date(),
       });
 
@@ -249,7 +263,11 @@ export class OAuthTokenCache {
   }
 
   // Update OAuth token in cache
-  async updateOAuthToken(userId: string, provider: string, updates: Partial<CachedOAuthToken>): Promise<void> {
+  async updateOAuthToken(
+    userId: string,
+    provider: string,
+    updates: Partial<CachedOAuthToken>,
+  ): Promise<void> {
     try {
       const cacheKey = `${this.config.keyPrefix}${userId}:${provider}`;
 
@@ -267,9 +285,11 @@ export class OAuthTokenCache {
         }
 
         // Determine new TTL
-        const ttl = updated.isExpired ? 60 : // Cache expired tokens for 1 minute
-                   updated.expiresIn ? Math.min(updated.expiresIn, this.config.tokenTTL) :
-                   this.config.tokenTTL;
+        const ttl = updated.isExpired
+          ? 60 // Cache expired tokens for 1 minute
+          : updated.expiresIn
+            ? Math.min(updated.expiresIn, this.config.tokenTTL)
+            : this.config.tokenTTL;
 
         await this.cache.set(cacheKey, updated, ttl);
 
@@ -296,7 +316,10 @@ export class OAuthTokenCache {
       // Also invalidate user tokens cache
       await this.invalidateUserOAuthTokens(userId);
 
-      authLogger.log('debug', 'OAuth token cache invalidated', { userId, provider });
+      authLogger.log('debug', 'OAuth token cache invalidated', {
+        userId,
+        provider,
+      });
     } catch (error) {
       console.error('Error invalidating OAuth token cache:', error);
     }
@@ -312,20 +335,26 @@ export class OAuthTokenCache {
       const pattern = `${this.config.keyPrefix}${userId}:*`;
       await this.cache.deletePattern(pattern);
 
-      authLogger.log('debug', 'User OAuth tokens cache invalidated', { userId });
+      authLogger.log('debug', 'User OAuth tokens cache invalidated', {
+        userId,
+      });
     } catch (error) {
       console.error('Error invalidating user OAuth tokens cache:', error);
     }
   }
 
   // Refresh OAuth token
-  async refreshOAuthToken(userId: string, provider: string, newTokenData: {
-    accessToken: string
-    refreshToken?: string
-    expiresAt?: number
-    tokenType?: string
-    scope?: string
-  }): Promise<void> {
+  async refreshOAuthToken(
+    userId: string,
+    provider: string,
+    newTokenData: {
+      accessToken: string;
+      refreshToken?: string;
+      expiresAt?: number;
+      tokenType?: string;
+      scope?: string;
+    },
+  ): Promise<void> {
     try {
       // Update the database first
       await db
@@ -338,19 +367,20 @@ export class OAuthTokenCache {
           scope: newTokenData.scope,
         })
         .where(
-          and(
-            eq(accounts.userId, userId),
-            eq(accounts.provider, provider),
-          ),
+          and(eq(accounts.userId, userId), eq(accounts.provider, provider)),
         );
 
       // Update cache
       await this.updateOAuthToken(userId, provider, {
-        accessToken: this.config.encryptTokens ?
-          this.encryptToken(newTokenData.accessToken) : newTokenData.accessToken,
-        refreshToken: newTokenData.refreshToken && this.config.includeRefreshToken ?
-          (this.config.encryptTokens ?
-            this.encryptToken(newTokenData.refreshToken) : newTokenData.refreshToken) : undefined,
+        accessToken: this.config.encryptTokens
+          ? this.encryptToken(newTokenData.accessToken)
+          : newTokenData.accessToken,
+        refreshToken:
+          newTokenData.refreshToken && this.config.includeRefreshToken
+            ? this.config.encryptTokens
+              ? this.encryptToken(newTokenData.refreshToken)
+              : newTokenData.refreshToken
+            : undefined,
         expiresAt: newTokenData.expiresAt,
         tokenType: newTokenData.tokenType,
         scope: newTokenData.scope,
@@ -364,7 +394,10 @@ export class OAuthTokenCache {
   }
 
   // Get decrypted token (for use in API calls)
-  async getDecryptedToken(userId: string, provider: string): Promise<string | null> {
+  async getDecryptedToken(
+    userId: string,
+    provider: string,
+  ): Promise<string | null> {
     try {
       const cachedToken = await this.getOAuthToken(userId, provider);
       if (!cachedToken || !cachedToken.accessToken) {
@@ -372,12 +405,16 @@ export class OAuthTokenCache {
       }
 
       if (cachedToken.isExpired) {
-        authLogger.log('warn', 'Attempted to use expired OAuth token', { userId, provider });
+        authLogger.log('warn', 'Attempted to use expired OAuth token', {
+          userId,
+          provider,
+        });
         return null;
       }
 
-      return this.config.encryptTokens ?
-        this.decryptToken(cachedToken.accessToken) : cachedToken.accessToken;
+      return this.config.encryptTokens
+        ? this.decryptToken(cachedToken.accessToken)
+        : cachedToken.accessToken;
     } catch (error) {
       console.error('Error getting decrypted token:', error);
       return null;
@@ -437,13 +474,19 @@ export const oauthTokenCache = new OAuthTokenCache();
 
 // Export OAuth token cache utilities
 export const oauthTokenCacheUtils = {
-  getOAuthToken: (userId: string, provider: string) => oauthTokenCache.getOAuthToken(userId, provider),
-  getUserOAuthTokens: (userId: string) => oauthTokenCache.getUserOAuthTokens(userId),
-  updateOAuthToken: (userId: string, provider: string, updates: Partial<CachedOAuthToken>) =>
-    oauthTokenCache.updateOAuthToken(userId, provider, updates),
+  getOAuthToken: (userId: string, provider: string) =>
+    oauthTokenCache.getOAuthToken(userId, provider),
+  getUserOAuthTokens: (userId: string) =>
+    oauthTokenCache.getUserOAuthTokens(userId),
+  updateOAuthToken: (
+    userId: string,
+    provider: string,
+    updates: Partial<CachedOAuthToken>,
+  ) => oauthTokenCache.updateOAuthToken(userId, provider, updates),
   invalidateOAuthToken: (userId: string, provider: string) =>
     oauthTokenCache.invalidateOAuthToken(userId, provider),
-  invalidateUserOAuthTokens: (userId: string) => oauthTokenCache.invalidateUserOAuthTokens(userId),
+  invalidateUserOAuthTokens: (userId: string) =>
+    oauthTokenCache.invalidateUserOAuthTokens(userId),
   refreshOAuthToken: (userId: string, provider: string, newTokenData: any) =>
     oauthTokenCache.refreshOAuthToken(userId, provider, newTokenData),
   getDecryptedToken: (userId: string, provider: string) =>

@@ -4,10 +4,10 @@ import { users } from '@/lib/db/schema';
 import { db } from '@/lib/db/server';
 
 export interface PasswordExpirationConfig {
-  enabled: boolean
-  maxAge: number // Password max age in days
-  warningDays: number // Days before expiration to warn user
-  graceLoginCount: number // Number of logins allowed after expiration
+  enabled: boolean;
+  maxAge: number; // Password max age in days
+  warningDays: number; // Days before expiration to warn user
+  graceLoginCount: number; // Number of logins allowed after expiration
 }
 
 export const DEFAULT_PASSWORD_EXPIRATION_CONFIG: PasswordExpirationConfig = {
@@ -18,18 +18,21 @@ export const DEFAULT_PASSWORD_EXPIRATION_CONFIG: PasswordExpirationConfig = {
 };
 
 export interface PasswordExpirationResult {
-  isExpired: boolean
-  isNearExpiration: boolean
-  daysUntilExpiration: number
-  mustChangePassword: boolean
-  graceLoginsRemaining: number
+  isExpired: boolean;
+  isNearExpiration: boolean;
+  daysUntilExpiration: number;
+  mustChangePassword: boolean;
+  graceLoginsRemaining: number;
 }
 
 export class PasswordExpirationService {
   private config: PasswordExpirationConfig;
   private readonly database: typeof db;
 
-  constructor(database: typeof db = db, config: PasswordExpirationConfig = DEFAULT_PASSWORD_EXPIRATION_CONFIG) {
+  constructor(
+    database: typeof db = db,
+    config: PasswordExpirationConfig = DEFAULT_PASSWORD_EXPIRATION_CONFIG,
+  ) {
     this.database = database;
     this.config = config;
   }
@@ -44,7 +47,9 @@ export class PasswordExpirationService {
   /**
    * Check password expiration status for a user
    */
-  async checkPasswordExpiration(userId: string): Promise<PasswordExpirationResult> {
+  async checkPasswordExpiration(
+    userId: string,
+  ): Promise<PasswordExpirationResult> {
     if (!this.config.enabled) {
       return {
         isExpired: false,
@@ -73,11 +78,15 @@ export class PasswordExpirationService {
 
       // Calculate password age
       const passwordDate = user.updatedAt || user.createdAt;
-      const passwordAge = Math.floor((Date.now() - passwordDate.getTime()) / (1000 * 60 * 60 * 24));
+      const passwordAge = Math.floor(
+        (Date.now() - passwordDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
       const daysUntilExpiration = this.config.maxAge - passwordAge;
 
       const isExpired = passwordAge >= this.config.maxAge;
-      const isNearExpiration = daysUntilExpiration <= this.config.warningDays && daysUntilExpiration > 0;
+      const isNearExpiration =
+        daysUntilExpiration <= this.config.warningDays &&
+        daysUntilExpiration > 0;
 
       // For expired passwords, check grace logins
       let graceLoginsRemaining = 0;
@@ -119,8 +128,13 @@ export class PasswordExpirationService {
     }
 
     try {
-      const warningDate = new Date(Date.now() - (this.config.maxAge - this.config.warningDays) * 24 * 60 * 60 * 1000);
-      const expirationDate = new Date(Date.now() - this.config.maxAge * 24 * 60 * 60 * 1000);
+      const warningDate = new Date(
+        Date.now() -
+          (this.config.maxAge - this.config.warningDays) * 24 * 60 * 60 * 1000,
+      );
+      const expirationDate = new Date(
+        Date.now() - this.config.maxAge * 24 * 60 * 60 * 1000,
+      );
 
       return await this.database
         .select({
@@ -147,7 +161,9 @@ export class PasswordExpirationService {
     }
 
     try {
-      const expirationDate = new Date(Date.now() - this.config.maxAge * 24 * 60 * 60 * 1000);
+      const expirationDate = new Date(
+        Date.now() - this.config.maxAge * 24 * 60 * 60 * 1000,
+      );
 
       return await this.database
         .select({
@@ -188,7 +204,9 @@ export class PasswordExpirationService {
 
       if (result.isNearExpiration) {
         // In a real implementation, you'd send an email here
-        console.log(`Password expiration warning for user ${userId}: ${result.daysUntilExpiration} days remaining`);
+        console.log(
+          `Password expiration warning for user ${userId}: ${result.daysUntilExpiration} days remaining`,
+        );
 
         // Example email integration:
         // await emailService.sendPasswordExpirationWarning(userId, result.daysUntilExpiration)
@@ -207,7 +225,9 @@ export class PasswordExpirationService {
 
       if (result.isExpired) {
         // In a real implementation, you'd send an email here
-        console.log(`Password expired notification for user ${userId}: ${result.graceLoginsRemaining} grace logins remaining`);
+        console.log(
+          `Password expired notification for user ${userId}: ${result.graceLoginsRemaining} grace logins remaining`,
+        );
 
         // Example email integration:
         // await emailService.sendPasswordExpiredNotification(userId, result.graceLoginsRemaining)

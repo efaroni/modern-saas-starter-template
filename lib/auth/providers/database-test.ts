@@ -6,29 +6,63 @@ import { testDb } from '@/lib/db/test';
 import { emailService } from '@/lib/email/service';
 
 import { authLogger, timeOperation } from '../logger';
-import { PasswordExpirationService, DEFAULT_PASSWORD_EXPIRATION_CONFIG } from '../password-expiration';
-import { PasswordValidator, DEFAULT_PASSWORD_POLICY } from '../password-validator';
+import {
+  PasswordExpirationService,
+  DEFAULT_PASSWORD_EXPIRATION_CONFIG,
+} from '../password-expiration';
+import {
+  PasswordValidator,
+  DEFAULT_PASSWORD_POLICY,
+} from '../password-validator';
 import { RateLimiter } from '../rate-limiter';
 import { TokenService } from '../token-service';
-import { type AuthProvider, type AuthResult, AuthUser, type SignUpRequest, type AuthConfiguration, type OAuthProvider, type OAuthResult, type UpdateProfileRequest } from '../types';
+import {
+  type AuthProvider,
+  type AuthResult,
+  AuthUser,
+  type SignUpRequest,
+  type AuthConfiguration,
+  type OAuthProvider,
+  type OAuthResult,
+  type UpdateProfileRequest,
+} from '../types';
 
 export class DatabaseTestAuthProvider implements AuthProvider {
   private readonly bcryptRounds = 12;
-  private readonly passwordValidator = new PasswordValidator(DEFAULT_PASSWORD_POLICY);
+  private readonly passwordValidator = new PasswordValidator(
+    DEFAULT_PASSWORD_POLICY,
+  );
   private readonly rateLimiter = new RateLimiter(testDb);
-  private readonly passwordExpiration = new PasswordExpirationService(DEFAULT_PASSWORD_EXPIRATION_CONFIG);
+  private readonly passwordExpiration = new PasswordExpirationService(
+    DEFAULT_PASSWORD_EXPIRATION_CONFIG,
+  );
   private readonly passwordHistoryLimit = 5;
   private readonly tokenService = new TokenService();
 
-  async authenticateUser(email: string, password: string, ipAddress?: string, userAgent?: string): Promise<AuthResult> {
+  async authenticateUser(
+    email: string,
+    password: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<AuthResult> {
     const startTime = Date.now();
 
     try {
       return await timeOperation('authenticate_user', async () => {
         // Check rate limit
-        const rateLimit = await this.rateLimiter.checkRateLimit(email, 'login', ipAddress);
+        const rateLimit = await this.rateLimiter.checkRateLimit(
+          email,
+          'login',
+          ipAddress,
+        );
         if (!rateLimit.allowed) {
-          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent);
+          await this.rateLimiter.recordAttempt(
+            email,
+            'login',
+            false,
+            ipAddress,
+            userAgent,
+          );
 
           const errorMessage = rateLimit.locked
             ? `Account temporarily locked. Try again after ${rateLimit.lockoutEndTime?.toLocaleTimeString()}`
@@ -75,7 +109,13 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           .limit(1);
 
         if (!user || !user.password) {
-          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent);
+          await this.rateLimiter.recordAttempt(
+            email,
+            'login',
+            false,
+            ipAddress,
+            userAgent,
+          );
 
           authLogger.logAuthEvent({
             type: 'login',
@@ -98,7 +138,14 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         const isPasswordValid = await bcrypt.verify(password, user.password);
 
         if (!isPasswordValid) {
-          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent, user.id);
+          await this.rateLimiter.recordAttempt(
+            email,
+            'login',
+            false,
+            ipAddress,
+            userAgent,
+            user.id,
+          );
 
           authLogger.logAuthEvent({
             type: 'login',
@@ -119,10 +166,21 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         }
 
         // Check password expiration
-        const expirationResult = await this.passwordExpiration.checkPasswordExpiration(user.id, user.passwordCreatedAt);
+        const expirationResult =
+          await this.passwordExpiration.checkPasswordExpiration(
+            user.id,
+            user.passwordCreatedAt,
+          );
 
         // Record successful login
-        await this.rateLimiter.recordAttempt(email, 'login', true, ipAddress, userAgent, user.id);
+        await this.rateLimiter.recordAttempt(
+          email,
+          'login',
+          true,
+          ipAddress,
+          userAgent,
+          user.id,
+        );
 
         authLogger.logAuthEvent({
           type: 'login',
@@ -170,16 +228,30 @@ export class DatabaseTestAuthProvider implements AuthProvider {
     }
   }
 
-  async createUser(userData: SignUpRequest, ipAddress?: string, userAgent?: string): Promise<AuthResult> {
+  async createUser(
+    userData: SignUpRequest,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<AuthResult> {
     const { email, password, name } = userData;
     const startTime = Date.now();
 
     try {
       return await timeOperation('create_user', async () => {
         // Check rate limit
-        const rateLimit = await this.rateLimiter.checkRateLimit(email, 'signup', ipAddress);
+        const rateLimit = await this.rateLimiter.checkRateLimit(
+          email,
+          'signup',
+          ipAddress,
+        );
         if (!rateLimit.allowed) {
-          await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent);
+          await this.rateLimiter.recordAttempt(
+            email,
+            'signup',
+            false,
+            ipAddress,
+            userAgent,
+          );
 
           const errorMessage = rateLimit.locked
             ? `Account creation temporarily locked. Try again after ${rateLimit.lockoutEndTime?.toLocaleTimeString()}`
@@ -226,7 +298,10 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         }
 
         // Validate password
-        const passwordValidation = this.passwordValidator.validate(password, { email, name });
+        const passwordValidation = this.passwordValidator.validate(password, {
+          email,
+          name,
+        });
         if (!passwordValidation.isValid) {
           return {
             success: false,
@@ -251,7 +326,14 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           .returning();
 
         // Record successful signup
-        await this.rateLimiter.recordAttempt(email, 'signup', true, ipAddress, userAgent, newUser.id);
+        await this.rateLimiter.recordAttempt(
+          email,
+          'signup',
+          true,
+          ipAddress,
+          userAgent,
+          newUser.id,
+        );
 
         authLogger.logAuthEvent({
           type: 'signup',
@@ -364,7 +446,10 @@ export class DatabaseTestAuthProvider implements AuthProvider {
     }
   }
 
-  async updateUser(id: string, data: UpdateProfileRequest): Promise<AuthResult> {
+  async updateUser(
+    id: string,
+    data: UpdateProfileRequest,
+  ): Promise<AuthResult> {
     try {
       // Check if user exists
       const [existingUser] = await testDb
@@ -394,10 +479,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         const [existingEmailUser] = await testDb
           .select()
           .from(users)
-          .where(and(
-            eq(users.email, data.email),
-            eq(users.id, id),
-          ))
+          .where(and(eq(users.email, data.email), eq(users.id, id)))
           .limit(1);
 
         if (existingEmailUser && existingEmailUser.id !== id) {
@@ -458,9 +540,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       }
 
       // Delete user
-      await testDb
-        .delete(users)
-        .where(eq(users.id, id));
+      await testDb.delete(users).where(eq(users.id, id));
 
       return {
         success: true,
@@ -514,7 +594,11 @@ export class DatabaseTestAuthProvider implements AuthProvider {
     }
   }
 
-  async changeUserPassword(id: string, currentPassword: string, newPassword: string): Promise<AuthResult> {
+  async changeUserPassword(
+    id: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<AuthResult> {
     try {
       // Get user
       const [user] = await testDb
@@ -531,7 +615,10 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       }
 
       // Verify current password
-      const isCurrentPasswordValid = await bcrypt.verify(currentPassword, user.password);
+      const isCurrentPasswordValid = await bcrypt.verify(
+        currentPassword,
+        user.password,
+      );
       if (!isCurrentPasswordValid) {
         return {
           success: false,
@@ -540,7 +627,10 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       }
 
       // Validate new password
-      const passwordValidation = this.passwordValidator.validate(newPassword, { email: user.email, name: user.name });
+      const passwordValidation = this.passwordValidator.validate(newPassword, {
+        email: user.email,
+        name: user.name,
+      });
       if (!passwordValidation.isValid) {
         return {
           success: false,
@@ -558,7 +648,10 @@ export class DatabaseTestAuthProvider implements AuthProvider {
 
       // Check if new password matches any recent password
       for (const historyEntry of recentPasswords) {
-        const isReused = await bcrypt.verify(newPassword, historyEntry.passwordHash);
+        const isReused = await bcrypt.verify(
+          newPassword,
+          historyEntry.passwordHash,
+        );
         if (isReused) {
           return {
             success: false,
@@ -580,13 +673,11 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         .where(eq(users.id, id));
 
       // Add current password to history
-      await testDb
-        .insert(passwordHistory)
-        .values({
-          userId: id,
-          passwordHash: user.password,
-          createdAt: new Date(),
-        });
+      await testDb.insert(passwordHistory).values({
+        userId: id,
+        passwordHash: user.password,
+        createdAt: new Date(),
+      });
 
       // Clean up old password history
       const oldPasswords = await testDb
@@ -621,7 +712,10 @@ export class DatabaseTestAuthProvider implements AuthProvider {
     }
   }
 
-  async resetUserPassword(id: string, newPassword: string): Promise<AuthResult> {
+  async resetUserPassword(
+    id: string,
+    newPassword: string,
+  ): Promise<AuthResult> {
     try {
       // Get user
       const [user] = await testDb
@@ -638,7 +732,10 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       }
 
       // Validate new password
-      const passwordValidation = this.passwordValidator.validate(newPassword, { email: user.email, name: user.name });
+      const passwordValidation = this.passwordValidator.validate(newPassword, {
+        email: user.email,
+        name: user.name,
+      });
       if (!passwordValidation.isValid) {
         return {
           success: false,
@@ -699,7 +796,9 @@ export class DatabaseTestAuthProvider implements AuthProvider {
   }
 
   // Email verification methods
-  async sendEmailVerification(email: string): Promise<{ success: boolean; error?: string }> {
+  async sendEmailVerification(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Check if user exists
       const [user] = await testDb
@@ -713,7 +812,11 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       }
 
       // Generate token
-      const tokenData = await this.tokenService.createToken(email, 'email_verification', 24 * 60); // 24 hours
+      const tokenData = await this.tokenService.createToken(
+        email,
+        'email_verification',
+        24 * 60,
+      ); // 24 hours
 
       // Send verification email
       const emailResult = await emailService.sendVerificationEmail(email, {
@@ -731,13 +834,21 @@ export class DatabaseTestAuthProvider implements AuthProvider {
     }
   }
 
-  async verifyEmailWithToken(token: string): Promise<{ success: boolean; error?: string }> {
+  async verifyEmailWithToken(
+    token: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Verify token
-      const verifyResult = await this.tokenService.verifyToken(token, 'email_verification');
+      const verifyResult = await this.tokenService.verifyToken(
+        token,
+        'email_verification',
+      );
 
       if (!verifyResult.valid) {
-        return { success: false, error: 'Invalid or expired verification token' };
+        return {
+          success: false,
+          error: 'Invalid or expired verification token',
+        };
       }
 
       // Get user by email from token
@@ -764,7 +875,9 @@ export class DatabaseTestAuthProvider implements AuthProvider {
   }
 
   // Password reset methods
-  async sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+  async sendPasswordReset(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Check if user exists
       const [user] = await testDb
@@ -779,7 +892,11 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       }
 
       // Generate token
-      const tokenData = await this.tokenService.createToken(email, 'password_reset', 60); // 1 hour
+      const tokenData = await this.tokenService.createToken(
+        email,
+        'password_reset',
+        60,
+      ); // 1 hour
 
       // Send reset email
       const emailResult = await emailService.sendPasswordResetEmail(email, {
@@ -797,10 +914,16 @@ export class DatabaseTestAuthProvider implements AuthProvider {
     }
   }
 
-  async resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+  async resetPasswordWithToken(
+    token: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Verify token
-      const verifyResult = await this.tokenService.verifyToken(token, 'password_reset');
+      const verifyResult = await this.tokenService.verifyToken(
+        token,
+        'password_reset',
+      );
 
       if (!verifyResult.valid) {
         return { success: false, error: 'Invalid or expired reset token' };

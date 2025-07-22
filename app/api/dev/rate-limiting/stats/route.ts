@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { EnhancedRateLimiter, ENHANCED_RATE_LIMITS } from '@/lib/auth/enhanced-rate-limiter';
+import {
+  EnhancedRateLimiter,
+  ENHANCED_RATE_LIMITS,
+} from '@/lib/auth/enhanced-rate-limiter';
 
 const rateLimiter = new EnhancedRateLimiter();
 
@@ -14,7 +17,9 @@ export async function GET(request: NextRequest) {
     const hours = timeRange === '1h' ? 1 : timeRange === '7d' ? 168 : 24;
 
     // Get statistics for all types or specific type
-    const types = type ? [type] : ['login', 'signup', 'api', 'passwordReset', 'upload'];
+    const types = type
+      ? [type]
+      : ['login', 'signup', 'api', 'passwordReset', 'upload'];
     const stats: Record<string, unknown> = {};
 
     for (const rateLimitType of types) {
@@ -27,10 +32,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get current configurations
-    const configurations = Object.entries(ENHANCED_RATE_LIMITS).map(([type, config]) => ({
-      type,
-      ...config,
-    }));
+    const configurations = Object.entries(ENHANCED_RATE_LIMITS).map(
+      ([type, config]) => ({
+        type,
+        ...config,
+      }),
+    );
 
     // Mock active limits for demonstration
     // In a real implementation, you would query current rate limit states
@@ -39,7 +46,7 @@ export async function GET(request: NextRequest) {
         identifier: 'user@example.com',
         type: 'login',
         remaining: 3,
-        resetTime: new Date(Date.now() + (10 * 60 * 1000)).toISOString(),
+        resetTime: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         locked: false,
         algorithm: 'sliding-window',
       },
@@ -47,7 +54,7 @@ export async function GET(request: NextRequest) {
         identifier: '192.168.1.100',
         type: 'api',
         remaining: 87,
-        resetTime: new Date(Date.now() + (45 * 60 * 1000)).toISOString(),
+        resetTime: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
         locked: false,
         algorithm: 'token-bucket',
       },

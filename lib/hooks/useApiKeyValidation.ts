@@ -5,16 +5,23 @@ import { API_KEY_VALIDATION } from '@/lib/constants/validation';
 import { validateApiKeyFormat } from '@/lib/utils/api-key-validation';
 
 export interface UseApiKeyValidationProps {
-  service: string
-  title: string
+  service: string;
+  title: string;
 }
 
-export function useApiKeyValidation({ service, title }: UseApiKeyValidationProps) {
+export function useApiKeyValidation({
+  service,
+  title,
+}: UseApiKeyValidationProps) {
   const [isValidating, setIsValidating] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error' | 'info';
+    text: string;
+  } | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [hasValidatedKey, setHasValidatedKey] = useState(false);
-  const [validationTimeout, setValidationTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [validationTimeout, setValidationTimeout] =
+    useState<NodeJS.Timeout | null>(null);
   const [isPasteValidating, setIsPasteValidating] = useState(false);
 
   const validateApiKey = async (key: string) => {
@@ -40,7 +47,10 @@ export function useApiKeyValidation({ service, title }: UseApiKeyValidationProps
         setHasValidatedKey(false);
       }
     } catch {
-      setMessage({ type: 'error', text: 'An error occurred while testing the API key' });
+      setMessage({
+        type: 'error',
+        text: 'An error occurred while testing the API key',
+      });
       setHasValidatedKey(false);
     } finally {
       setIsValidating(false);
@@ -59,7 +69,10 @@ export function useApiKeyValidation({ service, title }: UseApiKeyValidationProps
         validateApiKey(actualNewValue);
       }
       // Clear paste flag after a short delay
-      setTimeout(() => setIsPasteValidating(false), API_KEY_VALIDATION.PASTE_VALIDATION_CLEAR_DELAY);
+      setTimeout(
+        () => setIsPasteValidating(false),
+        API_KEY_VALIDATION.PASTE_VALIDATION_CLEAR_DELAY,
+      );
     }, 0);
   };
 

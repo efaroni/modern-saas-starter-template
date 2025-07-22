@@ -1,6 +1,12 @@
 import { Resend } from 'resend';
 
-import { type EmailService, type EmailResult, type PasswordResetEmailData, type EmailVerificationData, type WelcomeEmailData } from './types';
+import {
+  type EmailService,
+  type EmailResult,
+  type PasswordResetEmailData,
+  type EmailVerificationData,
+  type WelcomeEmailData,
+} from './types';
 
 export class ResendEmailService implements EmailService {
   private resend: Resend;
@@ -13,7 +19,10 @@ export class ResendEmailService implements EmailService {
     this.baseUrl = baseUrl;
   }
 
-  async sendPasswordResetEmail(email: string, data: PasswordResetEmailData): Promise<EmailResult> {
+  async sendPasswordResetEmail(
+    email: string,
+    data: PasswordResetEmailData,
+  ): Promise<EmailResult> {
     try {
       await this.resend.emails.send({
         from: this.from,
@@ -49,7 +58,10 @@ export class ResendEmailService implements EmailService {
     }
   }
 
-  async sendVerificationEmail(email: string, data: EmailVerificationData): Promise<EmailResult> {
+  async sendVerificationEmail(
+    email: string,
+    data: EmailVerificationData,
+  ): Promise<EmailResult> {
     try {
       await this.resend.emails.send({
         from: this.from,
@@ -85,7 +97,10 @@ export class ResendEmailService implements EmailService {
     }
   }
 
-  async sendWelcomeEmail(email: string, data: WelcomeEmailData): Promise<EmailResult> {
+  async sendWelcomeEmail(
+    email: string,
+    data: WelcomeEmailData,
+  ): Promise<EmailResult> {
     try {
       await this.resend.emails.send({
         from: this.from,

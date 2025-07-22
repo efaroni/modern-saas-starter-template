@@ -42,7 +42,10 @@ export async function initializeTestDatabase() {
       await testClient`SELECT 1 as test`;
       console.log('Test database connection successful');
     } catch (connectionError) {
-      console.error('Cannot connect to test database:', connectionError.message);
+      console.error(
+        'Cannot connect to test database:',
+        connectionError.message,
+      );
       console.error('Please ensure the test database exists and is accessible');
       return false;
     }
@@ -102,7 +105,9 @@ export async function initializeTestDatabase() {
 
         // If it's a timeout, be more explicit
         if (migrationError.code === 'TIMEOUT') {
-          console.error('Migration timed out after 30 seconds - this may indicate a database connection issue');
+          console.error(
+            'Migration timed out after 30 seconds - this may indicate a database connection issue',
+          );
         }
 
         // Continue anyway - tests will fail if tables don't exist
@@ -177,38 +182,51 @@ export async function clearWorkerTestData() {
         // Check which tables exist and use correct column names
         try {
           await testClient`DELETE FROM session_activity WHERE user_id = ${userId}`;
-        } catch (e) { /* Table may not exist */ }
+        } catch (e) {
+          /* Table may not exist */
+        }
 
         try {
           await testClient`DELETE FROM user_sessions WHERE user_id = ${userId}`;
-        } catch (e) { /* Table may not exist */ }
+        } catch (e) {
+          /* Table may not exist */
+        }
 
         try {
           await testClient`DELETE FROM auth_attempts WHERE user_id = ${userId}`;
-        } catch (e) { /* Table may not exist */ }
+        } catch (e) {
+          /* Table may not exist */
+        }
 
         try {
           await testClient`DELETE FROM password_history WHERE user_id = ${userId}`;
-        } catch (e) { /* Table may not exist */ }
+        } catch (e) {
+          /* Table may not exist */
+        }
 
         try {
           await testClient`DELETE FROM accounts WHERE user_id = ${userId}`;
-        } catch (e) { /* Table may not exist */ }
+        } catch (e) {
+          /* Table may not exist */
+        }
 
         try {
           await testClient`DELETE FROM sessions WHERE user_id = ${userId}`;
-        } catch (e) { /* Table may not exist */ }
+        } catch (e) {
+          /* Table may not exist */
+        }
 
         try {
           await testClient`DELETE FROM user_api_keys WHERE user_id = ${userId}`;
-        } catch (e) { /* Table may not exist */ }
+        } catch (e) {
+          /* Table may not exist */
+        }
       }
     }
 
     // Clear verification tokens and users with worker prefix
     await testClient`DELETE FROM verification_tokens WHERE identifier LIKE ${workerPrefix}`;
     await testClient`DELETE FROM users WHERE email LIKE ${workerPrefix}`;
-
   } catch (error) {
     console.log('Worker test data cleanup failed:', error);
   }
@@ -229,20 +247,24 @@ export async function closeTestDatabase() {
 }
 
 // Test database helpers for isolation
-export async function withTestTransaction<T>(fn: (db: any) => Promise<T>): Promise<T> {
+export async function withTestTransaction<T>(
+  fn: (db: any) => Promise<T>,
+): Promise<T> {
   // Use actual database transactions for test isolation
-  return await testDb.transaction(async (tx) => {
-    const result = await fn(tx);
-    // Throw an error to force rollback and maintain test isolation
-    throw new TestTransactionRollback(result);
-  }).catch((error) => {
-    // If it's our intentional rollback, return the result
-    if (error instanceof TestTransactionRollback) {
-      return error.result;
-    }
-    // Otherwise, re-throw the actual error
-    throw error;
-  });
+  return await testDb
+    .transaction(async tx => {
+      const result = await fn(tx);
+      // Throw an error to force rollback and maintain test isolation
+      throw new TestTransactionRollback(result);
+    })
+    .catch(error => {
+      // If it's our intentional rollback, return the result
+      if (error instanceof TestTransactionRollback) {
+        return error.result;
+      }
+      // Otherwise, re-throw the actual error
+      throw error;
+    });
 }
 
 // Custom error class for intentional transaction rollback
@@ -255,14 +277,16 @@ class TestTransactionRollback extends Error {
 
 // Factory functions for test data
 export const testFactories = {
-  createUserApiKey: (overrides: Partial<{
-    id: string
-    userId: string
-    provider: string
-    publicKey: string
-    privateKeyEncrypted: string
-    metadata: Record<string, any>
-  }> = {}) => ({
+  createUserApiKey: (
+    overrides: Partial<{
+      id: string;
+      userId: string;
+      provider: string;
+      publicKey: string;
+      privateKeyEncrypted: string;
+      metadata: Record<string, any>;
+    }> = {},
+  ) => ({
     id: `00000000-0000-0000-0000-${Date.now().toString(16).padStart(12, '0')}`,
     userId: '00000000-0000-0000-0000-000000000001',
     provider: 'openai',

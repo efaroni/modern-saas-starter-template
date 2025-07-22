@@ -31,7 +31,7 @@ on:
 
   # Trigger after successful CI completion
   workflow_run:
-    workflows: ["CI"]
+    workflows: ['CI']
     types: [completed]
     branches: [main, develop]
 
@@ -69,30 +69,30 @@ env:
   TEST_DB_USER: postgres
   TEST_DB_PASSWORD: postgres
   TEST_DB_NAME: saas_template_e2e
-  
+
   # Redis configuration
   REDIS_URL: redis://localhost:6379
-  
+
   # Auth configuration
   AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'test-secret-key-for-e2e-testing-only-not-for-production' }}
   NEXTAUTH_URL: http://localhost:3000
-  
+
   # Email service (mock for E2E)
   RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || 'test-key' }}
-  
+
   # Stripe (test keys for E2E)
   STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY || 'sk_test_mock' }}
   STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_TEST_WEBHOOK_SECRET || 'whsec_test_mock' }}
-  
+
   # OAuth providers (test configuration)
   GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_TEST_CLIENT_ID || 'test-client-id' }}
   GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_TEST_CLIENT_SECRET || 'test-client-secret' }}
   GITHUB_CLIENT_ID: ${{ secrets.GITHUB_TEST_CLIENT_ID || 'test-github-id' }}
   GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_TEST_CLIENT_SECRET || 'test-github-secret' }}
-  
+
   # AI service (optional for E2E)
   OPENAI_API_KEY: ${{ secrets.OPENAI_TEST_API_KEY || 'test-openai-key' }}
-  
+
   # E2E specific configuration
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 0
   CI: true
@@ -120,7 +120,7 @@ jobs:
     if: |
       github.event_name != 'workflow_run' || 
       (github.event_name == 'workflow_run' && needs.check-ci-status.outputs.should-run == 'true')
-    
+
     needs: [check-ci-status]
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -129,11 +129,11 @@ jobs:
       fail-fast: false
       matrix:
         # Browser matrix based on input or default comprehensive testing
-        browser: 
-          - ${{ 
-              github.event_name == 'workflow_dispatch' && github.event.inputs.browser != 'all' && 
-              fromJSON('["' + github.event.inputs.browser + '"]') || 
-              fromJSON('["chromium", "firefox", "webkit"]') 
+        browser:
+          - ${{
+            github.event_name == 'workflow_dispatch' && github.event.inputs.browser != 'all' &&
+            fromJSON('["' + github.event.inputs.browser + '"]') ||
+            fromJSON('["chromium", "firefox", "webkit"]')
             }}
         # Shard tests for parallel execution (adjust based on test count)
         shard: [1/3, 2/3, 3/3]
@@ -142,11 +142,11 @@ jobs:
           - browser: chromium
             shard: 1/3
             mobile: true
-            device: "Pixel 5"
+            device: 'Pixel 5'
           - browser: chromium
             shard: 2/3
             mobile: true
-            device: "iPhone 12"
+            device: 'iPhone 12'
 
     services:
       # PostgreSQL service for database operations
@@ -219,10 +219,10 @@ jobs:
           echo "Setting up test database..."
           # Wait for PostgreSQL to be ready
           timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do sleep 1; done'
-          
+
           # Run database migrations
           npm run db:push
-          
+
           # Optional: Seed test data if needed
           if [ -f "scripts/seed-test-database.ts" ]; then
             npm run seed:test || echo "No test seeding script found, skipping..."
@@ -259,13 +259,13 @@ jobs:
           else
             BROWSER_CONFIG="--project=${{ matrix.browser }}"
           fi
-          
+
           # Debug mode configuration
           DEBUG_FLAGS=""
           if [[ "${{ github.event.inputs.debug }}" == "true" ]]; then
             DEBUG_FLAGS="--debug --headed"
           fi
-          
+
           # Run tests with sharding and retries
           npx playwright test \
             $BROWSER_CONFIG \
@@ -384,24 +384,24 @@ jobs:
         run: |
           echo "# E2E Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Count test results
           TOTAL_TESTS=$(find all-test-results -name "*.xml" -exec grep -h 'testcase' {} \; | wc -l || echo "0")
           FAILED_TESTS=$(find all-test-results -name "*.xml" -exec grep -h 'failure\|error' {} \; | wc -l || echo "0")
           PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS))
-          
+
           echo "- **Total Tests:** $TOTAL_TESTS" >> $GITHUB_STEP_SUMMARY
           echo "- **Passed:** $PASSED_TESTS" >> $GITHUB_STEP_SUMMARY
           echo "- **Failed:** $FAILED_TESTS" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Browser coverage
           echo "## Browser Coverage" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Chromium (Desktop + Mobile)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Firefox" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ WebKit (Safari)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Test categories
           echo "## Test Categories" >> $GITHUB_STEP_SUMMARY
           echo "- 🔐 Authentication Flows" >> $GITHUB_STEP_SUMMARY
@@ -423,7 +423,7 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
-            
+
             // Create an issue for persistent failures
             if (context.eventName === 'schedule') {
               await github.rest.issues.create({
@@ -462,11 +462,11 @@ jobs:
 
 # Health check endpoint for the application
 # This can be added to your Next.js app at app/api/health/route.ts
-# 
+#
 # export async function GET() {
-#   return Response.json({ 
-#     status: 'ok', 
+#   return Response.json({
+#     status: 'ok',
 #     timestamp: new Date().toISOString(),
-#     environment: process.env.NODE_ENV 
+#     environment: process.env.NODE_ENV
 #   });
 # }

@@ -5,17 +5,17 @@ import { db } from '@/lib/db/server';
 import { addMinutes, getDaysAgo } from '@/lib/utils/date-time';
 
 export interface RateLimitConfig {
-  maxAttempts: number
-  windowMinutes: number
-  lockoutMinutes: number
+  maxAttempts: number;
+  windowMinutes: number;
+  lockoutMinutes: number;
 }
 
 export interface RateLimitResult {
-  allowed: boolean
-  remaining: number
-  resetTime: Date
-  locked: boolean
-  lockoutEndTime?: Date
+  allowed: boolean;
+  remaining: number;
+  resetTime: Date;
+  locked: boolean;
+  lockoutEndTime?: Date;
 }
 
 export const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
@@ -40,7 +40,10 @@ export class RateLimiter {
   private config: Record<string, RateLimitConfig>;
   private readonly database: typeof db;
 
-  constructor(database: typeof db = db, config: Record<string, RateLimitConfig> = DEFAULT_RATE_LIMITS) {
+  constructor(
+    database: typeof db = db,
+    config: Record<string, RateLimitConfig> = DEFAULT_RATE_LIMITS,
+  ) {
     this.database = database;
     this.config = config;
   }
@@ -88,7 +91,10 @@ export class RateLimiter {
 
       if (recentFailures.length >= config.maxAttempts) {
         const lastFailure = recentFailures[recentFailures.length - 1];
-        const lockoutEndTime = addMinutes(config.lockoutMinutes, lastFailure.createdAt);
+        const lockoutEndTime = addMinutes(
+          config.lockoutMinutes,
+          lastFailure.createdAt,
+        );
 
         if (new Date() < lockoutEndTime) {
           return {
@@ -104,9 +110,8 @@ export class RateLimiter {
       // Check rate limit
       const remaining = Math.max(0, config.maxAttempts - recentAttempts.length);
       const resetTime = new Date(
-        Math.max(
-          ...recentAttempts.map(a => a.createdAt.getTime()),
-        ) + config.windowMinutes * 60 * 1000,
+        Math.max(...recentAttempts.map(a => a.createdAt.getTime())) +
+          config.windowMinutes * 60 * 1000,
       );
 
       return {
@@ -143,7 +148,11 @@ export class RateLimiter {
       if (userId) {
         const { users } = await import('@/lib/db/schema');
         const { eq } = await import('drizzle-orm');
-        const userExists = await this.database.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
+        const userExists = await this.database
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
 
         // If user doesn't exist, record attempt without userId to avoid foreign key error
         if (userExists.length === 0) {
@@ -229,7 +238,10 @@ export class RateLimiter {
   /**
    * Check if IP should be blocked (multiple failed attempts from same IP)
    */
-  async checkIPRateLimit(ipAddress: string, type: string): Promise<RateLimitResult> {
+  async checkIPRateLimit(
+    ipAddress: string,
+    type: string,
+  ): Promise<RateLimitResult> {
     if (!ipAddress) {
       return {
         allowed: true,

@@ -1,35 +1,35 @@
 import { Redis } from 'ioredis';
 
 export interface CacheConfig {
-  host: string
-  port: number
-  password?: string
-  db?: number
-  keyPrefix?: string
-  connectTimeout?: number
-  commandTimeout?: number
-  retryDelayOnFailover?: number
-  maxRetriesPerRequest?: number
-  lazyConnect?: boolean
-  keepAlive?: number
-  enableReadyCheck?: boolean
-  maxLoadingTimeout?: number
+  host: string;
+  port: number;
+  password?: string;
+  db?: number;
+  keyPrefix?: string;
+  connectTimeout?: number;
+  commandTimeout?: number;
+  retryDelayOnFailover?: number;
+  maxRetriesPerRequest?: number;
+  lazyConnect?: boolean;
+  keepAlive?: number;
+  enableReadyCheck?: boolean;
+  maxLoadingTimeout?: number;
 }
 
 export interface CacheItem<T = any> {
-  data: T
-  timestamp: number
-  ttl: number
+  data: T;
+  timestamp: number;
+  ttl: number;
 }
 
 export interface CacheStats {
-  hits: number
-  misses: number
-  sets: number
-  deletes: number
-  errors: number
-  hitRate: number
-  totalOperations: number
+  hits: number;
+  misses: number;
+  sets: number;
+  deletes: number;
+  errors: number;
+  hitRate: number;
+  totalOperations: number;
 }
 
 export class RedisCache {
@@ -70,7 +70,7 @@ export class RedisCache {
         maxLoadingTimeout: config.maxLoadingTimeout || 5000,
 
         // Retry strategy
-        retryStrategy: (times) => {
+        retryStrategy: times => {
           const delay = Math.min(times * 50, 2000);
           return delay;
         },
@@ -91,7 +91,7 @@ export class RedisCache {
         this.connected = true;
       });
 
-      this.redis.on('error', (err) => {
+      this.redis.on('error', err => {
         console.error('Redis connection error:', err);
         this.connected = false;
         this.stats.errors++;
@@ -117,7 +117,6 @@ export class RedisCache {
       this.redis.on('reconnecting', () => {
         console.log('Reconnecting to Redis...');
       });
-
     } catch (error) {
       console.error('Failed to initialize Redis:', error);
       this.useRedis = false;
@@ -125,7 +124,11 @@ export class RedisCache {
   }
 
   // Set cache item with TTL
-  async set<T>(key: string, value: T, ttlSeconds: number = 300): Promise<boolean> {
+  async set<T>(
+    key: string,
+    value: T,
+    ttlSeconds: number = 300,
+  ): Promise<boolean> {
     try {
       this.stats.sets++;
       this.updateStats();
@@ -460,8 +463,15 @@ export class RedisCache {
 
   // Private helper methods
   private updateStats(): void {
-    this.stats.totalOperations = this.stats.hits + this.stats.misses + this.stats.sets + this.stats.deletes;
-    this.stats.hitRate = this.stats.totalOperations > 0 ? this.stats.hits / this.stats.totalOperations : 0;
+    this.stats.totalOperations =
+      this.stats.hits +
+      this.stats.misses +
+      this.stats.sets +
+      this.stats.deletes;
+    this.stats.hitRate =
+      this.stats.totalOperations > 0
+        ? this.stats.hits / this.stats.totalOperations
+        : 0;
   }
 
   private matchesPattern(key: string, pattern: string): boolean {
@@ -484,7 +494,9 @@ export class RedisCache {
         if (!result[currentSection]) {
           result[currentSection] = {};
         }
-        result[currentSection][key] = isNaN(Number(value)) ? value : Number(value);
+        result[currentSection][key] = isNaN(Number(value))
+          ? value
+          : Number(value);
       }
     }
 

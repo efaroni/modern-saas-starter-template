@@ -26,7 +26,7 @@ export const htmlSanitizer = {
       "'": '&#x27;',
       '/': '&#x2F;',
     };
-    return input.replace(/[&<>"'/]/g, (char) => escapeMap[char] || char);
+    return input.replace(/[&<>"'/]/g, char => escapeMap[char] || char);
   },
 
   /**
@@ -48,7 +48,7 @@ export const sqlSanitizer = {
    * Escape SQL special characters
    */
   escapeSql: (input: string): string => {
-    return input.replace(/['";\\]/g, (char) => '\\' + char);
+    return input.replace(/['";\\]/g, char => '\\' + char);
   },
 
   /**
@@ -121,7 +121,11 @@ export const contentValidator = {
    */
   suspiciousPatterns: (input: string): string[] => {
     const patterns = [
-      { name: 'sql_injection', regex: /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i },
+      {
+        name: 'sql_injection',
+        regex:
+          /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i,
+      },
       { name: 'xss_script', regex: /<script[^>]*>.*?<\/script>/gi },
       { name: 'xss_javascript', regex: /javascript:/gi },
       { name: 'path_traversal', regex: /\.\.[\/\\]/g },
@@ -142,11 +146,13 @@ export class InputSanitizer {
   private maxArrayLength: number = 1000;
   private maxDepth: number = 10;
 
-  constructor(options: {
-    maxStringLength?: number
-    maxArrayLength?: number
-    maxDepth?: number
-  } = {}) {
+  constructor(
+    options: {
+      maxStringLength?: number;
+      maxArrayLength?: number;
+      maxDepth?: number;
+    } = {},
+  ) {
     this.maxStringLength = options.maxStringLength || 10000;
     this.maxArrayLength = options.maxArrayLength || 1000;
     this.maxDepth = options.maxDepth || 10;
@@ -155,20 +161,25 @@ export class InputSanitizer {
   /**
    * Sanitize string input
    */
-  sanitizeString(input: string, options: {
-    stripHtml?: boolean
-    escapeHtml?: boolean
-    maxLength?: number
-    allowedPattern?: RegExp
-    preventXss?: boolean
-  } = {}): string {
+  sanitizeString(
+    input: string,
+    options: {
+      stripHtml?: boolean;
+      escapeHtml?: boolean;
+      maxLength?: number;
+      allowedPattern?: RegExp;
+      preventXss?: boolean;
+    } = {},
+  ): string {
     if (typeof input !== 'string') {
       throw ErrorFactory.validation('Input must be a string');
     }
 
     const maxLength = options.maxLength || this.maxStringLength;
     if (input.length > maxLength) {
-      throw ErrorFactory.validation(`Input too long (max ${maxLength} characters)`);
+      throw ErrorFactory.validation(
+        `Input too long (max ${maxLength} characters)`,
+      );
     }
 
     let sanitized = input.trim();
@@ -176,7 +187,9 @@ export class InputSanitizer {
     // Check for suspicious patterns
     const suspiciousPatterns = contentValidator.suspiciousPatterns(sanitized);
     if (suspiciousPatterns.length > 0) {
-      throw ErrorFactory.security(`Suspicious patterns detected: ${suspiciousPatterns.join(', ')}`);
+      throw ErrorFactory.security(
+        `Suspicious patterns detected: ${suspiciousPatterns.join(', ')}`,
+      );
     }
 
     // Apply sanitization
@@ -285,14 +298,17 @@ export class InputSanitizer {
 
     if (Array.isArray(input)) {
       if (input.length > this.maxArrayLength) {
-        throw ErrorFactory.validation(`Array too long (max ${this.maxArrayLength} items)`);
+        throw ErrorFactory.validation(
+          `Array too long (max ${this.maxArrayLength} items)`,
+        );
       }
       return input.map(item => this.sanitizeObject(item, depth + 1, schema));
     }
 
     if (typeof input === 'object') {
       const keys = Object.keys(input);
-      if (keys.length > 100) { // Reasonable limit for object properties
+      if (keys.length > 100) {
+        // Reasonable limit for object properties
         throw ErrorFactory.validation('Object has too many properties');
       }
 
@@ -332,10 +348,21 @@ export const validationSchemas = {
   email: z.string().email().max(254),
   uuid: z.string().uuid(),
   password: z.string().min(8).max(128),
-  username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_]+$/),
-  name: z.string().min(1).max(100).regex(/^[a-zA-Z\s'-]+$/),
+  username: z
+    .string()
+    .min(3)
+    .max(50)
+    .regex(/^[a-zA-Z0-9_]+$/),
+  name: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-zA-Z\s'-]+$/),
   url: z.string().url().max(2048),
-  phoneNumber: z.string().regex(/^\+?[\d\s-()]+$/).max(20),
+  phoneNumber: z
+    .string()
+    .regex(/^\+?[\d\s-()]+$/)
+    .max(20),
 
   // Pagination
   page: z.number().int().min(1).max(1000),

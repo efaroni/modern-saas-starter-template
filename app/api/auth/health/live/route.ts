@@ -57,7 +57,8 @@ export function GET(_request: NextRequest) {
         timestamp: new Date(),
         error: 'Liveness check failed',
         details: {
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          errorMessage:
+            error instanceof Error ? error.message : 'Unknown error',
         },
       },
       { status: 503 },

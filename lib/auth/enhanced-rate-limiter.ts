@@ -5,30 +5,30 @@ import { db } from '@/lib/db/server';
 import { addMinutes, getDaysAgo } from '@/lib/utils/date-time';
 
 export interface RateLimitConfig {
-  maxAttempts: number
-  windowMinutes: number
-  lockoutMinutes: number
-  algorithm: 'fixed-window' | 'sliding-window' | 'token-bucket'
-  burstLimit?: number // For token bucket
-  refillRate?: number // For token bucket (tokens per minute)
-  adaptiveScaling?: boolean // Enable adaptive rate limiting
+  maxAttempts: number;
+  windowMinutes: number;
+  lockoutMinutes: number;
+  algorithm: 'fixed-window' | 'sliding-window' | 'token-bucket';
+  burstLimit?: number; // For token bucket
+  refillRate?: number; // For token bucket (tokens per minute)
+  adaptiveScaling?: boolean; // Enable adaptive rate limiting
 }
 
 export interface RateLimitResult {
-  allowed: boolean
-  remaining: number
-  resetTime: Date
-  locked: boolean
-  lockoutEndTime?: Date
-  algorithm: string
-  retryAfter?: number // Seconds until next allowed request
+  allowed: boolean;
+  remaining: number;
+  resetTime: Date;
+  locked: boolean;
+  lockoutEndTime?: Date;
+  algorithm: string;
+  retryAfter?: number; // Seconds until next allowed request
 }
 
 export interface TokenBucketState {
-  tokens: number
-  lastRefill: Date
-  capacity: number
-  refillRate: number
+  tokens: number;
+  lastRefill: Date;
+  capacity: number;
+  refillRate: number;
 }
 
 export const ENHANCED_RATE_LIMITS: Record<string, RateLimitConfig> = {
@@ -77,7 +77,10 @@ export class EnhancedRateLimiter {
   private tokenBuckets: Map<string, TokenBucketState> = new Map();
   private adaptiveFactors: Map<string, number> = new Map();
 
-  constructor(database: typeof db = db, config: Record<string, RateLimitConfig> = ENHANCED_RATE_LIMITS) {
+  constructor(
+    database: typeof db = db,
+    config: Record<string, RateLimitConfig> = ENHANCED_RATE_LIMITS,
+  ) {
     this.database = database;
     this.config = config;
   }
@@ -97,13 +100,21 @@ export class EnhancedRateLimiter {
 
     try {
       // Apply adaptive scaling if enabled
-      const effectiveConfig = this.applyAdaptiveScaling(config, identifier, type);
+      const effectiveConfig = this.applyAdaptiveScaling(
+        config,
+        identifier,
+        type,
+      );
 
       switch (effectiveConfig.algorithm) {
         case 'token-bucket':
           return await this.checkTokenBucket(identifier, type, effectiveConfig);
         case 'sliding-window':
-          return await this.checkSlidingWindow(identifier, type, effectiveConfig);
+          return await this.checkSlidingWindow(
+            identifier,
+            type,
+            effectiveConfig,
+          );
         case 'fixed-window':
         default:
           return await this.checkFixedWindow(identifier, type, effectiveConfig);
@@ -145,7 +156,10 @@ export class EnhancedRateLimiter {
 
     if (recentFailures.length >= config.maxAttempts) {
       const lastFailure = recentFailures[recentFailures.length - 1];
-      const lockoutEndTime = addMinutes(config.lockoutMinutes, lastFailure.createdAt);
+      const lockoutEndTime = addMinutes(
+        config.lockoutMinutes,
+        lastFailure.createdAt,
+      );
 
       if (new Date() < lockoutEndTime) {
         return {
@@ -162,9 +176,8 @@ export class EnhancedRateLimiter {
 
     const remaining = Math.max(0, config.maxAttempts - recentAttempts.length);
     const resetTime = new Date(
-      Math.max(
-        ...recentAttempts.map(a => a.createdAt.getTime()),
-      ) + config.windowMinutes * 60 * 1000,
+      Math.max(...recentAttempts.map(a => a.createdAt.getTime())) +
+        config.windowMinutes * 60 * 1000,
     );
 
     return {
@@ -215,7 +228,9 @@ export class EnhancedRateLimiter {
     const consecutiveFailures = this.getConsecutiveFailures(recentFailures);
 
     if (consecutiveFailures >= config.maxAttempts) {
-      const lockoutMinutes = config.lockoutMinutes * Math.min(consecutiveFailures / config.maxAttempts, 3);
+      const lockoutMinutes =
+        config.lockoutMinutes *
+        Math.min(consecutiveFailures / config.maxAttempts, 3);
       const lockoutEndTime = addMinutes(lockoutMinutes);
 
       return {
@@ -229,8 +244,13 @@ export class EnhancedRateLimiter {
       };
     }
 
-    const remaining = Math.max(0, config.maxAttempts - Math.ceil(weightedCount));
-    const resetTime = new Date(now.getTime() + config.windowMinutes * 60 * 1000);
+    const remaining = Math.max(
+      0,
+      config.maxAttempts - Math.ceil(weightedCount),
+    );
+    const resetTime = new Date(
+      now.getTime() + config.windowMinutes * 60 * 1000,
+    );
 
     return {
       allowed: remaining > 0,
@@ -265,7 +285,8 @@ export class EnhancedRateLimiter {
     }
 
     // Refill tokens based on time elapsed
-    const timeSinceLastRefill = (now.getTime() - bucket.lastRefill.getTime()) / 1000 / 60; // minutes
+    const timeSinceLastRefill =
+      (now.getTime() - bucket.lastRefill.getTime()) / 1000 / 60; // minutes
     const tokensToAdd = Math.floor(timeSinceLastRefill * bucket.refillRate);
 
     if (tokensToAdd > 0) {
@@ -278,8 +299,10 @@ export class EnhancedRateLimiter {
     const remaining = Math.floor(bucket.tokens);
 
     // Calculate when next token will be available
-    const secondsUntilNextToken = bucket.tokens < 1 ?
-      Math.ceil((1 - bucket.tokens) * 60 / bucket.refillRate) : 0;
+    const secondsUntilNextToken =
+      bucket.tokens < 1
+        ? Math.ceil(((1 - bucket.tokens) * 60) / bucket.refillRate)
+        : 0;
 
     const resetTime = new Date(now.getTime() + secondsUntilNextToken * 1000);
 
@@ -312,7 +335,10 @@ export class EnhancedRateLimiter {
     return {
       ...config,
       maxAttempts: Math.max(1, Math.floor(config.maxAttempts * currentFactor)),
-      lockoutMinutes: Math.max(1, Math.floor(config.lockoutMinutes / currentFactor)),
+      lockoutMinutes: Math.max(
+        1,
+        Math.floor(config.lockoutMinutes / currentFactor),
+      ),
     };
   }
 
@@ -371,7 +397,11 @@ export class EnhancedRateLimiter {
       // Record in database (same as original)
       if (userId) {
         const { users } = await import('@/lib/db/schema');
-        const userExists = await this.database.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
+        const userExists = await this.database
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
         if (userExists.length === 0) {
           userId = undefined;
         }
@@ -398,11 +428,11 @@ export class EnhancedRateLimiter {
     type?: string,
     hours: number = 24,
   ): Promise<{
-    totalAttempts: number
-    successfulAttempts: number
-    failedAttempts: number
-    uniqueIPs: number
-    topFailureReasons: Array<{ reason: string; count: number }>
+    totalAttempts: number;
+    successfulAttempts: number;
+    failedAttempts: number;
+    uniqueIPs: number;
+    topFailureReasons: Array<{ reason: string; count: number }>;
   }> {
     try {
       const windowStart = new Date(Date.now() - hours * 60 * 60 * 1000);
@@ -425,7 +455,8 @@ export class EnhancedRateLimiter {
       const totalAttempts = attempts.length;
       const successfulAttempts = attempts.filter(a => a.success).length;
       const failedAttempts = totalAttempts - successfulAttempts;
-      const uniqueIPs = new Set(attempts.map(a => a.ipAddress).filter(Boolean)).size;
+      const uniqueIPs = new Set(attempts.map(a => a.ipAddress).filter(Boolean))
+        .size;
 
       return {
         totalAttempts,
@@ -461,7 +492,8 @@ export class EnhancedRateLimiter {
     }
 
     // Clean up adaptive factors (could be more sophisticated)
-    if (this.adaptiveFactors.size > 10000) { // Prevent memory leaks
+    if (this.adaptiveFactors.size > 10000) {
+      // Prevent memory leaks
       this.adaptiveFactors.clear();
     }
   }

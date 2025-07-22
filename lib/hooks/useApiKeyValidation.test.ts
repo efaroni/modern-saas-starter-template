@@ -10,7 +10,9 @@ jest.mock('@/app/actions/user-api-keys', () => ({
   testUserApiKey: jest.fn(),
 }));
 
-const mockTestUserApiKey = testUserApiKey as jest.MockedFunction<typeof testUserApiKey>;
+const mockTestUserApiKey = testUserApiKey as jest.MockedFunction<
+  typeof testUserApiKey
+>;
 
 describe('useApiKeyValidation', () => {
   beforeEach(() => {
@@ -54,7 +56,9 @@ describe('useApiKeyValidation', () => {
     act(() => result.current.validateKey('valid-key-12345'));
     expect(mockTestUserApiKey).not.toHaveBeenCalled();
 
-    act(() => jest.advanceTimersByTime(API_KEY_VALIDATION.AUTO_VALIDATION_TIMEOUT));
+    act(() =>
+      jest.advanceTimersByTime(API_KEY_VALIDATION.AUTO_VALIDATION_TIMEOUT),
+    );
 
     await waitFor(() => {
       expect(mockTestUserApiKey).toHaveBeenCalled();
@@ -82,5 +86,4 @@ describe('useApiKeyValidation', () => {
       expect(mockTestUserApiKey).toHaveBeenCalled();
     });
   });
-
 });

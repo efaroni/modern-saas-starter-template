@@ -6,26 +6,26 @@ import { ZodError } from 'zod';
  * Standard API response types
  */
 export interface ApiResponse<T = unknown> {
-  success: boolean
-  data?: T
-  error?: string
-  message?: string
-  timestamp: string
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+  timestamp: string;
 }
 
 export interface ApiError {
-  success: false
-  error: string
-  message?: string
-  timestamp: string
-  details?: unknown
+  success: false;
+  error: string;
+  message?: string;
+  timestamp: string;
+  details?: unknown;
 }
 
 export interface ApiSuccess<T = unknown> {
-  success: true
-  data?: T
-  message?: string
-  timestamp: string
+  success: true;
+  data?: T;
+  message?: string;
+  timestamp: string;
 }
 
 /**
@@ -36,12 +36,15 @@ export function createSuccessResponse<T = unknown>(
   message?: string,
   status: number = 200,
 ): NextResponse<ApiSuccess<T>> {
-  return NextResponse.json({
-    success: true,
-    data,
-    message,
-    timestamp: new Date().toISOString(),
-  }, { status });
+  return NextResponse.json(
+    {
+      success: true,
+      data,
+      message,
+      timestamp: new Date().toISOString(),
+    },
+    { status },
+  );
 }
 
 /**
@@ -52,12 +55,15 @@ export function createErrorResponse(
   status: number = 400,
   details?: unknown,
 ): NextResponse<ApiError> {
-  return NextResponse.json({
-    success: false,
-    error,
-    timestamp: new Date().toISOString(),
-    ...(details && { details }),
-  }, { status });
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+      timestamp: new Date().toISOString(),
+      ...(details && { details }),
+    },
+    { status },
+  );
 }
 
 /**
@@ -97,21 +103,27 @@ export function handleAuthError(error: string): NextResponse<ApiError> {
 /**
  * Handles authorization errors
  */
-export function handleAuthorizationError(error: string = 'Access denied'): NextResponse<ApiError> {
+export function handleAuthorizationError(
+  error: string = 'Access denied',
+): NextResponse<ApiError> {
   return createErrorResponse(error, 403);
 }
 
 /**
  * Handles not found errors
  */
-export function handleNotFoundError(resource: string = 'Resource'): NextResponse<ApiError> {
+export function handleNotFoundError(
+  resource: string = 'Resource',
+): NextResponse<ApiError> {
   return createErrorResponse(`${resource} not found`, 404);
 }
 
 /**
  * Handles rate limiting errors
  */
-export function handleRateLimitError(message: string = 'Too many requests'): NextResponse<ApiError> {
+export function handleRateLimitError(
+  message: string = 'Too many requests',
+): NextResponse<ApiError> {
   return createErrorResponse(message, 429);
 }
 
@@ -162,20 +174,25 @@ export function handleApiError(error: unknown): NextResponse<ApiError> {
 export function createPaginatedResponse<T>(
   data: T[],
   pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
   },
   message?: string,
-): NextResponse<ApiSuccess<{
-  items: T[]
-  pagination: typeof pagination
-}>> {
-  return createSuccessResponse({
-    items: data,
-    pagination,
-  }, message);
+): NextResponse<
+  ApiSuccess<{
+    items: T[];
+    pagination: typeof pagination;
+  }>
+> {
+  return createSuccessResponse(
+    {
+      items: data,
+      pagination,
+    },
+    message,
+  );
 }
 
 /**
@@ -184,7 +201,9 @@ export function createPaginatedResponse<T>(
 export function withErrorHandling<T extends any[], R>(
   handler: (...args: T) => Promise<NextResponse<ApiSuccess<R>>>,
 ) {
-  return async (...args: T): Promise<NextResponse<ApiSuccess<R> | ApiError>> => {
+  return async (
+    ...args: T
+  ): Promise<NextResponse<ApiSuccess<R> | ApiError>> => {
     try {
       return await handler(...args);
     } catch (error) {
@@ -196,7 +215,9 @@ export function withErrorHandling<T extends any[], R>(
 /**
  * Creates a response for empty results
  */
-export function createEmptyResponse(message: string = 'No results found'): NextResponse<ApiSuccess<null>> {
+export function createEmptyResponse(
+  message: string = 'No results found',
+): NextResponse<ApiSuccess<null>> {
   return createSuccessResponse(null, message, 200);
 }
 
@@ -237,10 +258,7 @@ export function validateMethod(
   allowedMethods: string[],
 ): NextResponse<ApiError> | null {
   if (!allowedMethods.includes(request.method)) {
-    return createErrorResponse(
-      `Method ${request.method} not allowed`,
-      405,
-    );
+    return createErrorResponse(`Method ${request.method} not allowed`, 405);
   }
   return null;
 }
@@ -254,10 +272,7 @@ export function validateHeaders(
 ): NextResponse<ApiError> | null {
   for (const header of requiredHeaders) {
     if (!request.headers.get(header)) {
-      return createErrorResponse(
-        `Missing required header: ${header}`,
-        400,
-      );
+      return createErrorResponse(`Missing required header: ${header}`, 400);
     }
   }
   return null;

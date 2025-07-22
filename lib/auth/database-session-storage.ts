@@ -9,10 +9,10 @@ import { db } from '@/lib/db/server';
 import { type SessionStorage, type SessionData } from './session-storage';
 
 export interface SessionConfig {
-  maxAge: number // Session max age in seconds
-  maxConcurrentSessions: number // Maximum concurrent sessions per user
-  suspiciousActivityThreshold: number // IP changes that trigger suspicious activity
-  inactivityTimeout: number // Inactivity timeout in seconds
+  maxAge: number; // Session max age in seconds
+  maxConcurrentSessions: number; // Maximum concurrent sessions per user
+  suspiciousActivityThreshold: number; // IP changes that trigger suspicious activity
+  inactivityTimeout: number; // Inactivity timeout in seconds
 }
 
 export const DEFAULT_SESSION_CONFIG: SessionConfig = {
@@ -27,7 +27,10 @@ export class DatabaseSessionStorage implements SessionStorage {
   private config: SessionConfig;
   private readonly database: typeof db;
 
-  constructor(database: typeof db = db, config: SessionConfig = DEFAULT_SESSION_CONFIG) {
+  constructor(
+    database: typeof db = db,
+    config: SessionConfig = DEFAULT_SESSION_CONFIG,
+  ) {
     this.database = database;
     this.config = config;
   }
@@ -126,7 +129,9 @@ export class DatabaseSessionStorage implements SessionStorage {
       }
 
       // Check inactivity timeout
-      const inactivityThreshold = new Date(Date.now() - this.config.inactivityTimeout * 1000);
+      const inactivityThreshold = new Date(
+        Date.now() - this.config.inactivityTimeout * 1000,
+      );
       if (session.lastActivity < inactivityThreshold) {
         await this.invalidateSession(session.id, 'timeout');
         this.sessionToken = null;
@@ -169,7 +174,9 @@ export class DatabaseSessionStorage implements SessionStorage {
         .update(userSessions)
         .set({
           lastActivity: new Date(),
-          expiresAt: sessionData.expires ? new Date(sessionData.expires) : new Date(Date.now() + this.config.maxAge * 1000),
+          expiresAt: sessionData.expires
+            ? new Date(sessionData.expires)
+            : new Date(Date.now() + this.config.maxAge * 1000),
         })
         .where(eq(userSessions.sessionToken, this.sessionToken));
     } catch (error) {
@@ -219,7 +226,10 @@ export class DatabaseSessionStorage implements SessionStorage {
   /**
    * Invalidate a session
    */
-  private async invalidateSession(sessionId: string, reason: string): Promise<void> {
+  private async invalidateSession(
+    sessionId: string,
+    reason: string,
+  ): Promise<void> {
     try {
       await this.database
         .update(userSessions)
@@ -243,15 +253,13 @@ export class DatabaseSessionStorage implements SessionStorage {
     metadata?: Record<string, unknown>,
   ): Promise<void> {
     try {
-      await this.database
-        .insert(sessionActivity)
-        .values({
-          sessionId,
-          action,
-          ipAddress,
-          userAgent,
-          metadata: metadata || {},
-        });
+      await this.database.insert(sessionActivity).values({
+        sessionId,
+        action,
+        ipAddress,
+        userAgent,
+        metadata: metadata || {},
+      });
     } catch (error) {
       console.error('Failed to log session activity:', error);
     }
@@ -280,16 +288,15 @@ export class DatabaseSessionStorage implements SessionStorage {
         .select()
         .from(userSessions)
         .where(
-          and(
-            eq(userSessions.userId, userId),
-            eq(userSessions.isActive, true),
-          ),
+          and(eq(userSessions.userId, userId), eq(userSessions.isActive, true)),
         )
         .orderBy(desc(userSessions.lastActivity));
 
       if (activeSessions.length >= this.config.maxConcurrentSessions) {
         // Deactivate oldest sessions
-        const sessionsToDeactivate = activeSessions.slice(this.config.maxConcurrentSessions - 1);
+        const sessionsToDeactivate = activeSessions.slice(
+          this.config.maxConcurrentSessions - 1,
+        );
 
         for (const session of sessionsToDeactivate) {
           await this.invalidateSession(session.id, 'concurrent_limit');
@@ -348,7 +355,10 @@ export class DatabaseSessionStorage implements SessionStorage {
           'suspicious',
           currentIpAddress,
           currentUserAgent,
-          { reason: 'user_agent_changes', unique_user_agents: Array.from(uniqueUserAgents) },
+          {
+            reason: 'user_agent_changes',
+            unique_user_agents: Array.from(uniqueUserAgents),
+          },
         );
         return true;
       }
@@ -369,10 +379,7 @@ export class DatabaseSessionStorage implements SessionStorage {
         .select()
         .from(userSessions)
         .where(
-          and(
-            eq(userSessions.userId, userId),
-            eq(userSessions.isActive, true),
-          ),
+          and(eq(userSessions.userId, userId), eq(userSessions.isActive, true)),
         )
         .orderBy(desc(userSessions.lastActivity));
     } catch (error) {
@@ -384,7 +391,10 @@ export class DatabaseSessionStorage implements SessionStorage {
   /**
    * Invalidate all sessions for a user
    */
-  async invalidateUserSessions(userId: string, reason: string = 'security'): Promise<void> {
+  async invalidateUserSessions(
+    userId: string,
+    reason: string = 'security',
+  ): Promise<void> {
     try {
       const sessions = await this.getUserSessions(userId);
 

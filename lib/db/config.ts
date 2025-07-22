@@ -12,12 +12,12 @@ function parseEnvInt(envVar: string, defaultValue: number): number {
 }
 
 export interface DatabaseConnectionComponents {
-  host: string
-  port: number
-  username: string
-  password: string
-  database: string
-  ssl?: boolean
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  database: string;
+  ssl?: boolean;
 }
 
 /**
@@ -61,7 +61,7 @@ function buildDatabaseUrl(components: DatabaseConnectionComponents): string {
   if (!host || !username || !database) {
     throw new Error(
       'Database connection requires host, username, and database name. ' +
-      'Please check your environment variables.',
+        'Please check your environment variables.',
     );
   }
 
@@ -79,22 +79,22 @@ function buildDatabaseUrl(components: DatabaseConnectionComponents): string {
 }
 
 export interface DatabaseConfig {
-  url: string
-  poolSize: number
-  idleTimeout: number
-  connectTimeout: number
+  url: string;
+  poolSize: number;
+  idleTimeout: number;
+  connectTimeout: number;
   // Advanced pool settings
-  maxLifetime: number
-  maxUses: number
+  maxLifetime: number;
+  maxUses: number;
   // Query performance settings
-  slowQueryThreshold: number
-  queryTimeout: number
+  slowQueryThreshold: number;
+  queryTimeout: number;
   // Health check settings
-  healthCheckInterval: number
-  healthCheckTimeout: number
+  healthCheckInterval: number;
+  healthCheckTimeout: number;
   // Caching settings
-  cacheTtl: number
-  cacheMaxSize: number
+  cacheTtl: number;
+  cacheMaxSize: number;
 }
 
 /**
@@ -157,9 +157,9 @@ export function getDatabaseUrl(): string {
   // If we get here, no valid configuration was found
   throw new Error(
     'Database configuration is missing. Please set either:\n' +
-    '1. Component variables: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME\n' +
-    '2. Or full URL: DATABASE_URL (TEST_DATABASE_URL for tests)\n' +
-    'See documentation for complete setup instructions.',
+      '1. Component variables: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME\n' +
+      '2. Or full URL: DATABASE_URL (TEST_DATABASE_URL for tests)\n' +
+      'See documentation for complete setup instructions.',
   );
 }
 

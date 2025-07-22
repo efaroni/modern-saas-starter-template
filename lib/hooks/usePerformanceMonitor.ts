@@ -4,47 +4,47 @@ import { useRouter } from 'next/navigation';
 
 export interface PerformanceMetrics {
   // Core Web Vitals
-  lcp?: number // Largest Contentful Paint
-  fid?: number // First Input Delay
-  cls?: number // Cumulative Layout Shift
+  lcp?: number; // Largest Contentful Paint
+  fid?: number; // First Input Delay
+  cls?: number; // Cumulative Layout Shift
 
   // Additional metrics
-  fcp?: number // First Contentful Paint
-  ttfb?: number // Time to First Byte
-  fmp?: number // First Meaningful Paint
+  fcp?: number; // First Contentful Paint
+  ttfb?: number; // Time to First Byte
+  fmp?: number; // First Meaningful Paint
 
   // Runtime metrics
-  renderTime?: number
-  componentMountTime?: number
-  apiResponseTime?: number
+  renderTime?: number;
+  componentMountTime?: number;
+  apiResponseTime?: number;
 
   // Resource metrics
-  memoryUsage?: MemoryInfo
-  connectionType?: string
+  memoryUsage?: MemoryInfo;
+  connectionType?: string;
 
   // User interaction metrics
-  userInteractions?: number
-  scrollDepth?: number
-  timeOnPage?: number
+  userInteractions?: number;
+  scrollDepth?: number;
+  timeOnPage?: number;
 
   // Error metrics
-  errorRate?: number
-  errorCount?: number
+  errorRate?: number;
+  errorCount?: number;
 
   // Custom metrics
-  customMetrics?: Record<string, number>
+  customMetrics?: Record<string, number>;
 }
 
 export interface PerformanceConfig {
-  enabled?: boolean
-  trackCoreWebVitals?: boolean
-  trackRuntimeMetrics?: boolean
-  trackUserInteractions?: boolean
-  trackMemoryUsage?: boolean
-  enableAnalytics?: boolean
-  reportingInterval?: number // ms
-  sampleRate?: number // 0-1, percentage of sessions to monitor
-  customMetrics?: string[]
+  enabled?: boolean;
+  trackCoreWebVitals?: boolean;
+  trackRuntimeMetrics?: boolean;
+  trackUserInteractions?: boolean;
+  trackMemoryUsage?: boolean;
+  enableAnalytics?: boolean;
+  reportingInterval?: number; // ms
+  sampleRate?: number; // 0-1, percentage of sessions to monitor
+  customMetrics?: string[];
 }
 
 const defaultConfig: PerformanceConfig = {
@@ -83,21 +83,25 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
 
   // Core Web Vitals monitoring
   const measureCoreWebVitals = useCallback(() => {
-    if (!finalConfig.trackCoreWebVitals || typeof window === 'undefined') return;
+    if (!finalConfig.trackCoreWebVitals || typeof window === 'undefined')
+      return;
 
     try {
       // Use web-vitals library if available, otherwise fallback to Performance API
       if ('PerformanceObserver' in window) {
-        const observer = new PerformanceObserver((list) => {
+        const observer = new PerformanceObserver(list => {
           const entries = list.getEntries();
 
-          entries.forEach((entry) => {
+          entries.forEach(entry => {
             switch (entry.entryType) {
               case 'largest-contentful-paint':
                 setMetrics(prev => ({ ...prev, lcp: entry.startTime }));
                 break;
               case 'first-input':
-                setMetrics(prev => ({ ...prev, fid: entry.processingStart - entry.startTime }));
+                setMetrics(prev => ({
+                  ...prev,
+                  fid: entry.processingStart - entry.startTime,
+                }));
                 break;
               case 'layout-shift':
                 if (!(entry as any).hadRecentInput) {
@@ -123,7 +127,15 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
           });
         });
 
-        observer.observe({ entryTypes: ['largest-contentful-paint', 'first-input', 'layout-shift', 'paint', 'navigation'] });
+        observer.observe({
+          entryTypes: [
+            'largest-contentful-paint',
+            'first-input',
+            'layout-shift',
+            'paint',
+            'navigation',
+          ],
+        });
         observerRef.current = observer;
       }
     } catch (error) {
@@ -133,7 +145,8 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
 
   // Runtime metrics monitoring
   const measureRuntimeMetrics = useCallback(() => {
-    if (!finalConfig.trackRuntimeMetrics || typeof window === 'undefined') return;
+    if (!finalConfig.trackRuntimeMetrics || typeof window === 'undefined')
+      return;
 
     const measureComponentPerformance = () => {
       const now = performance.now();
@@ -166,16 +179,22 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
 
   // User interaction monitoring
   const measureUserInteractions = useCallback(() => {
-    if (!finalConfig.trackUserInteractions || typeof window === 'undefined') return;
+    if (!finalConfig.trackUserInteractions || typeof window === 'undefined')
+      return;
 
     const handleInteraction = () => {
       interactionCount.current++;
-      setMetrics(prev => ({ ...prev, userInteractions: interactionCount.current }));
+      setMetrics(prev => ({
+        ...prev,
+        userInteractions: interactionCount.current,
+      }));
     };
 
     const handleScroll = () => {
       const scrollDepth = Math.round(
-        (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100,
+        (window.scrollY /
+          (document.documentElement.scrollHeight - window.innerHeight)) *
+          100,
       );
 
       if (scrollDepth > maxScrollDepth.current) {
@@ -201,17 +220,20 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
   }, [finalConfig.trackUserInteractions]);
 
   // API response time tracking
-  const trackApiCall = useCallback((url: string, startTime: number, endTime: number) => {
-    const responseTime = endTime - startTime;
-    setMetrics(prev => ({
-      ...prev,
-      apiResponseTime: responseTime,
-      customMetrics: {
-        ...prev.customMetrics,
-        [`api_${url.replace(/[^a-zA-Z0-9]/g, '_')}`]: responseTime,
-      },
-    }));
-  }, []);
+  const trackApiCall = useCallback(
+    (url: string, startTime: number, endTime: number) => {
+      const responseTime = endTime - startTime;
+      setMetrics(prev => ({
+        ...prev,
+        apiResponseTime: responseTime,
+        customMetrics: {
+          ...prev.customMetrics,
+          [`api_${url.replace(/[^a-zA-Z0-9]/g, '_')}`]: responseTime,
+        },
+      }));
+    },
+    [],
+  );
 
   // Custom metrics tracking
   const trackCustomMetric = useCallback((name: string, value: number) => {
@@ -241,7 +263,10 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
     try {
       const connection = (navigator as any).connection;
       if (connection) {
-        setMetrics(prev => ({ ...prev, connectionType: connection.effectiveType }));
+        setMetrics(prev => ({
+          ...prev,
+          connectionType: connection.effectiveType,
+        }));
       }
     } catch (error) {
       console.warn('Connection type monitoring failed:', error);
@@ -260,25 +285,28 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
   }, []);
 
   // Report metrics to analytics service
-  const reportMetrics = useCallback(async (metricsToReport: PerformanceMetrics) => {
-    if (!finalConfig.enableAnalytics) return;
+  const reportMetrics = useCallback(
+    async (metricsToReport: PerformanceMetrics) => {
+      if (!finalConfig.enableAnalytics) return;
 
-    try {
-      // Send to analytics service
-      await fetch('/api/analytics/performance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metrics: metricsToReport,
-          timestamp: Date.now(),
-          url: window.location.href,
-          userAgent: navigator.userAgent,
-        }),
-      });
-    } catch (error) {
-      console.warn('Failed to report performance metrics:', error);
-    }
-  }, [finalConfig.enableAnalytics]);
+      try {
+        // Send to analytics service
+        await fetch('/api/analytics/performance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            metrics: metricsToReport,
+            timestamp: Date.now(),
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+          }),
+        });
+      } catch (error) {
+        console.warn('Failed to report performance metrics:', error);
+      }
+    },
+    [finalConfig.enableAnalytics],
+  );
 
   // Start monitoring
   const startMonitoring = useCallback(() => {
@@ -312,7 +340,18 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
         observerRef.current.disconnect();
       }
     };
-  }, [shouldMonitor, measureCoreWebVitals, measureRuntimeMetrics, measureMemoryUsage, measureConnectionType, measureUserInteractions, trackTimeOnPage, reportMetrics, metrics, finalConfig.reportingInterval]);
+  }, [
+    shouldMonitor,
+    measureCoreWebVitals,
+    measureRuntimeMetrics,
+    measureMemoryUsage,
+    measureConnectionType,
+    measureUserInteractions,
+    trackTimeOnPage,
+    reportMetrics,
+    metrics,
+    finalConfig.reportingInterval,
+  ]);
 
   // Stop monitoring
   const stopMonitoring = useCallback(() => {
@@ -399,37 +438,37 @@ export const useComponentPerformance = (componentName: string) => {
 export const useApiPerformance = () => {
   const [apiMetrics, setApiMetrics] = useState<Record<string, number>>({});
 
-  const trackApiCall = useCallback(async <T>(
-    url: string,
-    apiCall: () => Promise<T>,
-  ): Promise<T> => {
-    const startTime = performance.now();
+  const trackApiCall = useCallback(
+    async <T>(url: string, apiCall: () => Promise<T>): Promise<T> => {
+      const startTime = performance.now();
 
-    try {
-      const result = await apiCall();
-      const endTime = performance.now();
-      const responseTime = endTime - startTime;
+      try {
+        const result = await apiCall();
+        const endTime = performance.now();
+        const responseTime = endTime - startTime;
 
-      setApiMetrics(prev => ({
-        ...prev,
-        [url]: responseTime,
-        [`${url}_success`]: (prev[`${url}_success`] || 0) + 1,
-      }));
+        setApiMetrics(prev => ({
+          ...prev,
+          [url]: responseTime,
+          [`${url}_success`]: (prev[`${url}_success`] || 0) + 1,
+        }));
 
-      return result;
-    } catch (error) {
-      const endTime = performance.now();
-      const responseTime = endTime - startTime;
+        return result;
+      } catch (error) {
+        const endTime = performance.now();
+        const responseTime = endTime - startTime;
 
-      setApiMetrics(prev => ({
-        ...prev,
-        [url]: responseTime,
-        [`${url}_error`]: (prev[`${url}_error`] || 0) + 1,
-      }));
+        setApiMetrics(prev => ({
+          ...prev,
+          [url]: responseTime,
+          [`${url}_error`]: (prev[`${url}_error`] || 0) + 1,
+        }));
 
-      throw error;
-    }
-  }, []);
+        throw error;
+      }
+    },
+    [],
+  );
 
   return {
     apiMetrics,

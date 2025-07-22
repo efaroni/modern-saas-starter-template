@@ -1,8 +1,8 @@
 import { VALIDATION_CONFIG } from '@/lib/config/app-config';
 
 export interface ValidationResult {
-  isValid: boolean
-  error?: string
+  isValid: boolean;
+  error?: string;
 }
 
 /**
@@ -63,7 +63,10 @@ export function validateUUID(uuid: string): ValidationResult {
 /**
  * Validates a password meets minimum requirements
  */
-export function validatePasswordLength(password: string, minLength: number = 8): ValidationResult {
+export function validatePasswordLength(
+  password: string,
+  minLength: number = 8,
+): ValidationResult {
   if (!password || typeof password !== 'string') {
     return {
       isValid: false,
@@ -86,7 +89,10 @@ export function validatePasswordLength(password: string, minLength: number = 8):
 /**
  * Validates a string is not empty or whitespace-only
  */
-export function validateRequired(value: string, fieldName: string): ValidationResult {
+export function validateRequired(
+  value: string,
+  fieldName: string,
+): ValidationResult {
   if (!value || typeof value !== 'string' || value.trim().length === 0) {
     return {
       isValid: false,
@@ -102,7 +108,9 @@ export function validateRequired(value: string, fieldName: string): ValidationRe
 /**
  * Validates multiple fields and returns the first error found
  */
-export function validateFields(validations: ValidationResult[]): ValidationResult {
+export function validateFields(
+  validations: ValidationResult[],
+): ValidationResult {
   for (const validation of validations) {
     if (!validation.isValid) {
       return validation;

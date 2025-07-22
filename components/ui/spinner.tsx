@@ -1,6 +1,6 @@
 interface SpinnerProps {
-  size?: 'sm' | 'md' | 'lg'
-  className?: string
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
 }
 
 export function Spinner({ size = 'sm', className = '' }: SpinnerProps) {
@@ -11,6 +11,8 @@ export function Spinner({ size = 'sm', className = '' }: SpinnerProps) {
   };
 
   return (
-    <div className={`${sizeClasses[size]} border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin ${className}`} />
+    <div
+      className={`${sizeClasses[size]} animate-spin rounded-full border-2 border-blue-300 border-t-blue-600 ${className}`}
+    />
   );
 }

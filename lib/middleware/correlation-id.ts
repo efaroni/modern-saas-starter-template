@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { generateSecureToken, TokenSecurityLevel } from '@/lib/utils/token-generator';
+import {
+  generateSecureToken,
+  TokenSecurityLevel,
+} from '@/lib/utils/token-generator';
 
 export const CORRELATION_ID_HEADER = 'x-correlation-id';
 
@@ -8,7 +11,8 @@ export const CORRELATION_ID_HEADER = 'x-correlation-id';
  * Middleware to ensure every request has a correlation ID
  */
 export function withCorrelationId(request: NextRequest): NextResponse {
-  const correlationId = request.headers.get(CORRELATION_ID_HEADER) ||
+  const correlationId =
+    request.headers.get(CORRELATION_ID_HEADER) ||
     generateSecureToken(TokenSecurityLevel.MEDIUM, {
       prefix: 'req',
       length: 16,
@@ -25,11 +29,13 @@ export function withCorrelationId(request: NextRequest): NextResponse {
  * Extract correlation ID from request
  */
 export function getCorrelationId(request: NextRequest): string {
-  return request.headers.get(CORRELATION_ID_HEADER) ||
+  return (
+    request.headers.get(CORRELATION_ID_HEADER) ||
     generateSecureToken(TokenSecurityLevel.MEDIUM, {
       prefix: 'req',
       length: 16,
-    });
+    })
+  );
 }
 
 /**

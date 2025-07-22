@@ -18,7 +18,9 @@ export async function createAuthService(): Promise<AuthService> {
     provider = new MockAuthProvider();
   } else if (isTestEnvironment) {
     // Use test database provider for server-side tests
-    const { DatabaseTestAuthProvider } = await import('./providers/database-test');
+    const { DatabaseTestAuthProvider } = await import(
+      './providers/database-test'
+    );
     provider = new DatabaseTestAuthProvider();
   } else {
     // Use full database provider for production server-side

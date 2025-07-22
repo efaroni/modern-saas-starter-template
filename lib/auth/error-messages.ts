@@ -16,20 +16,23 @@ export type AuthErrorCode =
   | 'EMAIL_SEND_FAILED'
   | 'SESSION_EXPIRED'
   | 'UNAUTHORIZED'
-  | 'FORBIDDEN'
+  | 'FORBIDDEN';
 
 export interface AuthErrorMessage {
-  code: AuthErrorCode
-  title: string
-  message: string
-  action?: string
-  details?: string
-  retryable: boolean
-  severity: 'low' | 'medium' | 'high'
+  code: AuthErrorCode;
+  title: string;
+  message: string;
+  action?: string;
+  details?: string;
+  retryable: boolean;
+  severity: 'low' | 'medium' | 'high';
 }
 
 export class AuthErrorMessageProvider {
-  private static readonly ERROR_MESSAGES: Record<AuthErrorCode, AuthErrorMessage> = {
+  private static readonly ERROR_MESSAGES: Record<
+    AuthErrorCode,
+    AuthErrorMessage
+  > = {
     INVALID_CREDENTIALS: {
       code: 'INVALID_CREDENTIALS',
       title: 'Invalid Credentials',
@@ -60,8 +63,9 @@ export class AuthErrorMessageProvider {
     WEAK_PASSWORD: {
       code: 'WEAK_PASSWORD',
       title: 'Weak Password',
-      message: 'Your password doesn\'t meet the security requirements.',
-      action: 'Please choose a stronger password with at least 8 characters, including uppercase, lowercase, numbers, and symbols.',
+      message: "Your password doesn't meet the security requirements.",
+      action:
+        'Please choose a stronger password with at least 8 characters, including uppercase, lowercase, numbers, and symbols.',
       retryable: true,
       severity: 'medium',
     },
@@ -69,7 +73,7 @@ export class AuthErrorMessageProvider {
     RATE_LIMITED: {
       code: 'RATE_LIMITED',
       title: 'Too Many Attempts',
-      message: 'You\'ve made too many attempts in a short period.',
+      message: "You've made too many attempts in a short period.",
       action: 'Please wait a few minutes before trying again.',
       retryable: true,
       severity: 'medium',
@@ -78,7 +82,8 @@ export class AuthErrorMessageProvider {
     ACCOUNT_LOCKED: {
       code: 'ACCOUNT_LOCKED',
       title: 'Account Temporarily Locked',
-      message: 'Your account has been temporarily locked due to multiple failed login attempts.',
+      message:
+        'Your account has been temporarily locked due to multiple failed login attempts.',
       action: 'Please try again later or reset your password.',
       retryable: true,
       severity: 'high',
@@ -152,7 +157,8 @@ export class AuthErrorMessageProvider {
       code: 'PASSWORD_REUSE',
       title: 'Password Previously Used',
       message: 'You cannot reuse a recent password.',
-      action: 'Please choose a different password that you haven\'t used before.',
+      action:
+        "Please choose a different password that you haven't used before.",
       retryable: true,
       severity: 'medium',
     },
@@ -160,7 +166,7 @@ export class AuthErrorMessageProvider {
     EMAIL_SEND_FAILED: {
       code: 'EMAIL_SEND_FAILED',
       title: 'Email Delivery Failed',
-      message: 'We couldn\'t send the email to your address.',
+      message: "We couldn't send the email to your address.",
       action: 'Please check your email address and try again.',
       details: 'If the problem persists, please contact support.',
       retryable: true,
@@ -188,7 +194,7 @@ export class AuthErrorMessageProvider {
     FORBIDDEN: {
       code: 'FORBIDDEN',
       title: 'Access Denied',
-      message: 'You don\'t have permission to access this resource.',
+      message: "You don't have permission to access this resource.",
       action: 'Please contact support if you believe this is an error.',
       retryable: false,
       severity: 'medium',
@@ -203,39 +209,66 @@ export class AuthErrorMessageProvider {
     // Map common error strings to error codes
     const errorLower = error.toLowerCase();
 
-    if (errorLower.includes('invalid credentials') || errorLower.includes('incorrect password')) {
+    if (
+      errorLower.includes('invalid credentials') ||
+      errorLower.includes('incorrect password')
+    ) {
       return this.getErrorMessage('INVALID_CREDENTIALS');
     }
 
-    if (errorLower.includes('user not found') || errorLower.includes('account not found')) {
+    if (
+      errorLower.includes('user not found') ||
+      errorLower.includes('account not found')
+    ) {
       return this.getErrorMessage('USER_NOT_FOUND');
     }
 
-    if (errorLower.includes('email already exists') || errorLower.includes('already registered')) {
+    if (
+      errorLower.includes('email already exists') ||
+      errorLower.includes('already registered')
+    ) {
       return this.getErrorMessage('EMAIL_ALREADY_EXISTS');
     }
 
-    if (errorLower.includes('password') && (errorLower.includes('weak') || errorLower.includes('requirements'))) {
+    if (
+      errorLower.includes('password') &&
+      (errorLower.includes('weak') || errorLower.includes('requirements'))
+    ) {
       return this.getErrorMessage('WEAK_PASSWORD');
     }
 
-    if (errorLower.includes('rate limit') || errorLower.includes('too many attempts')) {
+    if (
+      errorLower.includes('rate limit') ||
+      errorLower.includes('too many attempts')
+    ) {
       return this.getErrorMessage('RATE_LIMITED');
     }
 
-    if (errorLower.includes('account locked') || errorLower.includes('temporarily locked')) {
+    if (
+      errorLower.includes('account locked') ||
+      errorLower.includes('temporarily locked')
+    ) {
       return this.getErrorMessage('ACCOUNT_LOCKED');
     }
 
-    if (errorLower.includes('email not verified') || errorLower.includes('verify email')) {
+    if (
+      errorLower.includes('email not verified') ||
+      errorLower.includes('verify email')
+    ) {
       return this.getErrorMessage('EMAIL_NOT_VERIFIED');
     }
 
-    if (errorLower.includes('invalid token') || errorLower.includes('invalid link')) {
+    if (
+      errorLower.includes('invalid token') ||
+      errorLower.includes('invalid link')
+    ) {
       return this.getErrorMessage('INVALID_TOKEN');
     }
 
-    if (errorLower.includes('expired token') || errorLower.includes('expired link')) {
+    if (
+      errorLower.includes('expired token') ||
+      errorLower.includes('expired link')
+    ) {
       return this.getErrorMessage('EXPIRED_TOKEN');
     }
 
@@ -247,7 +280,10 @@ export class AuthErrorMessageProvider {
       return this.getErrorMessage('NETWORK_ERROR');
     }
 
-    if (errorLower.includes('reuse') || errorLower.includes('recent password')) {
+    if (
+      errorLower.includes('reuse') ||
+      errorLower.includes('recent password')
+    ) {
       return this.getErrorMessage('PASSWORD_REUSE');
     }
 
@@ -255,19 +291,31 @@ export class AuthErrorMessageProvider {
       return this.getErrorMessage('EMAIL_SEND_FAILED');
     }
 
-    if (errorLower.includes('session expired') || errorLower.includes('session invalid')) {
+    if (
+      errorLower.includes('session expired') ||
+      errorLower.includes('session invalid')
+    ) {
       return this.getErrorMessage('SESSION_EXPIRED');
     }
 
-    if (errorLower.includes('unauthorized') || errorLower.includes('not authorized')) {
+    if (
+      errorLower.includes('unauthorized') ||
+      errorLower.includes('not authorized')
+    ) {
       return this.getErrorMessage('UNAUTHORIZED');
     }
 
-    if (errorLower.includes('forbidden') || errorLower.includes('access denied')) {
+    if (
+      errorLower.includes('forbidden') ||
+      errorLower.includes('access denied')
+    ) {
       return this.getErrorMessage('FORBIDDEN');
     }
 
-    if (errorLower.includes('validation') || errorLower.includes('invalid input')) {
+    if (
+      errorLower.includes('validation') ||
+      errorLower.includes('invalid input')
+    ) {
       return this.getErrorMessage('VALIDATION_ERROR');
     }
 
@@ -276,15 +324,19 @@ export class AuthErrorMessageProvider {
   }
 
   static formatErrorForUI(error: AuthErrorMessage): {
-    title: string
-    message: string
-    action?: string
-    details?: string
-    variant: 'error' | 'warning' | 'info'
-    canRetry: boolean
+    title: string;
+    message: string;
+    action?: string;
+    details?: string;
+    variant: 'error' | 'warning' | 'info';
+    canRetry: boolean;
   } {
-    const variant = error.severity === 'high' ? 'error' :
-                   error.severity === 'medium' ? 'warning' : 'info';
+    const variant =
+      error.severity === 'high'
+        ? 'error'
+        : error.severity === 'medium'
+          ? 'warning'
+          : 'info';
 
     return {
       title: error.title,

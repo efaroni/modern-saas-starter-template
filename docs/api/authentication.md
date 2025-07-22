@@ -17,12 +17,15 @@ This document provides comprehensive documentation for all authentication API en
 The authentication system provides secure user registration, login, password management, and OAuth integration. All endpoints follow RESTful conventions and return JSON responses.
 
 ### Base URL
+
 ```
 https://yourdomain.com/api/auth
 ```
 
 ### Authentication
+
 Most endpoints require either:
+
 - Session-based authentication (cookies)
 - OAuth tokens
 - API keys (for specific endpoints)
@@ -30,14 +33,18 @@ Most endpoints require either:
 ## Authentication Methods
 
 ### 1. Email/Password Authentication
+
 Traditional username/password authentication with secure password hashing.
 
 ### 2. OAuth Integration
+
 Supported providers:
+
 - Google OAuth 2.0
 - GitHub OAuth 2.0
 
 ### 3. Magic Links
+
 Passwordless authentication via email links.
 
 ## API Endpoints
@@ -49,6 +56,7 @@ Passwordless authentication via email links.
 Register a new user account.
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com",
@@ -58,6 +66,7 @@ Register a new user account.
 ```
 
 **Response (Success - 201):**
+
 ```json
 {
   "success": true,
@@ -73,6 +82,7 @@ Register a new user account.
 ```
 
 **Response (Error - 400):**
+
 ```json
 {
   "success": false,
@@ -82,6 +92,7 @@ Register a new user account.
 ```
 
 **Validation Rules:**
+
 - `email`: Valid email format, unique
 - `password`: Minimum 8 characters, must contain uppercase, lowercase, number, and symbol
 - `name`: Optional, 1-100 characters
@@ -93,6 +104,7 @@ Register a new user account.
 Authenticate user and create session.
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com",
@@ -101,6 +113,7 @@ Authenticate user and create session.
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -118,6 +131,7 @@ Authenticate user and create session.
 ```
 
 **Response (Error - 401):**
+
 ```json
 {
   "success": false,
@@ -127,6 +141,7 @@ Authenticate user and create session.
 ```
 
 **Rate Limiting:**
+
 - 5 attempts per email per 15 minutes
 - Account lockout after 5 failed attempts
 
@@ -137,11 +152,13 @@ Authenticate user and create session.
 Terminate current session.
 
 **Headers:**
+
 ```
 Authorization: Bearer <session-token>
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -156,6 +173,7 @@ Authorization: Bearer <session-token>
 Send email verification link.
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com"
@@ -163,6 +181,7 @@ Send email verification link.
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -175,6 +194,7 @@ Send email verification link.
 Verify email with token.
 
 **Request Body:**
+
 ```json
 {
   "token": "verification-token"
@@ -182,6 +202,7 @@ Verify email with token.
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -190,6 +211,7 @@ Verify email with token.
 ```
 
 **Response (Error - 400):**
+
 ```json
 {
   "success": false,
@@ -205,6 +227,7 @@ Verify email with token.
 Send password reset link.
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com"
@@ -212,6 +235,7 @@ Send password reset link.
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -226,6 +250,7 @@ Send password reset link.
 Reset password with token.
 
 **Request Body:**
+
 ```json
 {
   "token": "reset-token",
@@ -234,6 +259,7 @@ Reset password with token.
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -248,11 +274,13 @@ Reset password with token.
 Change password for authenticated user.
 
 **Headers:**
+
 ```
 Authorization: Bearer <session-token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "currentPassword": "OldPassword123!",
@@ -261,6 +289,7 @@ Authorization: Bearer <session-token>
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -269,6 +298,7 @@ Authorization: Bearer <session-token>
 ```
 
 **Response (Error - 400):**
+
 ```json
 {
   "success": false,
@@ -284,9 +314,11 @@ Authorization: Bearer <session-token>
 Initiate OAuth authentication.
 
 **Parameters:**
+
 - `provider`: `google` or `github`
 
 **Query Parameters:**
+
 - `redirect`: Optional redirect URL after authentication
 
 **Response:**
@@ -297,9 +329,11 @@ Redirects to OAuth provider authorization URL.
 Handle OAuth callback.
 
 **Parameters:**
+
 - `provider`: `google` or `github`
 
 **Query Parameters:**
+
 - `code`: Authorization code from OAuth provider
 - `state`: CSRF protection state
 
@@ -313,11 +347,13 @@ Redirects to application with session created.
 Get current user profile.
 
 **Headers:**
+
 ```
 Authorization: Bearer <session-token>
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -338,11 +374,13 @@ Authorization: Bearer <session-token>
 Update user profile.
 
 **Headers:**
+
 ```
 Authorization: Bearer <session-token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "Jane Doe",
@@ -351,6 +389,7 @@ Authorization: Bearer <session-token>
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -372,11 +411,13 @@ Authorization: Bearer <session-token>
 Get all active sessions for authenticated user.
 
 **Headers:**
+
 ```
 Authorization: Bearer <session-token>
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -399,14 +440,17 @@ Authorization: Bearer <session-token>
 Terminate specific session.
 
 **Headers:**
+
 ```
 Authorization: Bearer <session-token>
 ```
 
 **Parameters:**
+
 - `sessionId`: ID of session to terminate
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -419,11 +463,13 @@ Authorization: Bearer <session-token>
 Terminate all sessions except current.
 
 **Headers:**
+
 ```
 Authorization: Bearer <session-token>
 ```
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -438,6 +484,7 @@ Authorization: Bearer <session-token>
 Check authentication service health.
 
 **Response (Success - 200):**
+
 ```json
 {
   "success": true,
@@ -474,19 +521,19 @@ All error responses follow this format:
 
 ### Common Error Codes
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `INVALID_CREDENTIALS` | 401 | Invalid email/password |
-| `EMAIL_ALREADY_EXISTS` | 400 | Email already registered |
-| `INVALID_TOKEN` | 400 | Invalid or expired token |
-| `WEAK_PASSWORD` | 400 | Password doesn't meet requirements |
-| `RATE_LIMITED` | 429 | Too many requests |
-| `ACCOUNT_LOCKED` | 423 | Account temporarily locked |
-| `EMAIL_NOT_VERIFIED` | 403 | Email verification required |
-| `UNAUTHORIZED` | 401 | Authentication required |
-| `FORBIDDEN` | 403 | Access denied |
-| `NOT_FOUND` | 404 | Resource not found |
-| `INTERNAL_ERROR` | 500 | Internal server error |
+| Code                   | HTTP Status | Description                        |
+| ---------------------- | ----------- | ---------------------------------- |
+| `INVALID_CREDENTIALS`  | 401         | Invalid email/password             |
+| `EMAIL_ALREADY_EXISTS` | 400         | Email already registered           |
+| `INVALID_TOKEN`        | 400         | Invalid or expired token           |
+| `WEAK_PASSWORD`        | 400         | Password doesn't meet requirements |
+| `RATE_LIMITED`         | 429         | Too many requests                  |
+| `ACCOUNT_LOCKED`       | 423         | Account temporarily locked         |
+| `EMAIL_NOT_VERIFIED`   | 403         | Email verification required        |
+| `UNAUTHORIZED`         | 401         | Authentication required            |
+| `FORBIDDEN`            | 403         | Access denied                      |
+| `NOT_FOUND`            | 404         | Resource not found                 |
+| `INTERNAL_ERROR`       | 500         | Internal server error              |
 
 ### Error Handling Best Practices
 
@@ -510,14 +557,14 @@ X-RateLimit-Reset: 1640995200
 
 ### Rate Limits by Endpoint
 
-| Endpoint | Limit | Window |
-|----------|-------|--------|
-| `/api/auth/login` | 5 per email | 15 minutes |
-| `/api/auth/register` | 5 per IP | 15 minutes |
-| `/api/auth/send-verification` | 3 per email | 1 hour |
-| `/api/auth/send-password-reset` | 3 per email | 1 hour |
-| `/api/auth/change-password` | 5 per user | 1 hour |
-| Other endpoints | 100 per user | 1 hour |
+| Endpoint                        | Limit        | Window     |
+| ------------------------------- | ------------ | ---------- |
+| `/api/auth/login`               | 5 per email  | 15 minutes |
+| `/api/auth/register`            | 5 per IP     | 15 minutes |
+| `/api/auth/send-verification`   | 3 per email  | 1 hour     |
+| `/api/auth/send-password-reset` | 3 per email  | 1 hour     |
+| `/api/auth/change-password`     | 5 per user   | 1 hour     |
+| Other endpoints                 | 100 per user | 1 hour     |
 
 ### Rate Limit Exceeded Response
 
@@ -577,11 +624,11 @@ const registerUser = async (email, password, name) => {
     });
 
     const data = await response.json();
-    
+
     if (!data.success) {
       throw new Error(data.error);
     }
-    
+
     return data.user;
   } catch (error) {
     console.error('Registration failed:', error);
@@ -601,11 +648,11 @@ const loginUser = async (email, password) => {
     });
 
     const data = await response.json();
-    
+
     if (!data.success) {
       throw new Error(data.error);
     }
-    
+
     return data.user;
   } catch (error) {
     console.error('Login failed:', error);
@@ -622,11 +669,11 @@ const getCurrentUser = async () => {
     });
 
     const data = await response.json();
-    
+
     if (!data.success) {
       throw new Error(data.error);
     }
-    
+
     return data.user;
   } catch (error) {
     console.error('Failed to get user:', error);
@@ -654,9 +701,9 @@ const useAuth = () => {
       const response = await fetch('/api/auth/me', {
         credentials: 'include',
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setUser(data.user);
       }
@@ -680,11 +727,11 @@ const useAuth = () => {
       });
 
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error);
       }
-      
+
       setUser(data.user);
       return data.user;
     } catch (err) {
@@ -699,7 +746,7 @@ const useAuth = () => {
         method: 'POST',
         credentials: 'include',
       });
-      
+
       setUser(null);
     } catch (err) {
       setError(err.message);
@@ -772,9 +819,9 @@ describe('Authentication', () => {
     const result = await provider.createUser({
       email: 'test@example.com',
       password: 'TestPassword123!',
-      name: 'Test User'
+      name: 'Test User',
     });
-    
+
     expect(result.success).toBe(true);
     expect(result.user.email).toBe('test@example.com');
   });
@@ -794,20 +841,20 @@ test('should register and login user', async ({ page }) => {
     data: {
       email: 'test@example.com',
       password: 'TestPassword123!',
-      name: 'Test User'
-    }
+      name: 'Test User',
+    },
   });
-  
+
   expect(registerResponse.ok()).toBe(true);
-  
+
   // Login
   const loginResponse = await page.request.post('/api/auth/login', {
     data: {
       email: 'test@example.com',
-      password: 'TestPassword123!'
-    }
+      password: 'TestPassword123!',
+    },
   });
-  
+
   expect(loginResponse.ok()).toBe(true);
 });
 ```
@@ -824,6 +871,7 @@ For additional support or questions:
 ## Changelog
 
 ### v1.0.0 (2023-01-01)
+
 - Initial authentication API
 - Email/password authentication
 - OAuth integration

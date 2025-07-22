@@ -7,33 +7,33 @@ import { db } from '@/lib/db/server';
 import { redisCache } from './redis';
 
 export interface CachedSession {
-  id: string
-  userId: string
-  sessionToken: string
-  ipAddress?: string
-  userAgent?: string
-  isActive: boolean
-  lastActivity: Date
-  expiresAt: Date
-  createdAt: Date
+  id: string;
+  userId: string;
+  sessionToken: string;
+  ipAddress?: string;
+  userAgent?: string;
+  isActive: boolean;
+  lastActivity: Date;
+  expiresAt: Date;
+  createdAt: Date;
   user?: {
-    id: string
-    email: string
-    name?: string
-    emailVerified?: Date
-  }
+    id: string;
+    email: string;
+    name?: string;
+    emailVerified?: Date;
+  };
 }
 
 export interface SessionCacheConfig {
-  sessionTTL: number        // Session cache TTL in seconds
-  userProfileTTL: number    // User profile cache TTL in seconds
-  enableUserCaching: boolean // Whether to cache user profiles
-  keyPrefix: string         // Cache key prefix
+  sessionTTL: number; // Session cache TTL in seconds
+  userProfileTTL: number; // User profile cache TTL in seconds
+  enableUserCaching: boolean; // Whether to cache user profiles
+  keyPrefix: string; // Cache key prefix
 }
 
 export const DEFAULT_SESSION_CACHE_CONFIG: SessionCacheConfig = {
-  sessionTTL: 300,          // 5 minutes
-  userProfileTTL: 900,      // 15 minutes
+  sessionTTL: 300, // 5 minutes
+  userProfileTTL: 900, // 15 minutes
   enableUserCaching: true,
   keyPrefix: 'session:',
 };
@@ -127,7 +127,9 @@ export class SessionCache {
         operation: 'session_cache_error',
         duration: Date.now() - startTime,
         success: false,
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
+        metadata: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
         timestamp: new Date(),
       });
 
@@ -205,7 +207,9 @@ export class SessionCache {
         operation: 'user_sessions_cache_error',
         duration: Date.now() - startTime,
         success: false,
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
+        metadata: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
         timestamp: new Date(),
       });
 
@@ -215,7 +219,9 @@ export class SessionCache {
   }
 
   // Get user profile from cache or database
-  async getUserProfile(userId: string): Promise<CachedSession['user'] | undefined> {
+  async getUserProfile(
+    userId: string,
+  ): Promise<CachedSession['user'] | undefined> {
     if (!this.config.enableUserCaching) {
       return undefined;
     }
@@ -286,7 +292,9 @@ export class SessionCache {
         operation: 'user_profile_cache_error',
         duration: Date.now() - startTime,
         success: false,
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
+        metadata: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
         timestamp: new Date(),
       });
 
@@ -359,7 +367,10 @@ export class SessionCache {
   }
 
   // Update session in cache
-  async updateSessionCache(sessionToken: string, updates: Partial<CachedSession>): Promise<void> {
+  async updateSessionCache(
+    sessionToken: string,
+    updates: Partial<CachedSession>,
+  ): Promise<void> {
     try {
       const cacheKey = `${this.config.keyPrefix}token:${sessionToken}`;
 
@@ -399,7 +410,7 @@ export class SessionCache {
         .limit(limit);
 
       // Cache each session
-      const cachePromises = recentSessions.map(async (session) => {
+      const cachePromises = recentSessions.map(async session => {
         const cacheKey = `${this.config.keyPrefix}token:${session.sessionToken}`;
 
         // Get user profile if enabled
@@ -476,12 +487,17 @@ export const sessionCache = new SessionCache();
 // Export session cache utilities
 export const sessionCacheUtils = {
   getSession: (sessionToken: string) => sessionCache.getSession(sessionToken),
-  getSessionsByUserId: (userId: string) => sessionCache.getSessionsByUserId(userId),
+  getSessionsByUserId: (userId: string) =>
+    sessionCache.getSessionsByUserId(userId),
   getUserProfile: (userId: string) => sessionCache.getUserProfile(userId),
-  invalidateSession: (sessionToken: string) => sessionCache.invalidateSession(sessionToken),
-  invalidateUserSessions: (userId: string) => sessionCache.invalidateUserSessions(userId),
-  invalidateUserProfile: (userId: string) => sessionCache.invalidateUserProfile(userId),
-  invalidateAllUserCache: (userId: string) => sessionCache.invalidateAllUserCache(userId),
+  invalidateSession: (sessionToken: string) =>
+    sessionCache.invalidateSession(sessionToken),
+  invalidateUserSessions: (userId: string) =>
+    sessionCache.invalidateUserSessions(userId),
+  invalidateUserProfile: (userId: string) =>
+    sessionCache.invalidateUserProfile(userId),
+  invalidateAllUserCache: (userId: string) =>
+    sessionCache.invalidateAllUserCache(userId),
   updateSessionCache: (sessionToken: string, updates: Partial<CachedSession>) =>
     sessionCache.updateSessionCache(sessionToken, updates),
   warmUpCache: (limit?: number) => sessionCache.warmUpCache(limit),

@@ -3,10 +3,10 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { EnhancedRateLimiter } from '@/lib/auth/enhanced-rate-limiter';
 
 export interface RateLimitMiddlewareOptions {
-  type: string
-  keyGenerator?: (req: NextRequest) => string
-  skipIf?: (req: NextRequest) => boolean
-  onRateLimited?: (req: NextRequest, result: any) => NextResponse
+  type: string;
+  keyGenerator?: (req: NextRequest) => string;
+  skipIf?: (req: NextRequest) => boolean;
+  onRateLimited?: (req: NextRequest, result: any) => NextResponse;
 }
 
 const globalRateLimiter = new EnhancedRateLimiter();
@@ -15,7 +15,9 @@ const globalRateLimiter = new EnhancedRateLimiter();
  * Rate limiting middleware for API routes
  */
 export function withRateLimit(options: RateLimitMiddlewareOptions) {
-  return function rateLimitMiddleware(handler: (req: NextRequest) => Promise<NextResponse>) {
+  return function rateLimitMiddleware(
+    handler: (req: NextRequest) => Promise<NextResponse>,
+  ) {
     return async function (req: NextRequest): Promise<NextResponse> {
       // Skip rate limiting if condition is met
       if (options.skipIf && options.skipIf(req)) {
@@ -23,9 +25,9 @@ export function withRateLimit(options: RateLimitMiddlewareOptions) {
       }
 
       // Generate identifier for rate limiting
-      const identifier = options.keyGenerator ?
-        options.keyGenerator(req) :
-        getClientIP(req) || 'anonymous';
+      const identifier = options.keyGenerator
+        ? options.keyGenerator(req)
+        : getClientIP(req) || 'anonymous';
 
       // Check rate limit
       const result = await globalRateLimiter.checkRateLimit(
@@ -35,15 +37,18 @@ export function withRateLimit(options: RateLimitMiddlewareOptions) {
       );
 
       // Add rate limit headers
-      const response = result.allowed ?
-        await handler(req) :
-        (options.onRateLimited ?
-          options.onRateLimited(req, result) :
-          createRateLimitResponse(result));
+      const response = result.allowed
+        ? await handler(req)
+        : options.onRateLimited
+          ? options.onRateLimited(req, result)
+          : createRateLimitResponse(result);
 
       // Add standard rate limit headers
       response.headers.set('X-RateLimit-Limit', result.remaining.toString());
-      response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
+      response.headers.set(
+        'X-RateLimit-Remaining',
+        result.remaining.toString(),
+      );
       response.headers.set('X-RateLimit-Reset', result.resetTime.toISOString());
       response.headers.set('X-RateLimit-Algorithm', result.algorithm);
 
@@ -69,9 +74,9 @@ export function withRateLimit(options: RateLimitMiddlewareOptions) {
  * Create a rate limit exceeded response
  */
 function createRateLimitResponse(result: any): NextResponse {
-  const message = result.locked ?
-    'Account temporarily locked due to too many failed attempts' :
-    'Rate limit exceeded';
+  const message = result.locked
+    ? 'Account temporarily locked due to too many failed attempts'
+    : 'Rate limit exceeded';
 
   return NextResponse.json(
     {
@@ -114,47 +119,52 @@ export const rateLimitPresets = {
   /**
    * Authentication endpoints (login, signup, etc.)
    */
-  auth: (type: 'login' | 'signup' | 'passwordReset') => withRateLimit({
-    type,
-    keyGenerator: (req) => {
-      // Try to get email from request body, fallback to IP
-      const body = req.body ? JSON.parse(req.body.toString()) : {};
-      return body.email || getClientIP(req) || 'anonymous';
-    },
-  }),
+  auth: (type: 'login' | 'signup' | 'passwordReset') =>
+    withRateLimit({
+      type,
+      keyGenerator: req => {
+        // Try to get email from request body, fallback to IP
+        const body = req.body ? JSON.parse(req.body.toString()) : {};
+        return body.email || getClientIP(req) || 'anonymous';
+      },
+    }),
 
   /**
    * API endpoints
    */
-  api: (type: 'api' = 'api') => withRateLimit({
-    type,
-    keyGenerator: (req) => {
-      // Use API key if available, otherwise IP
-      const apiKey = req.headers.get('x-api-key') || req.headers.get('authorization');
-      return apiKey || getClientIP(req) || 'anonymous';
-    },
-  }),
+  api: (type: 'api' = 'api') =>
+    withRateLimit({
+      type,
+      keyGenerator: req => {
+        // Use API key if available, otherwise IP
+        const apiKey =
+          req.headers.get('x-api-key') || req.headers.get('authorization');
+        return apiKey || getClientIP(req) || 'anonymous';
+      },
+    }),
 
   /**
    * Upload endpoints
    */
-  upload: () => withRateLimit({
-    type: 'upload',
-    keyGenerator: (req) => getClientIP(req) || 'anonymous',
-  }),
+  upload: () =>
+    withRateLimit({
+      type: 'upload',
+      keyGenerator: req => getClientIP(req) || 'anonymous',
+    }),
 
   /**
    * Public endpoints with light rate limiting
    */
-  public: (type: string = 'public') => withRateLimit({
-    type,
-    keyGenerator: (req) => getClientIP(req) || 'anonymous',
-    skipIf: (req) => {
-      // Skip for local development
-      const ip = getClientIP(req);
-      return ip === '127.0.0.1' || ip === '::1';
-    },
-  }),
+  public: (type: string = 'public') =>
+    withRateLimit({
+      type,
+      keyGenerator: req => getClientIP(req) || 'anonymous',
+      skipIf: req => {
+        // Skip for local development
+        const ip = getClientIP(req);
+        return ip === '127.0.0.1' || ip === '::1';
+      },
+    }),
 };
 
 /**
@@ -166,7 +176,11 @@ export async function applyRateLimit(
   identifier?: string,
 ): Promise<{ allowed: boolean; response?: NextResponse }> {
   const key = identifier || getClientIP(req) || 'anonymous';
-  const result = await globalRateLimiter.checkRateLimit(key, type, getClientIP(req));
+  const result = await globalRateLimiter.checkRateLimit(
+    key,
+    type,
+    getClientIP(req),
+  );
 
   if (!result.allowed) {
     return {

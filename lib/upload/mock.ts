@@ -1,4 +1,8 @@
-import { type UploadService, type UploadResult, type DeleteResult } from './types';
+import {
+  type UploadService,
+  type UploadResult,
+  type DeleteResult,
+} from './types';
 
 export class MockUploadService implements UploadService {
   private uploadedFiles = new Map<string, string>();

@@ -1,12 +1,15 @@
 # SaaS Template - Development Sections
 
 ## Overview
+
 7 development sections that demonstrate all essential SaaS functionality with mock-first, real-when-ready approach.
 
 ## Section 1: Configuration
+
 **Purpose:** API key management + secure database storage testing
 **Route:** `/dev/config`
 **Features:**
+
 - User API key management (OpenAI, Stripe, etc.)
 - Secure database storage testing (encryption, hashing)
 - Real-time connection testing
@@ -17,9 +20,11 @@
 **Database Tables:** `user_api_keys`
 
 ## Section 2: Authentication & User Management
+
 **Purpose:** Auth.js + user CRUD + file uploads + Google/GitHub OAuth
 **Route:** `/dev/auth`
 **Features:**
+
 - Auth.js v5 implementation with abstracted service layer
 - Login/signup flow testing (email/password)
 - Google OAuth integration testing
@@ -34,9 +39,11 @@
 **Database Tables:** `users`, `accounts`, `sessions`, `verification_tokens`
 
 ## Section 3: Payments & Billing
+
 **Purpose:** Stripe + payment database tables + subscription management
 **Route:** `/dev/payments`
 **Features:**
+
 - Stripe implementation with abstracted payment service layer
 - Core payment database tables (customers, subscriptions, payments, invoices)
 - Test mode integration (uses Stripe test keys, no real charges)
@@ -51,9 +58,11 @@
 **Database Tables:** `customers`, `subscriptions`, `payments`, `invoices`
 
 ## Section 4: Email System
+
 **Purpose:** Resend + React Email templates + transactional email testing
 **Route:** `/dev/emails`
 **Features:**
+
 - Resend implementation with abstracted email service layer
 - React Email templates (welcome, password reset, billing)
 - Transactional email testing (account, billing, security emails)
@@ -66,9 +75,11 @@
 **Database Tables:** `email_logs`, `email_preferences`
 
 ## Section 5: AI Styling System
+
 **Purpose:** Screenshot analysis + 3-file code generator (STYLE_GUIDE.md, tailwind.config.js, globals.css)
 **Route:** `/dev/styling`
 **Features:**
+
 - Screenshot upload interface (1-3 reference images)
 - OpenAI Vision with Vercel AI SDK analysis of design patterns and preferences
 - Three-file code generator with copy/paste outputs:
@@ -82,9 +93,11 @@
 **Database Tables:** `style_configs` (for saving user preferences)
 
 ## Section 6: AI Site Assistant
+
 **Purpose:** AI provider abstraction + context system + function calling foundation
 **Route:** `/dev/ai`
 **Features:**
+
 - AI provider abstraction layer (easy to swap OpenAI → Anthropic → specialized models)
 - Vercel AI SDK integration (streaming chat, function calling, context injection)
 - Extensible context system (app info, navigation, user state)
@@ -98,9 +111,11 @@
 **Database Tables:** `ai_conversations`, `ai_usage_logs`
 
 ## Section 7: Deployment & CI/CD
+
 **Purpose:** GitHub Actions + Vercel + database migration + production readiness
 **Route:** `/dev/deployment`
 **Features:**
+
 - GitHub Actions workflow templates (test + deploy on branch push)
 - Vercel configuration with environment-specific settings
 - Database migration strategy (Neon dev → Neon prod scaling)
@@ -113,19 +128,23 @@
 **Files Generated:** `.github/workflows/deploy.yml`, `vercel.json`, migration scripts
 
 ## Development Order
+
 1. **Foundation:** Database setup, basic app structure, routing
 2. **Core Sections:** Configuration → Auth → Payments
 3. **Advanced Features:** Email → AI Styling → AI Assistant
 4. **Production:** Deployment setup and testing
 
 ## Mock-First Approach
+
 Every section works immediately without API keys:
+
 - Mock responses for all external services
 - Real functionality when proper credentials added
 - Clear status indicators showing mock vs real mode
 - Seamless upgrade path from testing to production
 
 ## File Structure
+
 ```
 app/
 ├── dev/
@@ -144,6 +163,7 @@ app/
 ## Critical Improvements To Consider
 
 ### Security & Production
+
 - **Security headers middleware** - Add security headers (HSTS, CSP, etc.)
 - **Input sanitization** - XSS protection for user inputs
 - **SQL injection prevention** - Parameterized queries audit
@@ -152,6 +172,7 @@ app/
 - **CORS configuration** - Proper CORS setup for production
 
 ### Performance & Optimization
+
 - **Image optimization** - Next.js Image component optimization
 - **Bundle analysis** - Webpack bundle analyzer integration
 - **Caching strategy** - Redis/memory caching for API responses
@@ -160,6 +181,7 @@ app/
 - **Lazy loading** - Component and route lazy loading
 
 ### Monitoring & Observability
+
 - **Error tracking** - Sentry/Bugsnag integration
 - **Application logs** - Structured logging with Winston/Pino
 - **Metrics collection** - Application metrics dashboard
@@ -168,6 +190,7 @@ app/
 - **Database monitoring** - Query performance and connection pooling
 
 ### Testing & Quality
+
 - **E2E testing** - Playwright test suite expansion
 - **Visual regression testing** - Screenshot comparison tests
 - **Load testing** - Performance testing with k6/Artillery
@@ -176,6 +199,7 @@ app/
 - **Test coverage enforcement** - Coverage thresholds
 
 ### Developer Experience
+
 - **Docker development** - Containerized development environment
 - **API documentation** - OpenAPI/Swagger documentation
 - **Database migrations** - Proper migration system
@@ -184,6 +208,7 @@ app/
 - **Git hooks** - Pre-commit hooks for code quality
 
 ### Scalability & Infrastructure
+
 - **Database scaling** - Read replicas and connection pooling
 - **Queue system** - Redis/BullMQ for background jobs
 - **Microservices preparation** - Service boundaries and API contracts
@@ -192,6 +217,7 @@ app/
 - **Feature flags** - Feature toggle system
 
 ### Compliance & Legal
+
 - **GDPR compliance** - Data privacy and user consent
 - **Audit logging** - Comprehensive audit trail
 - **Data retention policies** - Automated data cleanup
@@ -200,6 +226,7 @@ app/
 - **Data export** - User data export functionality
 
 ### Advanced Features
+
 - **Real-time features** - WebSocket/SSE implementation
 - **Notification system** - Push notifications and email alerts
 - **Search functionality** - Full-text search implementation
@@ -207,4 +234,4 @@ app/
 - **Workflow automation** - Business process automation
 - **Analytics integration** - Google Analytics/Mixpanel integration
 
-*Note: These improvements were skipped during the initial enhancement phase to avoid over-engineering. Consider implementing based on specific project needs and scale requirements.*
+_Note: These improvements were skipped during the initial enhancement phase to avoid over-engineering. Consider implementing based on specific project needs and scale requirements._

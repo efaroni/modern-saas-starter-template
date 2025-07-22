@@ -12,20 +12,24 @@ import type { AuthUser } from '@/lib/auth/types';
 // import { deleteAccountAction } from '@/app/actions/auth' // TODO: Implement when ready
 
 const deleteAccountSchema = z.object({
-  confirmText: z.string().refine((val) => val === 'DELETE', {
+  confirmText: z.string().refine(val => val === 'DELETE', {
     message: 'Please type "DELETE" to confirm',
   }),
 });
 
-type DeleteAccountFormData = z.infer<typeof deleteAccountSchema>
+type DeleteAccountFormData = z.infer<typeof deleteAccountSchema>;
 
 interface DeleteAccountFormProps {
-  user: AuthUser
-  onSuccess: () => void
-  onError: (error: string) => void
+  user: AuthUser;
+  onSuccess: () => void;
+  onError: (error: string) => void;
 }
 
-export function DeleteAccountForm({ user: _user, onSuccess: _onSuccess, onError }: DeleteAccountFormProps) {
+export function DeleteAccountForm({
+  user: _user,
+  onSuccess: _onSuccess,
+  onError,
+}: DeleteAccountFormProps) {
   const [isSubmitting, _setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -53,62 +57,66 @@ export function DeleteAccountForm({ user: _user, onSuccess: _onSuccess, onError 
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-red-600">Danger Zone</h3>
+    <div className='space-y-6'>
+      <div className='space-y-4'>
+        <h3 className='text-lg font-medium text-red-600'>Danger Zone</h3>
 
-        <div className="p-4 border border-red-200 rounded-md bg-red-50">
-          <div className="space-y-4">
+        <div className='rounded-md border border-red-200 bg-red-50 p-4'>
+          <div className='space-y-4'>
             <div>
-              <h4 className="font-medium text-red-800">Delete Account</h4>
-              <p className="text-sm text-red-700 mt-1">
-                Once you delete your account, there is no going back. This action cannot be undone.
+              <h4 className='font-medium text-red-800'>Delete Account</h4>
+              <p className='mt-1 text-sm text-red-700'>
+                Once you delete your account, there is no going back. This
+                action cannot be undone.
               </p>
             </div>
 
             {!showConfirmation ? (
               <button
-                type="button"
+                type='button'
                 onClick={handleDeleteClick}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 text-sm"
+                className='rounded-md bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none'
               >
                 Delete Account
               </button>
             ) : (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
                 <div>
-                  <label htmlFor="confirm-delete" className="block text-sm font-medium text-red-700">
+                  <label
+                    htmlFor='confirm-delete'
+                    className='block text-sm font-medium text-red-700'
+                  >
                     Type &quot;DELETE&quot; to confirm account deletion
                   </label>
                   <Input
                     {...register('confirmText')}
-                    type="text"
-                    id="confirm-delete"
+                    type='text'
+                    id='confirm-delete'
                     variant={errors.confirmText ? 'error' : 'default'}
-                    className="mt-1 block w-full"
-                    placeholder="DELETE"
+                    className='mt-1 block w-full'
+                    placeholder='DELETE'
                   />
                   {errors.confirmText && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className='mt-1 text-sm text-red-600'>
                       {errors.confirmText.message}
                     </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className='flex items-center gap-4'>
                   <button
-                    type="submit"
+                    type='submit'
                     disabled={isSubmitting}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                    className='flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50'
                   >
-                    {isSubmitting && <Spinner size="sm" />}
+                    {isSubmitting && <Spinner size='sm' />}
                     {isSubmitting ? 'Deleting...' : 'Delete Account'}
                   </button>
 
                   <button
-                    type="button"
+                    type='button'
                     onClick={handleCancelClick}
-                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-sm"
+                    className='rounded-md bg-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none'
                   >
                     Cancel
                   </button>

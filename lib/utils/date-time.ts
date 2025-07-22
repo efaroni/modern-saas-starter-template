@@ -6,28 +6,28 @@
  * Adds minutes to the current date
  */
 export function addMinutes(minutes: number, fromDate: Date = new Date()): Date {
-  return new Date(fromDate.getTime() + (minutes * 60 * 1000));
+  return new Date(fromDate.getTime() + minutes * 60 * 1000);
 }
 
 /**
  * Adds hours to the current date
  */
 export function addHours(hours: number, fromDate: Date = new Date()): Date {
-  return new Date(fromDate.getTime() + (hours * 60 * 60 * 1000));
+  return new Date(fromDate.getTime() + hours * 60 * 60 * 1000);
 }
 
 /**
  * Adds days to the current date
  */
 export function addDays(days: number, fromDate: Date = new Date()): Date {
-  return new Date(fromDate.getTime() + (days * 24 * 60 * 60 * 1000));
+  return new Date(fromDate.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
 /**
  * Adds seconds to the current date
  */
 export function addSeconds(seconds: number, fromDate: Date = new Date()): Date {
-  return new Date(fromDate.getTime() + (seconds * 1000));
+  return new Date(fromDate.getTime() + seconds * 1000);
 }
 
 /**
@@ -43,11 +43,14 @@ export function isExpired(date: Date | string | null): boolean {
 /**
  * Checks if a date is near expiration (within specified minutes)
  */
-export function isNearExpiration(date: Date | string | null, withinMinutes: number = 30): boolean {
+export function isNearExpiration(
+  date: Date | string | null,
+  withinMinutes: number = 30,
+): boolean {
   if (!date) return true;
 
   const expirationDate = typeof date === 'string' ? new Date(date) : date;
-  const warningTime = Date.now() + (withinMinutes * 60 * 1000);
+  const warningTime = Date.now() + withinMinutes * 60 * 1000;
 
   return expirationDate.getTime() <= warningTime;
 }
@@ -120,8 +123,9 @@ export const createExpirationDate = {
   /**
    * For auth sessions (configurable, default 24 hours)
    */
-  authSession: (durationMinutes: number = EXPIRATION_TIMES.TWENTY_FOUR_HOURS): Date =>
-    addMinutes(durationMinutes),
+  authSession: (
+    durationMinutes: number = EXPIRATION_TIMES.TWENTY_FOUR_HOURS,
+  ): Date => addMinutes(durationMinutes),
 
   /**
    * For rate limiting windows (15 minutes)

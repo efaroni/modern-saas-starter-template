@@ -4,32 +4,32 @@ import { rateLimitPresets } from '@/lib/middleware/rate-limit';
 
 interface PerformanceMetricsPayload {
   metrics: {
-    lcp?: number
-    fid?: number
-    cls?: number
-    fcp?: number
-    ttfb?: number
-    fmp?: number
-    renderTime?: number
-    componentMountTime?: number
-    apiResponseTime?: number
+    lcp?: number;
+    fid?: number;
+    cls?: number;
+    fcp?: number;
+    ttfb?: number;
+    fmp?: number;
+    renderTime?: number;
+    componentMountTime?: number;
+    apiResponseTime?: number;
     memoryUsage?: {
-      usedJSHeapSize?: number
-      totalJSHeapSize?: number
-      jsHeapSizeLimit?: number
-    }
-    connectionType?: string
-    userInteractions?: number
-    scrollDepth?: number
-    timeOnPage?: number
-    errorRate?: number
-    errorCount?: number
-    customMetrics?: Record<string, number>
-  }
-  timestamp: number
-  url: string
-  userAgent: string
-  sessionId?: string
+      usedJSHeapSize?: number;
+      totalJSHeapSize?: number;
+      jsHeapSizeLimit?: number;
+    };
+    connectionType?: string;
+    userInteractions?: number;
+    scrollDepth?: number;
+    timeOnPage?: number;
+    errorRate?: number;
+    errorCount?: number;
+    customMetrics?: Record<string, number>;
+  };
+  timestamp: number;
+  url: string;
+  userAgent: string;
+  sessionId?: string;
 }
 
 // Apply rate limiting to prevent abuse
@@ -48,9 +48,10 @@ async function handler(request: NextRequest) {
     }
 
     // Get client information
-    const clientIP = request.headers.get('x-forwarded-for') ||
-                    request.headers.get('x-real-ip') ||
-                    'unknown';
+    const clientIP =
+      request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
 
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
@@ -96,7 +97,6 @@ async function handler(request: NextRequest) {
       message: 'Performance metrics received',
       scores: performanceRecord.scores,
     });
-
   } catch (error) {
     console.error('Failed to process performance metrics:', error);
     return NextResponse.json(
@@ -107,7 +107,9 @@ async function handler(request: NextRequest) {
 }
 
 // Calculate performance scores based on Core Web Vitals
-function calculatePerformanceScores(metrics: PerformanceMetricsPayload['metrics']) {
+function calculatePerformanceScores(
+  metrics: PerformanceMetricsPayload['metrics'],
+) {
   const scores: Record<string, 'good' | 'needs-improvement' | 'poor'> = {};
 
   // LCP (Largest Contentful Paint)
@@ -195,7 +197,13 @@ function categorizeUrl(url: string) {
     if (pathname.startsWith('/auth/')) return 'auth';
     if (pathname.startsWith('/dashboard/')) return 'dashboard';
     if (pathname.startsWith('/api/')) return 'api';
-    if (pathname.startsWith('/configuration/') || pathname.startsWith('/generators/') || pathname.startsWith('/performance/') || pathname.startsWith('/rate-limiting/')) return 'dev';
+    if (
+      pathname.startsWith('/configuration/') ||
+      pathname.startsWith('/generators/') ||
+      pathname.startsWith('/performance/') ||
+      pathname.startsWith('/rate-limiting/')
+    )
+      return 'dev';
 
     return 'other';
   } catch {
@@ -236,7 +244,12 @@ export function GET(request: NextRequest) {
       },
       topPages: [
         { url: '/', sessions: 456, avgLCP: 1980, score: 'good' },
-        { url: '/dashboard', sessions: 234, avgLCP: 2340, score: 'needs-improvement' },
+        {
+          url: '/dashboard',
+          sessions: 234,
+          avgLCP: 2340,
+          score: 'needs-improvement',
+        },
         { url: '/auth/login', sessions: 123, avgLCP: 1850, score: 'good' },
       ],
       deviceBreakdown: {
@@ -252,7 +265,6 @@ export function GET(request: NextRequest) {
       timeRange,
       category,
     });
-
   } catch (error) {
     console.error('Failed to retrieve performance data:', error);
     return NextResponse.json(

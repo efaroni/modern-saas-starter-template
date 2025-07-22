@@ -5,9 +5,11 @@ Comprehensive guide for rapid SaaS development with this modern Next.js template
 ## Project Overview
 
 ### Application Purpose
+
 A production-ready SaaS starter template designed for rapid deployment of modern web applications. Features complete authentication, payments, email, AI integration, and deployment pipelines.
 
 ### Tech Stack Summary
+
 - **Frontend**: Next.js 15 (App Router), TypeScript 5.0+, Tailwind CSS v4, React 19
 - **Backend**: PostgreSQL with Drizzle ORM, Redis for caching
 - **Auth**: Custom DatabaseAuthProvider with Auth.js v5 abstraction
@@ -17,6 +19,7 @@ A production-ready SaaS starter template designed for rapid deployment of modern
 - **Deployment**: Vercel + Neon PostgreSQL
 
 ### Architecture Principles
+
 - Service layer abstraction for all external dependencies
 - Factory pattern for provider instantiation
 - Dependency injection for testability
@@ -26,17 +29,20 @@ A production-ready SaaS starter template designed for rapid deployment of modern
 ## Current Sprint / Active Development
 
 ### Recent Architectural Decisions
+
 - Implemented custom DatabaseAuthProvider replacing default Auth.js adapter
 - Added comprehensive password history tracking
 - Enhanced session management with Redis caching
 - Standardized error response format across API routes
 
 ### Active Features
+
 - [ ] Completing Section 7: Deployment & CI/CD
 - [ ] Implementing AI styling system (Section 5)
 - [ ] Enhancing email template system
 
 ### Known Issues & Blockers
+
 - Parallel test execution requires careful data isolation
 - Rate limiting tests need retry logic for stability
 - Some Auth.js edge cases with custom provider
@@ -44,6 +50,7 @@ A production-ready SaaS starter template designed for rapid deployment of modern
 ## Code Patterns & Conventions
 
 ### TypeScript Patterns
+
 ```typescript
 // Always use explicit types for function parameters
 export async function createUser(data: CreateUserData): Promise<User> {
@@ -53,7 +60,7 @@ export async function createUser(data: CreateUserData): Promise<User> {
 // Use Zod for runtime validation
 const userSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8)
+  password: z.string().min(8),
 });
 
 // Type inference from schemas
@@ -61,6 +68,7 @@ type UserInput = z.infer<typeof userSchema>;
 ```
 
 ### Component Structure
+
 ```typescript
 // Client Component Pattern
 'use client';
@@ -73,14 +81,15 @@ interface UserFormProps {
 export function UserForm({ onSubmit, initialData }: UserFormProps) {
   const form = useForm<UserData>({
     resolver: zodResolver(userSchema),
-    defaultValues: initialData
+    defaultValues: initialData,
   });
-  
+
   // Component logic
 }
 ```
 
 ### API Route Pattern
+
 ```typescript
 // app/api/users/route.ts
 import { NextRequest, NextResponse } from 'next/server';
@@ -89,23 +98,24 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validated = userSchema.parse(body);
-    
+
     // Business logic
-    
+
     return NextResponse.json({
       success: true,
-      data: result
+      data: result,
     });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }
 ```
 
 ### Database Query Patterns
+
 ```typescript
 // Using Drizzle ORM
 import { db } from '@/lib/db';
@@ -113,11 +123,11 @@ import { users } from '@/lib/db/schema';
 
 // Simple query
 const user = await db.query.users.findFirst({
-  where: eq(users.email, email)
+  where: eq(users.email, email),
 });
 
 // Transaction pattern
-const result = await db.transaction(async (tx) => {
+const result = await db.transaction(async tx => {
   const user = await tx.insert(users).values(userData).returning();
   await tx.insert(profiles).values({ userId: user[0].id });
   return user[0];
@@ -125,19 +135,20 @@ const result = await db.transaction(async (tx) => {
 ```
 
 ### Service Layer Pattern
+
 ```typescript
 // lib/services/user.service.ts
 export class UserService {
   constructor(
     private db: Database,
-    private emailService: EmailService
+    private emailService: EmailService,
   ) {}
-  
+
   async createUser(data: CreateUserData): Promise<User> {
-    const user = await this.db.transaction(async (tx) => {
+    const user = await this.db.transaction(async tx => {
       // Create user logic
     });
-    
+
     await this.emailService.sendWelcomeEmail(user.email);
     return user;
   }
@@ -145,10 +156,14 @@ export class UserService {
 ```
 
 ### Error Handling Pattern
+
 ```typescript
 // Custom error classes
 export class AuthenticationError extends Error {
-  constructor(message: string, public code: string) {
+  constructor(
+    message: string,
+    public code: string,
+  ) {
     super(message);
     this.name = 'AuthenticationError';
   }
@@ -163,6 +178,7 @@ if (!isValidPassword) {
 ## API & Data Models
 
 ### Core Database Schema
+
 ```typescript
 // Users table
 export const users = pgTable('users', {
@@ -170,7 +186,7 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   password: text('password'),
   emailVerified: timestamp('email_verified'),
-  createdAt: timestamp('created_at').defaultNow()
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Sessions table
@@ -178,11 +194,12 @@ export const sessions = pgTable('sessions', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id),
   sessionToken: text('session_token').unique(),
-  expires: timestamp('expires')
+  expires: timestamp('expires'),
 });
 ```
 
 ### Authentication Flow
+
 1. **Registration**: `/api/auth/register` → `DatabaseAuthProvider.createUser()`
 2. **Login**: `/api/auth/login` → `DatabaseAuthProvider.authenticateUser()`
 3. **Session**: Cookie-based with Redis caching
@@ -190,6 +207,7 @@ export const sessions = pgTable('sessions', {
 5. **Email Verification**: Token-based with 1h expiration
 
 ### API Endpoint Structure
+
 ```
 /api/
 ├── auth/
@@ -209,6 +227,7 @@ export const sessions = pgTable('sessions', {
 ```
 
 ### Service Abstractions
+
 ```typescript
 // Authentication Provider Interface
 interface AuthProvider {
@@ -217,7 +236,7 @@ interface AuthProvider {
   deleteUser(userId: string): Promise<void>;
 }
 
-// Email Service Interface  
+// Email Service Interface
 interface EmailService {
   sendEmail(to: string, subject: string, html: string): Promise<void>;
   sendWelcomeEmail(email: string): Promise<void>;
@@ -227,7 +246,10 @@ interface EmailService {
 // Payment Service Interface
 interface PaymentService {
   createCustomer(email: string): Promise<Customer>;
-  createSubscription(customerId: string, priceId: string): Promise<Subscription>;
+  createSubscription(
+    customerId: string,
+    priceId: string,
+  ): Promise<Subscription>;
   cancelSubscription(subscriptionId: string): Promise<void>;
 }
 ```
@@ -235,6 +257,7 @@ interface PaymentService {
 ## Test Suite Overview
 
 **Current Status**: 99.7%+ pass rate (326/327 tests passing)
+
 - Test execution time: ~15 seconds
 - Parallel execution with 2 workers
 - High reliability for CI/CD
@@ -242,17 +265,20 @@ interface PaymentService {
 ## Critical Paths That Must Not Break
 
 ### 1. Authentication Flow
+
 - **User Registration**: `DatabaseAuthProvider.createUser()`
 - **User Login**: `DatabaseAuthProvider.authenticateUser()`
 - **Password Reset**: Token-based password reset flow
 - **Email Verification**: Token-based email verification
 
 ### 2. Database Operations
+
 - All auth services use dependency injection with `testDb` for testing
 - Password history tracking for security
 - Rate limiting for brute force protection
 
 ### 3. Session Management
+
 - Session creation, validation, and destruction
 - Cookie configuration and security
 - Concurrent session limits
@@ -260,6 +286,7 @@ interface PaymentService {
 ## Test Confidence Levels
 
 ### High Confidence Tests (Must Pass)
+
 1. **Authentication Tests** (`tests/lib/auth/providers/database.test.ts`)
    - Core CRUD operations
    - Password validation
@@ -276,6 +303,7 @@ interface PaymentService {
    - Password complexity
 
 ### Medium Confidence Tests
+
 1. **Session Manager Tests** (`tests/lib/auth/session-manager.test.ts`)
    - 16 comprehensive tests
    - Uses retry logic for stability
@@ -299,6 +327,7 @@ interface PaymentService {
 ## Development Guidelines
 
 ### When Adding New Features
+
 1. **Database Configuration**: Always use centralized functions from `lib/db/config.ts`:
    - `getDatabaseUrl()` - Get environment-appropriate database URL
    - `getDatabaseConfig()` - Get full configuration with pool settings
@@ -310,6 +339,7 @@ interface PaymentService {
 ### Database Configuration Best Practices
 
 #### Component-Based Configuration (Preferred)
+
 The system now supports component-based database configuration for easier management:
 
 ```bash
@@ -320,7 +350,7 @@ DB_USER="postgres"
 DB_PASSWORD="postgres"
 DB_NAME="saas_template"
 
-# .env.test (Test Environment) 
+# .env.test (Test Environment)
 TEST_DB_HOST="localhost"
 TEST_DB_PORT="5433"
 TEST_DB_USER="test_user"
@@ -336,12 +366,14 @@ DB_NAME="production_db"
 ```
 
 #### Key Benefits
+
 - **Single Source Configuration**: Change host/port/credentials in one place
 - **Environment-Specific**: Different settings for dev/test/prod automatically
 - **Backwards Compatible**: Still supports `DATABASE_URL` for legacy setups
 - **Security**: Component-based approach makes credential management easier
 
 #### Usage Guidelines
+
 - **Never use `process.env.DATABASE_URL` directly** - Use `getDatabaseUrl()` instead
 - **Environment Detection**: The system automatically:
   - Builds URLs from components (preferred)
@@ -351,6 +383,7 @@ DB_NAME="production_db"
 - **Connection Components**: Use `getDatabaseConnectionComponents()` to get host/port/etc.
 
 ### Test Commands
+
 ```bash
 # Run all tests
 npm run test
@@ -366,6 +399,7 @@ npm run test:coverage
 ```
 
 ### Common Test Fixes
+
 1. **Foreign key violations**: Wrap operations in try-catch
 2. **Timing issues**: Add retry logic (see session manager tests)
 3. **Parallel conflicts**: Use worker-specific data isolation
@@ -380,6 +414,7 @@ npm run test:coverage
 ## Refactoring Safety
 
 When refactoring:
+
 1. Run full test suite before and after changes
 2. Pay special attention to authentication flow tests
 3. Ensure database migrations don't break existing tests
@@ -390,6 +425,7 @@ The test suite is designed to give you confidence when refactoring. With 99.7%+ 
 ## Common Tasks & Commands
 
 ### Development Workflow
+
 ```bash
 # Start development server
 npm run dev
@@ -405,6 +441,7 @@ npm run db:generate
 ```
 
 ### Testing Commands
+
 ```bash
 # Run all tests
 npm run test
@@ -426,6 +463,7 @@ npm run test:e2e
 ```
 
 ### Build & Deployment
+
 ```bash
 # Type check
 npm run type-check
@@ -444,6 +482,7 @@ npm run start
 ```
 
 ### Database Commands
+
 ```bash
 # Create new migration
 npm run db:migrate:create <migration_name>
@@ -461,6 +500,7 @@ npm run db:seed
 ## DO's and DON'Ts
 
 ### DO's ✅
+
 - Use dependency injection for all services
 - Validate all user inputs with Zod
 - Handle errors explicitly with try-catch
@@ -472,6 +512,7 @@ npm run db:seed
 - Use TypeScript strict mode
 
 ### DON'Ts ❌
+
 - Don't use console.log in production code (use logger service)
 - Don't store sensitive data in plain text
 - Don't skip input validation
@@ -485,6 +526,7 @@ npm run db:seed
 ## Quick Reference
 
 ### File Structure
+
 ```
 /
 ├── app/                    # Next.js App Router
@@ -526,33 +568,39 @@ npm run db:seed
 ### Key Files for Common Tasks
 
 **Adding Authentication:**
+
 - Provider implementation: `lib/auth/providers/database.ts`
 - Session management: `lib/auth/session-manager.ts`
 - Auth types: `lib/auth/types.ts`
 - API routes: `app/api/auth/`
 
 **Database Changes:**
+
 - Schema definition: `lib/db/schema.ts`
 - Migration folder: `drizzle/`
 - Connection config: `lib/db/index.ts`
 
 **Adding API Endpoints:**
+
 - Route handlers: `app/api/[resource]/route.ts`
 - Validation schemas: Create in same file or `lib/schemas/`
 - Service layer: `lib/services/[service].ts`
 
 **UI Components:**
+
 - Base components: `components/ui/`
 - Form components: `components/forms/`
 - Layout components: `app/(group)/layout.tsx`
 
 **Configuration:**
+
 - Environment variables: `.env.local`
 - TypeScript config: `tsconfig.json`
 - Tailwind config: `tailwind.config.js`
 - Next.js config: `next.config.ts`
 
 ### Environment Variables
+
 ```bash
 # Database (Component-based - Preferred)
 DB_HOST="localhost"
@@ -599,6 +647,7 @@ OPENAI_API_KEY="sk-..."
 ### Common Code Snippets
 
 **Protected Route:**
+
 ```typescript
 // app/(dashboard)/protected/page.tsx
 import { auth } from '@/lib/auth';
@@ -607,12 +656,13 @@ import { redirect } from 'next/navigation';
 export default async function ProtectedPage() {
   const session = await auth();
   if (!session) redirect('/login');
-  
+
   // Page content
 }
 ```
 
 **Server Action:**
+
 ```typescript
 // app/actions/user.ts
 'use server';
@@ -623,13 +673,14 @@ import { userSchema } from '@/lib/schemas';
 export async function updateUser(data: unknown) {
   const session = await auth();
   if (!session) throw new Error('Unauthorized');
-  
+
   const validated = userSchema.parse(data);
   // Update logic
 }
 ```
 
 **API Route with Auth:**
+
 ```typescript
 // app/api/protected/route.ts
 import { auth } from '@/lib/auth';
@@ -638,12 +689,9 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   const session = await auth();
   if (!session) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  
+
   // Route logic
 }
 ```

@@ -1,4 +1,8 @@
-import { validateApiKey, validateOpenAIKey, validateResendKey } from './validators';
+import {
+  validateApiKey,
+  validateOpenAIKey,
+  validateResendKey,
+} from './validators';
 
 // Mock the external services
 jest.mock('openai', () => ({

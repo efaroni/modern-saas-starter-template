@@ -19,7 +19,7 @@ export enum ErrorCategory {
   EXTERNAL_SERVICE = 'external_service',
   INTERNAL = 'internal',
   BUSINESS_LOGIC = 'business_logic',
-  SECURITY = 'security'
+  SECURITY = 'security',
 }
 
 /**
@@ -29,22 +29,22 @@ export enum ErrorSeverity {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
 }
 
 /**
  * Structured error interface
  */
 export interface StructuredError extends Error {
-  category: ErrorCategory
-  severity: ErrorSeverity
-  correlationId?: string
-  userId?: string
-  context?: Record<string, unknown>
-  isOperational?: boolean
-  statusCode?: number
-  shouldRetry?: boolean
-  retryAfter?: number
+  category: ErrorCategory;
+  severity: ErrorSeverity;
+  correlationId?: string;
+  userId?: string;
+  context?: Record<string, unknown>;
+  isOperational?: boolean;
+  statusCode?: number;
+  shouldRetry?: boolean;
+  retryAfter?: number;
 }
 
 /**
@@ -67,12 +67,12 @@ export class AppError extends Error implements StructuredError {
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
     statusCode: number = 500,
     options: {
-      correlationId?: string
-      userId?: string
-      context?: Record<string, unknown>
-      shouldRetry?: boolean
-      retryAfter?: number
-      cause?: Error
+      correlationId?: string;
+      userId?: string;
+      context?: Record<string, unknown>;
+      shouldRetry?: boolean;
+      retryAfter?: number;
+      cause?: Error;
     } = {},
   ) {
     super(message);
@@ -100,31 +100,90 @@ export class AppError extends Error implements StructuredError {
  */
 export const ErrorFactory = {
   validation: (message: string, context?: Record<string, unknown>): AppError =>
-    new AppError(message, ErrorCategory.VALIDATION, ErrorSeverity.LOW, 400, { context }),
+    new AppError(message, ErrorCategory.VALIDATION, ErrorSeverity.LOW, 400, {
+      context,
+    }),
 
-  authentication: (message: string, context?: Record<string, unknown>): AppError =>
-    new AppError(message, ErrorCategory.AUTHENTICATION, ErrorSeverity.MEDIUM, 401, { context }),
+  authentication: (
+    message: string,
+    context?: Record<string, unknown>,
+  ): AppError =>
+    new AppError(
+      message,
+      ErrorCategory.AUTHENTICATION,
+      ErrorSeverity.MEDIUM,
+      401,
+      { context },
+    ),
 
-  authorization: (message: string, context?: Record<string, unknown>): AppError =>
-    new AppError(message, ErrorCategory.AUTHORIZATION, ErrorSeverity.MEDIUM, 403, { context }),
+  authorization: (
+    message: string,
+    context?: Record<string, unknown>,
+  ): AppError =>
+    new AppError(
+      message,
+      ErrorCategory.AUTHORIZATION,
+      ErrorSeverity.MEDIUM,
+      403,
+      { context },
+    ),
 
   notFound: (resource: string, context?: Record<string, unknown>): AppError =>
-    new AppError(`${resource} not found`, ErrorCategory.NOT_FOUND, ErrorSeverity.LOW, 404, { context }),
+    new AppError(
+      `${resource} not found`,
+      ErrorCategory.NOT_FOUND,
+      ErrorSeverity.LOW,
+      404,
+      { context },
+    ),
 
-  rateLimit: (message: string, retryAfter?: number, context?: Record<string, unknown>): AppError =>
-    new AppError(message, ErrorCategory.RATE_LIMIT, ErrorSeverity.MEDIUM, 429, { retryAfter, context }),
+  rateLimit: (
+    message: string,
+    retryAfter?: number,
+    context?: Record<string, unknown>,
+  ): AppError =>
+    new AppError(message, ErrorCategory.RATE_LIMIT, ErrorSeverity.MEDIUM, 429, {
+      retryAfter,
+      context,
+    }),
 
-  database: (message: string, shouldRetry: boolean = true, context?: Record<string, unknown>): AppError =>
-    new AppError(message, ErrorCategory.DATABASE, ErrorSeverity.HIGH, 500, { shouldRetry, context }),
+  database: (
+    message: string,
+    shouldRetry: boolean = true,
+    context?: Record<string, unknown>,
+  ): AppError =>
+    new AppError(message, ErrorCategory.DATABASE, ErrorSeverity.HIGH, 500, {
+      shouldRetry,
+      context,
+    }),
 
-  externalService: (service: string, shouldRetry: boolean = true, context?: Record<string, unknown>): AppError =>
-    new AppError(`External service ${service} unavailable`, ErrorCategory.EXTERNAL_SERVICE, ErrorSeverity.HIGH, 503, { shouldRetry, context }),
+  externalService: (
+    service: string,
+    shouldRetry: boolean = true,
+    context?: Record<string, unknown>,
+  ): AppError =>
+    new AppError(
+      `External service ${service} unavailable`,
+      ErrorCategory.EXTERNAL_SERVICE,
+      ErrorSeverity.HIGH,
+      503,
+      { shouldRetry, context },
+    ),
 
   security: (message: string, context?: Record<string, unknown>): AppError =>
-    new AppError(message, ErrorCategory.SECURITY, ErrorSeverity.CRITICAL, 403, { context }),
+    new AppError(message, ErrorCategory.SECURITY, ErrorSeverity.CRITICAL, 403, {
+      context,
+    }),
 
-  internal: (message: string, cause?: Error, context?: Record<string, unknown>): AppError =>
-    new AppError(message, ErrorCategory.INTERNAL, ErrorSeverity.CRITICAL, 500, { cause, context }),
+  internal: (
+    message: string,
+    cause?: Error,
+    context?: Record<string, unknown>,
+  ): AppError =>
+    new AppError(message, ErrorCategory.INTERNAL, ErrorSeverity.CRITICAL, 500, {
+      cause,
+      context,
+    }),
 };
 
 /**
@@ -149,9 +208,9 @@ export class ErrorHandler {
     error: unknown,
     request: NextRequest,
     context: {
-      userId?: string
-      endpoint?: string
-      method?: string
+      userId?: string;
+      endpoint?: string;
+      method?: string;
     } = {},
   ): Promise<NextResponse<ApiError>> {
     const correlationId = getCorrelationId(request);
@@ -196,14 +255,20 @@ export class ErrorHandler {
         ErrorCategory.VALIDATION,
         ErrorSeverity.LOW,
         400,
-        { correlationId, context: { ...context, validationErrors: error.errors } },
+        {
+          correlationId,
+          context: { ...context, validationErrors: error.errors },
+        },
       );
     }
 
     // Handle standard JavaScript errors
     if (error instanceof Error) {
       // Check if it's a known error type
-      if (error.message.includes('ECONNREFUSED') || error.message.includes('timeout')) {
+      if (
+        error.message.includes('ECONNREFUSED') ||
+        error.message.includes('timeout')
+      ) {
         return new AppError(
           'External service unavailable',
           ErrorCategory.EXTERNAL_SERVICE,
@@ -213,7 +278,10 @@ export class ErrorHandler {
         );
       }
 
-      if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+      if (
+        error.message.includes('duplicate key') ||
+        error.message.includes('unique constraint')
+      ) {
         return new AppError(
           'Resource already exists',
           ErrorCategory.BUSINESS_LOGIC,
@@ -223,7 +291,10 @@ export class ErrorHandler {
         );
       }
 
-      if (error.message.includes('connection') || error.message.includes('database')) {
+      if (
+        error.message.includes('connection') ||
+        error.message.includes('database')
+      ) {
         return new AppError(
           'Database operation failed',
           ErrorCategory.DATABASE,
@@ -276,7 +347,9 @@ export class ErrorHandler {
         method: request.method,
         url: request.url,
         userAgent: request.headers.get('user-agent'),
-        ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+        ip:
+          request.headers.get('x-forwarded-for') ||
+          request.headers.get('x-real-ip'),
       },
       context,
       timestamp: new Date().toISOString(),
@@ -305,7 +378,10 @@ export class ErrorHandler {
 
     // Reset counters every minute
     setTimeout(() => {
-      this.errorCounts.set(key, Math.max(0, (this.errorCounts.get(key) || 0) - 1));
+      this.errorCounts.set(
+        key,
+        Math.max(0, (this.errorCounts.get(key) || 0) - 1),
+      );
     }, 60000);
   }
 
@@ -354,7 +430,9 @@ export class ErrorHandler {
    */
   private createErrorResponse(error: StructuredError): NextResponse<ApiError> {
     // Don't expose internal error details in production
-    const message = error.isOperational ? error.message : 'Internal server error';
+    const message = error.isOperational
+      ? error.message
+      : 'Internal server error';
 
     const response = createErrorResponse(message, error.statusCode, {
       category: error.category,
@@ -385,9 +463,9 @@ export async function withErrorHandling<T>(
   request: NextRequest,
   handler: () => Promise<T>,
   context: {
-    userId?: string
-    endpoint?: string
-    method?: string
+    userId?: string;
+    endpoint?: string;
+    method?: string;
   } = {},
 ): Promise<T | NextResponse<ApiError>> {
   try {
@@ -408,14 +486,18 @@ export function throwValidationError(message: string, field?: string): never {
 /**
  * Throw authentication error
  */
-export function throwAuthenticationError(message: string = 'Authentication required'): never {
+export function throwAuthenticationError(
+  message: string = 'Authentication required',
+): never {
   throw ErrorFactory.authentication(message);
 }
 
 /**
  * Throw authorization error
  */
-export function throwAuthorizationError(message: string = 'Access denied'): never {
+export function throwAuthorizationError(
+  message: string = 'Access denied',
+): never {
   throw ErrorFactory.authorization(message);
 }
 

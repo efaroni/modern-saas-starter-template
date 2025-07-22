@@ -13,25 +13,46 @@ import {
   resetPasswordAction,
   deleteAccountAction,
 } from '@/app/actions/auth';
-import type { AuthUser, SignUpRequest, UpdateProfileRequest } from '@/lib/auth/types';
+import type {
+  AuthUser,
+  SignUpRequest,
+  UpdateProfileRequest,
+} from '@/lib/auth/types';
 
 interface AuthState {
-  user: AuthUser | null
-  isLoading: boolean
-  error: string | null
+  user: AuthUser | null;
+  isLoading: boolean;
+  error: string | null;
 }
 
 interface AuthActions {
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  signup: (data: SignUpRequest) => Promise<{ success: boolean; error?: string }>
-  logout: () => Promise<{ success: boolean; error?: string }>
-  updateProfile: (data: UpdateProfileRequest) => Promise<{ success: boolean; error?: string }>
-  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>
-  requestPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>
-  resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; error?: string }>
-  deleteAccount: (password: string) => Promise<{ success: boolean; error?: string }>
-  refreshUser: () => Promise<void>
-  clearError: () => void
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  signup: (
+    data: SignUpRequest,
+  ) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (
+    data: UpdateProfileRequest,
+  ) => Promise<{ success: boolean; error?: string }>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  requestPasswordReset: (
+    email: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (
+    token: string,
+    newPassword: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  deleteAccount: (
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  refreshUser: () => Promise<void>;
+  clearError: () => void;
 }
 
 export function useAuth(): AuthState & AuthActions {
@@ -47,7 +68,11 @@ export function useAuth(): AuthState & AuthActions {
       try {
         const result = await getCurrentUserAction();
         if (result.success && result.user) {
-          setState(prev => ({ ...prev, user: result.user || null, isLoading: false }));
+          setState(prev => ({
+            ...prev,
+            user: result.user || null,
+            isLoading: false,
+          }));
         } else {
           setState(prev => ({ ...prev, user: null, isLoading: false }));
         }
@@ -66,14 +91,23 @@ export function useAuth(): AuthState & AuthActions {
       const result = await loginAction({ email, password });
 
       if (result.success && result.user) {
-        setState(prev => ({ ...prev, user: result.user || null, isLoading: false }));
+        setState(prev => ({
+          ...prev,
+          user: result.user || null,
+          isLoading: false,
+        }));
         return { success: true };
       } else {
-        setState(prev => ({ ...prev, error: result.error || 'Login failed', isLoading: false }));
+        setState(prev => ({
+          ...prev,
+          error: result.error || 'Login failed',
+          isLoading: false,
+        }));
         return { success: false, error: result.error || 'Login failed' };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Login failed';
       setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
       return { success: false, error: errorMessage };
     }
@@ -86,14 +120,23 @@ export function useAuth(): AuthState & AuthActions {
       const result = await signupAction(data);
 
       if (result.success && result.user) {
-        setState(prev => ({ ...prev, user: result.user || null, isLoading: false }));
+        setState(prev => ({
+          ...prev,
+          user: result.user || null,
+          isLoading: false,
+        }));
         return { success: true };
       } else {
-        setState(prev => ({ ...prev, error: result.error || 'Signup failed', isLoading: false }));
+        setState(prev => ({
+          ...prev,
+          error: result.error || 'Signup failed',
+          isLoading: false,
+        }));
         return { success: false, error: result.error || 'Signup failed' };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Signup failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Signup failed';
       setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
       return { success: false, error: errorMessage };
     }
@@ -107,7 +150,8 @@ export function useAuth(): AuthState & AuthActions {
       setState(prev => ({ ...prev, user: null, isLoading: false }));
       return { success: result.success, error: result.error };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Logout failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Logout failed';
       setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
       return { success: false, error: errorMessage };
     }
@@ -120,32 +164,51 @@ export function useAuth(): AuthState & AuthActions {
       const result = await updateProfileAction(data);
 
       if (result.success && result.user) {
-        setState(prev => ({ ...prev, user: result.user || null, isLoading: false }));
+        setState(prev => ({
+          ...prev,
+          user: result.user || null,
+          isLoading: false,
+        }));
         return { success: true };
       } else {
-        setState(prev => ({ ...prev, error: result.error || 'Profile update failed', isLoading: false }));
-        return { success: false, error: result.error || 'Profile update failed' };
+        setState(prev => ({
+          ...prev,
+          error: result.error || 'Profile update failed',
+          isLoading: false,
+        }));
+        return {
+          success: false,
+          error: result.error || 'Profile update failed',
+        };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Profile update failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Profile update failed';
       setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
       return { success: false, error: errorMessage };
     }
   }, []);
 
-  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-    try {
-      const result = await changePasswordAction({ currentPassword, newPassword });
-      setState(prev => ({ ...prev, isLoading: false }));
-      return { success: result.success, error: result.error };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Password change failed';
-      setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
-      return { success: false, error: errorMessage };
-    }
-  }, []);
+      try {
+        const result = await changePasswordAction({
+          currentPassword,
+          newPassword,
+        });
+        setState(prev => ({ ...prev, isLoading: false }));
+        return { success: result.success, error: result.error };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Password change failed';
+        setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
+        return { success: false, error: errorMessage };
+      }
+    },
+    [],
+  );
 
   const requestPasswordReset = useCallback(async (email: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -155,25 +218,32 @@ export function useAuth(): AuthState & AuthActions {
       setState(prev => ({ ...prev, isLoading: false }));
       return { success: result.success, error: result.error };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Password reset request failed';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Password reset request failed';
       setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
       return { success: false, error: errorMessage };
     }
   }, []);
 
-  const resetPassword = useCallback(async (token: string, newPassword: string) => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+  const resetPassword = useCallback(
+    async (token: string, newPassword: string) => {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-    try {
-      const result = await resetPasswordAction({ token, newPassword });
-      setState(prev => ({ ...prev, isLoading: false }));
-      return { success: result.success, error: result.error };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Password reset failed';
-      setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
-      return { success: false, error: errorMessage };
-    }
-  }, []);
+      try {
+        const result = await resetPasswordAction({ token, newPassword });
+        setState(prev => ({ ...prev, isLoading: false }));
+        return { success: result.success, error: result.error };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Password reset failed';
+        setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
+        return { success: false, error: errorMessage };
+      }
+    },
+    [],
+  );
 
   const deleteAccount = useCallback(async (password: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -189,7 +259,8 @@ export function useAuth(): AuthState & AuthActions {
 
       return { success: result.success, error: result.error };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Account deletion failed';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Account deletion failed';
       setState(prev => ({ ...prev, error: errorMessage, isLoading: false }));
       return { success: false, error: errorMessage };
     }

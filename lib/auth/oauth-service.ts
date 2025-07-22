@@ -80,16 +80,14 @@ export class OAuthService {
       }
 
       // Link the account
-      await db
-        .insert(accounts)
-        .values({
-          userId,
-          type: 'oauth',
-          provider,
-          providerAccountId,
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
+      await db.insert(accounts).values({
+        userId,
+        type: 'oauth',
+        provider,
+        providerAccountId,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
 
       return true;
     } catch (error) {
@@ -160,9 +158,9 @@ export class OAuthService {
     provider: string,
     providerAccountId: string,
   ): Promise<{
-    conflictResolved: boolean
-    existingUserId?: string
-    action: 'link' | 'create' | 'error'
+    conflictResolved: boolean;
+    existingUserId?: string;
+    action: 'link' | 'create' | 'error';
   }> {
     try {
       // Check if user with this email already exists
@@ -226,12 +224,18 @@ export class OAuthService {
   /**
    * Get available OAuth providers
    */
-  getAvailableProviders(): Array<{ id: string; name: string; configured: boolean }> {
+  getAvailableProviders(): Array<{
+    id: string;
+    name: string;
+    configured: boolean;
+  }> {
     return [
       {
         id: 'google',
         name: 'Google',
-        configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+        configured: !!(
+          process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+        ),
       },
       {
         id: 'github',

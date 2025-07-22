@@ -14,7 +14,20 @@ import { TokenGenerators } from '@/lib/utils/token-generator';
 import { validateEmail } from '@/lib/utils/validators';
 
 import { createSessionStorage, type SessionStorage } from './session-storage';
-import { type AuthProvider, type AuthResult, type SignInRequest, type SignUpRequest, type SessionData, type AuthConfiguration, type OAuthProvider, type OAuthResult, type UpdateProfileRequest, type ChangePasswordRequest, type AvatarUploadResult, type PasswordResetToken } from './types';
+import {
+  type AuthProvider,
+  type AuthResult,
+  type SignInRequest,
+  type SignUpRequest,
+  type SessionData,
+  type AuthConfiguration,
+  type OAuthProvider,
+  type OAuthResult,
+  type UpdateProfileRequest,
+  type ChangePasswordRequest,
+  type AvatarUploadResult,
+  type PasswordResetToken,
+} from './types';
 
 export class AuthService {
   private currentSession: SessionData | null = null;
@@ -71,16 +84,15 @@ export class AuthService {
       const now = new Date();
 
       // Delete expired or used tokens from database
-      const result = await db.delete(passwordResetTokens)
-        .where(
-          and(
-            lt(passwordResetTokens.expiresAt, now),
-          ),
-        );
+      const result = await db
+        .delete(passwordResetTokens)
+        .where(and(lt(passwordResetTokens.expiresAt, now)));
 
       const removedCount = result.rowCount || 0;
       if (removedCount > 0) {
-        console.log(`[AUTH] Cleaned up ${removedCount} expired password reset tokens`);
+        console.log(
+          `[AUTH] Cleaned up ${removedCount} expired password reset tokens`,
+        );
       }
     } catch (error) {
       console.error('[AUTH] Failed to cleanup expired tokens:', error);
@@ -119,7 +131,9 @@ export class AuthService {
       // Create session
       this.currentSession = {
         user: result.user,
-        expires: new Date(Date.now() + AUTH_CONFIG.SESSION_DURATION_MS).toISOString(),
+        expires: new Date(
+          Date.now() + AUTH_CONFIG.SESSION_DURATION_MS,
+        ).toISOString(),
       };
 
       // Store session (fail silently if storage fails)
@@ -151,7 +165,9 @@ export class AuthService {
       // Create session for new user
       this.currentSession = {
         user: result.user,
-        expires: new Date(Date.now() + AUTH_CONFIG.SESSION_DURATION_MS).toISOString(),
+        expires: new Date(
+          Date.now() + AUTH_CONFIG.SESSION_DURATION_MS,
+        ).toISOString(),
       };
 
       // Store session (fail silently if storage fails)
@@ -219,7 +235,10 @@ export class AuthService {
     }
 
     // Check if session is expired
-    if (this.currentSession.expires && new Date(this.currentSession.expires).getTime() < Date.now()) {
+    if (
+      this.currentSession.expires &&
+      new Date(this.currentSession.expires).getTime() < Date.now()
+    ) {
       this.currentSession = null;
       try {
         await this.sessionStorage.removeSession();
@@ -249,7 +268,9 @@ export class AuthService {
       // Create session for OAuth user
       this.currentSession = {
         user: result.user,
-        expires: new Date(Date.now() + AUTH_CONFIG.SESSION_DURATION_MS).toISOString(),
+        expires: new Date(
+          Date.now() + AUTH_CONFIG.SESSION_DURATION_MS,
+        ).toISOString(),
       };
 
       // Store session (fail silently if storage fails)
@@ -279,7 +300,10 @@ export class AuthService {
     return this.getUser();
   }
 
-  async updateUserProfile(id: string, data: UpdateProfileRequest): Promise<AuthResult> {
+  async updateUserProfile(
+    id: string,
+    data: UpdateProfileRequest,
+  ): Promise<AuthResult> {
     const result = await this.provider.updateUser(id, data);
 
     // Update session if current user updated their profile
@@ -323,7 +347,10 @@ export class AuthService {
     return result;
   }
 
-  async changePassword(id: string, passwordData: ChangePasswordRequest): Promise<AuthResult> {
+  async changePassword(
+    id: string,
+    passwordData: ChangePasswordRequest,
+  ): Promise<AuthResult> {
     return this.provider.changeUserPassword(
       id,
       passwordData.currentPassword,
@@ -379,7 +406,11 @@ export class AuthService {
       image: uploadResult.url,
     });
 
-    if (updateResult.success && updateResult.user && this.currentSession?.user?.id === id) {
+    if (
+      updateResult.success &&
+      updateResult.user &&
+      this.currentSession?.user?.id === id
+    ) {
       this.currentSession.user = updateResult.user;
       try {
         await this.sessionStorage.setSession(this.currentSession);
@@ -414,7 +445,9 @@ export class AuthService {
     }
 
     // Delete the avatar file
-    const deleteResult = await this.uploadService.deleteFile(currentUser.user.image);
+    const deleteResult = await this.uploadService.deleteFile(
+      currentUser.user.image,
+    );
     if (!deleteResult.success) {
       return {
         success: false,
@@ -427,7 +460,11 @@ export class AuthService {
       image: null,
     });
 
-    if (updateResult.success && updateResult.user && this.currentSession?.user?.id === id) {
+    if (
+      updateResult.success &&
+      updateResult.user &&
+      this.currentSession?.user?.id === id
+    ) {
       this.currentSession.user = updateResult.user;
       try {
         await this.sessionStorage.setSession(this.currentSession);
@@ -507,7 +544,10 @@ export class AuthService {
       } catch (error) {
         // Token storage failed, but email was sent
         // Log the error but don't fail the request since user got the email
-        console.error('Failed to store password reset token in database:', error);
+        console.error(
+          'Failed to store password reset token in database:',
+          error,
+        );
       }
     }
 
@@ -525,14 +565,19 @@ export class AuthService {
         resetToken = this.passwordResetTokens.get(token);
       } else {
         // For real providers, check database
-        const resetTokens = await db.select()
+        const resetTokens = await db
+          .select()
           .from(passwordResetTokens)
           .where(eq(passwordResetTokens.token, token))
           .limit(1);
         resetToken = resetTokens[0];
       }
 
-      if (!resetToken || resetToken.used || resetToken.expiresAt.getTime() < Date.now()) {
+      if (
+        !resetToken ||
+        resetToken.used ||
+        resetToken.expiresAt.getTime() < Date.now()
+      ) {
         return {
           success: false,
           error: 'Invalid or expired reset token',
@@ -563,14 +608,19 @@ export class AuthService {
         resetToken = this.passwordResetTokens.get(token);
       } else {
         // For real providers, check database
-        const resetTokens = await db.select()
+        const resetTokens = await db
+          .select()
           .from(passwordResetTokens)
           .where(eq(passwordResetTokens.token, token))
           .limit(1);
         resetToken = resetTokens[0];
       }
 
-      if (!resetToken || resetToken.used || resetToken.expiresAt.getTime() < Date.now()) {
+      if (
+        !resetToken ||
+        resetToken.used ||
+        resetToken.expiresAt.getTime() < Date.now()
+      ) {
         return {
           success: false,
           error: 'Invalid or expired reset token',
@@ -586,7 +636,10 @@ export class AuthService {
       }
 
       // Reset the password
-      const result = await this.provider.resetUserPassword(resetToken.userId, newPassword);
+      const result = await this.provider.resetUserPassword(
+        resetToken.userId,
+        newPassword,
+      );
 
       if (result.success) {
         // Mark token as used
@@ -595,7 +648,8 @@ export class AuthService {
           resetToken.used = true;
         } else {
           // For real providers, update database
-          await db.update(passwordResetTokens)
+          await db
+            .update(passwordResetTokens)
             .set({ used: true })
             .where(eq(passwordResetTokens.token, token));
         }
@@ -617,18 +671,18 @@ export class AuthService {
       if (this.isMockProvider()) {
         // For mock provider, cleanup in-memory storage
         for (const [token, resetToken] of this.passwordResetTokens.entries()) {
-          if (resetToken.expiresAt.getTime() < now.getTime() || resetToken.used) {
+          if (
+            resetToken.expiresAt.getTime() < now.getTime() ||
+            resetToken.used
+          ) {
             this.passwordResetTokens.delete(token);
           }
         }
       } else {
         // For real providers, cleanup database
-        await db.delete(passwordResetTokens)
-          .where(
-            and(
-              lt(passwordResetTokens.expiresAt, now),
-            ),
-          );
+        await db
+          .delete(passwordResetTokens)
+          .where(and(lt(passwordResetTokens.expiresAt, now)));
       }
     } catch (error) {
       console.error('[AUTH] Failed to cleanup expired reset tokens:', error);
@@ -648,15 +702,17 @@ export class AuthService {
     // Extend session expiration
     this.currentSession = {
       user: currentUser.user,
-      expires: new Date(Date.now() + AUTH_CONFIG.SESSION_DURATION_MS).toISOString(),
+      expires: new Date(
+        Date.now() + AUTH_CONFIG.SESSION_DURATION_MS,
+      ).toISOString(),
     };
 
     // Store refreshed session
     try {
-        await this.sessionStorage.setSession(this.currentSession);
-      } catch {
-        // Storage write failed, but we keep the session in memory
-      }
+      await this.sessionStorage.setSession(this.currentSession);
+    } catch {
+      // Storage write failed, but we keep the session in memory
+    }
 
     return {
       success: true,
@@ -675,20 +731,29 @@ export class AuthService {
   }
 
   // New email verification methods
-  async sendEmailVerification(email: string): Promise<{ success: boolean; error?: string }> {
+  async sendEmailVerification(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
     return await this.provider.sendEmailVerification(email);
   }
 
-  async verifyEmailWithToken(token: string): Promise<{ success: boolean; error?: string }> {
+  async verifyEmailWithToken(
+    token: string,
+  ): Promise<{ success: boolean; error?: string }> {
     return await this.provider.verifyEmailWithToken(token);
   }
 
   // New password reset methods
-  async sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+  async sendPasswordReset(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
     return await this.provider.sendPasswordReset(email);
   }
 
-  async resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+  async resetPasswordWithToken(
+    token: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> {
     return await this.provider.resetPasswordWithToken(token, newPassword);
   }
 }

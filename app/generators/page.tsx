@@ -6,10 +6,22 @@ import { Copy, FileText, Zap } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
 const generators = [
@@ -20,10 +32,31 @@ const generators = [
     category: 'Frontend',
     icon: '⚛️',
     fields: [
-      { name: 'componentName', label: 'Component Name', type: 'text', required: true },
-      { name: 'componentType', label: 'Component Type', type: 'select', options: ['Client Component', 'Server Component', 'Both'], required: true },
-      { name: 'withProps', label: 'Include Props Interface', type: 'checkbox', default: true },
-      { name: 'withStyles', label: 'Include Styling', type: 'checkbox', default: true },
+      {
+        name: 'componentName',
+        label: 'Component Name',
+        type: 'text',
+        required: true,
+      },
+      {
+        name: 'componentType',
+        label: 'Component Type',
+        type: 'select',
+        options: ['Client Component', 'Server Component', 'Both'],
+        required: true,
+      },
+      {
+        name: 'withProps',
+        label: 'Include Props Interface',
+        type: 'checkbox',
+        default: true,
+      },
+      {
+        name: 'withStyles',
+        label: 'Include Styling',
+        type: 'checkbox',
+        default: true,
+      },
     ],
   },
   {
@@ -34,9 +67,25 @@ const generators = [
     icon: '🔗',
     fields: [
       { name: 'routeName', label: 'Route Name', type: 'text', required: true },
-      { name: 'methods', label: 'HTTP Methods', type: 'multiselect', options: ['GET', 'POST', 'PUT', 'DELETE'], required: true },
-      { name: 'withAuth', label: 'Include Authentication', type: 'checkbox', default: true },
-      { name: 'withValidation', label: 'Include Validation', type: 'checkbox', default: true },
+      {
+        name: 'methods',
+        label: 'HTTP Methods',
+        type: 'multiselect',
+        options: ['GET', 'POST', 'PUT', 'DELETE'],
+        required: true,
+      },
+      {
+        name: 'withAuth',
+        label: 'Include Authentication',
+        type: 'checkbox',
+        default: true,
+      },
+      {
+        name: 'withValidation',
+        label: 'Include Validation',
+        type: 'checkbox',
+        default: true,
+      },
     ],
   },
   {
@@ -47,9 +96,26 @@ const generators = [
     icon: '🗃️',
     fields: [
       { name: 'modelName', label: 'Model Name', type: 'text', required: true },
-      { name: 'fields', label: 'Fields (JSON)', type: 'textarea', required: true, placeholder: '[{"name": "title", "type": "text"}, {"name": "userId", "type": "uuid", "references": "users"}]' },
-      { name: 'withTimestamps', label: 'Include Timestamps', type: 'checkbox', default: true },
-      { name: 'withRelations', label: 'Include Relations', type: 'checkbox', default: true },
+      {
+        name: 'fields',
+        label: 'Fields (JSON)',
+        type: 'textarea',
+        required: true,
+        placeholder:
+          '[{"name": "title", "type": "text"}, {"name": "userId", "type": "uuid", "references": "users"}]',
+      },
+      {
+        name: 'withTimestamps',
+        label: 'Include Timestamps',
+        type: 'checkbox',
+        default: true,
+      },
+      {
+        name: 'withRelations',
+        label: 'Include Relations',
+        type: 'checkbox',
+        default: true,
+      },
     ],
   },
   {
@@ -59,10 +125,31 @@ const generators = [
     category: 'Testing',
     icon: '🧪',
     fields: [
-      { name: 'testTarget', label: 'Test Target', type: 'text', required: true },
-      { name: 'testType', label: 'Test Type', type: 'select', options: ['Unit Test', 'Integration Test', 'E2E Test'], required: true },
-      { name: 'withMocks', label: 'Include Mocks', type: 'checkbox', default: true },
-      { name: 'withSetup', label: 'Include Test Setup', type: 'checkbox', default: true },
+      {
+        name: 'testTarget',
+        label: 'Test Target',
+        type: 'text',
+        required: true,
+      },
+      {
+        name: 'testType',
+        label: 'Test Type',
+        type: 'select',
+        options: ['Unit Test', 'Integration Test', 'E2E Test'],
+        required: true,
+      },
+      {
+        name: 'withMocks',
+        label: 'Include Mocks',
+        type: 'checkbox',
+        default: true,
+      },
+      {
+        name: 'withSetup',
+        label: 'Include Test Setup',
+        type: 'checkbox',
+        default: true,
+      },
     ],
   },
 ];
@@ -112,21 +199,22 @@ export default function GeneratorsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Code Generators</h1>
-        <p className="text-gray-600">
-          Boost your productivity with automated code generation for common patterns
+    <div className='mx-auto max-w-7xl'>
+      <div className='mb-8'>
+        <h1 className='mb-2 text-3xl font-bold'>Code Generators</h1>
+        <p className='text-gray-600'>
+          Boost your productivity with automated code generation for common
+          patterns
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
         {/* Generator Selection */}
-        <div className="space-y-4">
+        <div className='space-y-4'>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
+              <CardTitle className='flex items-center gap-2'>
+                <Zap className='h-5 w-5' />
                 Available Generators
               </CardTitle>
               <CardDescription>
@@ -134,25 +222,29 @@ export default function GeneratorsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 gap-3">
-                {generators.map((generator) => (
+              <div className='grid grid-cols-1 gap-3'>
+                {generators.map(generator => (
                   <button
                     key={generator.id}
                     onClick={() => setSelectedGenerator(generator)}
-                    className={`p-4 rounded-lg border-2 text-left transition-all ${
+                    className={`rounded-lg border-2 p-4 text-left transition-all ${
                       selectedGenerator.id === generator.id
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">{generator.icon}</span>
+                    <div className='flex items-start gap-3'>
+                      <span className='text-2xl'>{generator.icon}</span>
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold">{generator.name}</h3>
-                          <Badge variant="secondary">{generator.category}</Badge>
+                        <div className='mb-1 flex items-center gap-2'>
+                          <h3 className='font-semibold'>{generator.name}</h3>
+                          <Badge variant='secondary'>
+                            {generator.category}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">{generator.description}</p>
+                        <p className='text-sm text-gray-600'>
+                          {generator.description}
+                        </p>
                       </div>
                     </div>
                   </button>
@@ -163,24 +255,24 @@ export default function GeneratorsPage() {
         </div>
 
         {/* Generator Form and Output */}
-        <div className="space-y-4">
+        <div className='space-y-4'>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">{selectedGenerator.icon}</span>
+              <CardTitle className='flex items-center gap-2'>
+                <span className='text-2xl'>{selectedGenerator.icon}</span>
                 {selectedGenerator.name}
               </CardTitle>
-              <CardDescription>
-                {selectedGenerator.description}
-              </CardDescription>
+              <CardDescription>{selectedGenerator.description}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {selectedGenerator.fields.map((field) => (
-                  <div key={field.name} className="space-y-2">
+              <div className='space-y-4'>
+                {selectedGenerator.fields.map(field => (
+                  <div key={field.name} className='space-y-2'>
                     <Label htmlFor={field.name}>
                       {field.label}
-                      {field.required && <span className="text-red-500">*</span>}
+                      {field.required && (
+                        <span className='text-red-500'>*</span>
+                      )}
                     </Label>
 
                     {field.type === 'text' && (
@@ -188,7 +280,9 @@ export default function GeneratorsPage() {
                         id={field.name}
                         placeholder={field.placeholder}
                         value={formData[field.name] || ''}
-                        onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                        onChange={e =>
+                          handleFieldChange(field.name, e.target.value)
+                        }
                       />
                     )}
 
@@ -197,7 +291,9 @@ export default function GeneratorsPage() {
                         id={field.name}
                         placeholder={field.placeholder}
                         value={formData[field.name] || ''}
-                        onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                        onChange={e =>
+                          handleFieldChange(field.name, e.target.value)
+                        }
                         rows={3}
                       />
                     )}
@@ -205,13 +301,15 @@ export default function GeneratorsPage() {
                     {field.type === 'select' && (
                       <Select
                         value={formData[field.name] || ''}
-                        onValueChange={(value) => handleFieldChange(field.name, value)}
+                        onValueChange={value =>
+                          handleFieldChange(field.name, value)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder={`Select ${field.label}`} />
                         </SelectTrigger>
                         <SelectContent>
-                          {field.options?.map((option) => (
+                          {field.options?.map(option => (
                             <SelectItem key={option} value={option}>
                               {option}
                             </SelectItem>
@@ -221,15 +319,17 @@ export default function GeneratorsPage() {
                     )}
 
                     {field.type === 'checkbox' && (
-                      <div className="flex items-center space-x-2">
+                      <div className='flex items-center space-x-2'>
                         <input
                           id={field.name}
-                          type="checkbox"
+                          type='checkbox'
                           checked={formData[field.name] ?? field.default}
-                          onChange={(e) => handleFieldChange(field.name, e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300"
+                          onChange={e =>
+                            handleFieldChange(field.name, e.target.checked)
+                          }
+                          className='h-4 w-4 rounded border-gray-300'
                         />
-                        <Label htmlFor={field.name} className="text-sm">
+                        <Label htmlFor={field.name} className='text-sm'>
                           {field.label}
                         </Label>
                       </div>
@@ -240,7 +340,7 @@ export default function GeneratorsPage() {
                 <Button
                   onClick={generateCode}
                   disabled={isGenerating}
-                  className="w-full"
+                  className='w-full'
                 >
                   {isGenerating ? 'Generating...' : 'Generate Code'}
                 </Button>
@@ -252,23 +352,19 @@ export default function GeneratorsPage() {
           {generatedCode && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+                <CardTitle className='flex items-center justify-between'>
+                  <span className='flex items-center gap-2'>
+                    <FileText className='h-5 w-5' />
                     Generated Code
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyToClipboard}
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
+                  <Button variant='outline' size='sm' onClick={copyToClipboard}>
+                    <Copy className='mr-2 h-4 w-4' />
                     Copy
                   </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto">
+                <pre className='overflow-x-auto rounded-lg bg-gray-50 p-4 text-sm'>
                   <code>{generatedCode}</code>
                 </pre>
               </CardContent>

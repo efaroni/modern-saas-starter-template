@@ -18,18 +18,18 @@ const Button = ({
   loading = false,
   variant = 'primary',
 }: {
-  children: React.ReactNode
-  onClick?: () => void
-  disabled?: boolean
-  loading?: boolean
-  variant?: 'primary' | 'secondary' | 'danger'
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  variant?: 'primary' | 'secondary' | 'danger';
 }) => {
   return (
     <button
       onClick={onClick}
       disabled={disabled || loading}
       className={`btn btn-${variant} ${loading ? 'loading' : ''}`}
-      data-testid="button"
+      data-testid='button'
     >
       {loading ? 'Loading...' : children}
     </button>
@@ -61,7 +61,10 @@ describe('Button Component - Example Tests', () => {
         { children: 'Danger', variant: 'danger' as const },
       ];
 
-      const results = await componentTestUtils.testWithProps(Button, propVariations);
+      const results = await componentTestUtils.testWithProps(
+        Button,
+        propVariations,
+      );
       results.forEach(result => {
         expect(result.success).toBe(true);
       });
@@ -82,7 +85,9 @@ describe('Button Component - Example Tests', () => {
 
     it('should not trigger onClick when disabled', async () => {
       const { user } = renderWithProviders(
-        <Button onClick={mockOnClick} disabled>Click me</Button>,
+        <Button onClick={mockOnClick} disabled>
+          Click me
+        </Button>,
       );
 
       const button = screen.getByTestId('button');
@@ -133,26 +138,21 @@ describe('Button Component - Example Tests', () => {
     it('should pass component template tests', async () => {
       const buttonComponent = <Button>Template Test</Button>;
 
-      const testConfig = testTemplates.component(
-        'Button',
-        buttonComponent,
-        {
-          testRendering: true,
-          testProps: true,
-          testAccessibility: true,
-          testLoadingStates: true,
-          propVariations: [
-            { children: 'Test 1', variant: 'primary' },
-            { children: 'Test 2', variant: 'secondary' },
-          ],
-          loadingProps: { loading: true },
-        },
-      );
+      const testConfig = testTemplates.component('Button', buttonComponent, {
+        testRendering: true,
+        testProps: true,
+        testAccessibility: true,
+        testLoadingStates: true,
+        propVariations: [
+          { children: 'Test 1', variant: 'primary' },
+          { children: 'Test 2', variant: 'secondary' },
+        ],
+        loadingProps: { loading: true },
+      });
 
       // This demonstrates how the template would be used
       expect(testConfig.describe).toBe('Button Component Tests');
       expect(testConfig.tests.length).toBeGreaterThan(0);
     });
   });
-
 });

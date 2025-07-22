@@ -5,19 +5,20 @@ This guide walks you through getting the necessary API keys for each service. Th
 ## Required Services by Section
 
 ### Section 1: Configuration ✅
+
 - **Status**: No external services needed
 - **What's working**: API key management UI with database storage
 
 ### Section 2: Authentication (Coming Soon)
+
 - **Required**: None (Auth.js works with email/password)
 - **Optional OAuth Providers**:
-  - **GitHub OAuth**: 
+  - **GitHub OAuth**:
     1. Go to https://github.com/settings/developers
     2. Click "New OAuth App"
     3. Set callback URL: `http://localhost:3000/api/auth/callback/github`
     4. Copy Client ID → `GITHUB_ID`
     5. Copy Client Secret → `GITHUB_SECRET`
-  
   - **Google OAuth**:
     1. Go to https://console.cloud.google.com/
     2. Create new project or select existing
@@ -27,6 +28,7 @@ This guide walks you through getting the necessary API keys for each service. Th
     6. Copy credentials → `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
 
 ### Section 3: Payments
+
 - **Stripe** (Required):
   1. Sign up at https://stripe.com
   2. Go to https://dashboard.stripe.com/test/apikeys
@@ -39,6 +41,7 @@ This guide walks you through getting the necessary API keys for each service. Th
      - Copy signing secret → `STRIPE_WEBHOOK_SECRET`
 
 ### Section 4: Email
+
 - **Resend** (Required):
   1. Sign up at https://resend.com
   2. Go to https://resend.com/api-keys
@@ -47,6 +50,7 @@ This guide walks you through getting the necessary API keys for each service. Th
   5. Set `RESEND_FROM_EMAIL` to your verified email
 
 ### Section 5 & 6: AI Features
+
 - **OpenAI** (Required):
   1. Sign up at https://platform.openai.com
   2. Go to https://platform.openai.com/api-keys
@@ -58,6 +62,7 @@ This guide walks you through getting the necessary API keys for each service. Th
 ### Optional Services
 
 #### File Storage (Cloudflare R2)
+
 1. Sign up at https://cloudflare.com
 2. Go to R2 in dashboard
 3. Create bucket
@@ -65,6 +70,7 @@ This guide walks you through getting the necessary API keys for each service. Th
 5. Fill in R2 variables in .env.local
 
 #### Redis Cache (Upstash)
+
 1. Sign up at https://upstash.com
 2. Create Redis database
 3. Copy REST URL and token
@@ -72,6 +78,7 @@ This guide walks you through getting the necessary API keys for each service. Th
 ## Testing Without Real Keys
 
 The template includes mock keys that let you test the UI and flows:
+
 - Mock keys are already in `.env.local`
 - All features work in "mock mode"
 - You'll see status indicators showing mock vs. real mode
@@ -79,11 +86,13 @@ The template includes mock keys that let you test the UI and flows:
 ## Quick Start Checklist
 
 For basic testing (mock mode):
+
 - [x] Docker Desktop installed and running
 - [x] PostgreSQL database running (`npm run db:start`)
 - [x] Mock API keys in `.env.local`
 
 For real integration testing:
+
 - [ ] Stripe account → Get test API keys
 - [ ] Resend account → Get API key and verify domain
 - [ ] OpenAI account → Get API key with usage limits

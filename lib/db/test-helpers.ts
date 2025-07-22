@@ -1,12 +1,27 @@
 import bcrypt from '@node-rs/bcrypt';
 
-import { userApiKeys, users, authAttempts, passwordHistory, userSessions, sessionActivity, accounts, sessions, verificationTokens } from './schema';
-import { testDb, clearTestDatabase, initializeTestDatabase, clearWorkerTestData } from './test';
+import {
+  userApiKeys,
+  users,
+  authAttempts,
+  passwordHistory,
+  userSessions,
+  sessionActivity,
+  accounts,
+  sessions,
+  verificationTokens,
+} from './schema';
+import {
+  testDb,
+  clearTestDatabase,
+  initializeTestDatabase,
+  clearWorkerTestData,
+} from './test';
 
 import type { InsertUserApiKey } from './schema';
 
 // Define InsertUser type based on the users table
-type InsertUser = typeof users.$inferInsert
+type InsertUser = typeof users.$inferInsert;
 
 // Test user ID for consistent testing
 const TEST_USER_ID = '00000000-0000-0000-0000-000000000001';
@@ -22,9 +37,12 @@ export const testDataFactories = {
   }),
 
   // Auth user factory with password
-  createAuthUser: async (overrides: Partial<InsertUser> = {}): Promise<InsertUser> => {
+  createAuthUser: async (
+    overrides: Partial<InsertUser> = {},
+  ): Promise<InsertUser> => {
     const password = overrides.password || 'password123';
-    const hashedPassword = typeof password === 'string' ? await bcrypt.hash(password, 10) : password;
+    const hashedPassword =
+      typeof password === 'string' ? await bcrypt.hash(password, 10) : password;
 
     return {
       id: TEST_USER_ID,
@@ -47,7 +65,9 @@ export const testDataFactories = {
   }),
 
   // API Key factory with realistic data
-  createApiKey: (overrides: Partial<InsertUserApiKey> = {}): InsertUserApiKey => ({
+  createApiKey: (
+    overrides: Partial<InsertUserApiKey> = {},
+  ): InsertUserApiKey => ({
     userId: TEST_USER_ID,
     provider: 'openai',
     privateKeyEncrypted: 'sk-test-encrypted-key',
@@ -57,7 +77,9 @@ export const testDataFactories = {
   }),
 
   // Realistic API key data for different providers
-  createOpenAIKey: (overrides: Partial<InsertUserApiKey> = {}): InsertUserApiKey => ({
+  createOpenAIKey: (
+    overrides: Partial<InsertUserApiKey> = {},
+  ): InsertUserApiKey => ({
     userId: TEST_USER_ID,
     provider: 'openai',
     privateKeyEncrypted: 'sk-test-1234567890abcdefghijklmnopqrstuvwxyz',
@@ -66,7 +88,9 @@ export const testDataFactories = {
     ...overrides,
   }),
 
-  createStripeKey: (overrides: Partial<InsertUserApiKey> = {}): InsertUserApiKey => ({
+  createStripeKey: (
+    overrides: Partial<InsertUserApiKey> = {},
+  ): InsertUserApiKey => ({
     userId: TEST_USER_ID,
     provider: 'stripe',
     privateKeyEncrypted: 'sk_test_1234567890abcdefghijklmnopqrstuvwxyz', // underscore after sk_test
@@ -75,7 +99,9 @@ export const testDataFactories = {
     ...overrides,
   }),
 
-  createResendKey: (overrides: Partial<InsertUserApiKey> = {}): InsertUserApiKey => ({
+  createResendKey: (
+    overrides: Partial<InsertUserApiKey> = {},
+  ): InsertUserApiKey => ({
     userId: TEST_USER_ID,
     provider: 'resend',
     privateKeyEncrypted: 're_test_1234567890abcdefghijklmnopqrstuvwxyz', // underscore after re_test
@@ -160,7 +186,9 @@ export class TestDatabaseManager {
   }
 
   // Seed test data for specific scenarios
-  async seedTestData(scenario: 'empty' | 'with-keys' | 'full' | 'edge-cases' = 'empty'): Promise<void> {
+  async seedTestData(
+    scenario: 'empty' | 'with-keys' | 'full' | 'edge-cases' = 'empty',
+  ): Promise<void> {
     await this.clearAllData();
     if (scenario === 'with-keys' || scenario === 'full') {
       await testDb.insert(users).values(testFixtures.users);
@@ -169,7 +197,11 @@ export class TestDatabaseManager {
     if (scenario === 'edge-cases') {
       await testDb.insert(users).values([
         { email: '', name: 'Empty Email' },
-        { email: 'very-long-email-address-that-exceeds-normal-limits@example.com', name: 'Long Email' },
+        {
+          email:
+            'very-long-email-address-that-exceeds-normal-limits@example.com',
+          name: 'Long Email',
+        },
         { email: 'special@chars.com', name: 'Special Chars' },
       ]);
     }
@@ -226,17 +258,19 @@ export const testHelpers = {
   },
 
   // Setup for specific test scenarios
-  async setupScenario(scenario: 'empty' | 'with-keys' | 'full' | 'edge-cases'): Promise<void> {
+  async setupScenario(
+    scenario: 'empty' | 'with-keys' | 'full' | 'edge-cases',
+  ): Promise<void> {
     const dbManager = TestDatabaseManager.getInstance();
     await dbManager.seedTestData(scenario);
   },
 
   // Assertion helpers with better error messages
   async assertDatabaseState(expected: {
-    userCount?: number
-    apiKeyCount?: number
-    providers?: string[]
-    users?: Array<{ email: string; name?: string }>
+    userCount?: number;
+    apiKeyCount?: number;
+    providers?: string[];
+    users?: Array<{ email: string; name?: string }>;
   }): Promise<void> {
     const data = await TestDatabaseManager.getInstance().getTestData();
 
@@ -292,13 +326,18 @@ export const testHelpers = {
     expect((readResult as { data?: { id: string } }).data?.id).toBe(id);
 
     // UPDATE
-    const updateData = { ...(testData as Record<string, unknown>), name: 'Updated Name' };
+    const updateData = {
+      ...(testData as Record<string, unknown>),
+      name: 'Updated Name',
+    };
     const updateResult = await updateFn(id, updateData);
     expect((updateResult as { success: boolean }).success).toBe(true);
 
     // Verify update
     const updatedReadResult = await readFn(id);
-    expect((updatedReadResult as { data?: { name: string } }).data?.name).toBe('Updated Name');
+    expect((updatedReadResult as { data?: { name: string } }).data?.name).toBe(
+      'Updated Name',
+    );
 
     // DELETE
     const deleteResult = await deleteFn(id);
@@ -313,7 +352,9 @@ export const testHelpers = {
 // Auth-specific test helpers
 export const authTestHelpers = {
   // Create a test user with hashed password
-  async createTestUser(overrides: Partial<InsertUser> = {}): Promise<InsertUser> {
+  async createTestUser(
+    overrides: Partial<InsertUser> = {},
+  ): Promise<InsertUser> {
     const user = await testDataFactories.createAuthUser(overrides);
     const [insertedUser] = await testDb.insert(users).values(user).returning();
     return insertedUser;
@@ -323,11 +364,13 @@ export const authTestHelpers = {
   async createTestUsers(count: number = 3): Promise<InsertUser[]> {
     const userPromises = [];
     for (let i = 0; i < count; i++) {
-      userPromises.push(testDataFactories.createAuthUser({
-        id: `00000000-0000-0000-0000-00000000000${i + 1}`,
-        email: `user${i + 1}@example.com`,
-        name: `User ${i + 1}`,
-      }));
+      userPromises.push(
+        testDataFactories.createAuthUser({
+          id: `00000000-0000-0000-0000-00000000000${i + 1}`,
+          email: `user${i + 1}@example.com`,
+          name: `User ${i + 1}`,
+        }),
+      );
     }
 
     const users = await Promise.all(userPromises);
@@ -335,7 +378,10 @@ export const authTestHelpers = {
   },
 
   // Verify password hashing
-  async verifyPasswordHash(plainPassword: string, hashedPassword: string): Promise<boolean> {
+  async verifyPasswordHash(
+    plainPassword: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
     return await bcrypt.verify(plainPassword, hashedPassword);
   },
 
@@ -420,27 +466,44 @@ export const authTestHelpers = {
       const { like, eq } = await import('drizzle-orm');
 
       // Delete users whose email contains the test suite pattern
-      const testUsers = await testDb.select().from(users).where(like(users.email, `%${testSuitePattern}%`));
+      const testUsers = await testDb
+        .select()
+        .from(users)
+        .where(like(users.email, `%${testSuitePattern}%`));
 
       if (testUsers.length > 0) {
         const userIds = testUsers.map(u => u.id);
 
         // Delete in correct order due to foreign key constraints
         for (const userId of userIds) {
-          await testDb.delete(sessionActivity).where(eq(sessionActivity.userId, userId));
-          await testDb.delete(userSessions).where(eq(userSessions.userId, userId));
-          await testDb.delete(authAttempts).where(eq(authAttempts.userId, userId));
-          await testDb.delete(passwordHistory).where(eq(passwordHistory.userId, userId));
+          await testDb
+            .delete(sessionActivity)
+            .where(eq(sessionActivity.userId, userId));
+          await testDb
+            .delete(userSessions)
+            .where(eq(userSessions.userId, userId));
+          await testDb
+            .delete(authAttempts)
+            .where(eq(authAttempts.userId, userId));
+          await testDb
+            .delete(passwordHistory)
+            .where(eq(passwordHistory.userId, userId));
           await testDb.delete(accounts).where(eq(accounts.userId, userId));
           await testDb.delete(sessions).where(eq(sessions.userId, userId));
-          await testDb.delete(userApiKeys).where(eq(userApiKeys.userId, userId));
+          await testDb
+            .delete(userApiKeys)
+            .where(eq(userApiKeys.userId, userId));
         }
 
         // Delete verification tokens by identifier pattern
-        await testDb.delete(verificationTokens).where(like(verificationTokens.identifier, `%${testSuitePattern}%`));
+        await testDb
+          .delete(verificationTokens)
+          .where(like(verificationTokens.identifier, `%${testSuitePattern}%`));
 
         // Finally delete users
-        await testDb.delete(users).where(like(users.email, `%${testSuitePattern}%`));
+        await testDb
+          .delete(users)
+          .where(like(users.email, `%${testSuitePattern}%`));
       }
     } catch (error) {
       console.error('Error cleaning up test suite data:', error);
@@ -449,7 +512,11 @@ export const authTestHelpers = {
   },
 
   // Assert auth result structure
-  assertAuthResult(result: unknown, expectedSuccess: boolean, expectUser: boolean = true): void {
+  assertAuthResult(
+    result: unknown,
+    expectedSuccess: boolean,
+    expectUser: boolean = true,
+  ): void {
     expect(result).toHaveProperty('success');
     expect((result as { success: boolean }).success).toBe(expectedSuccess);
 

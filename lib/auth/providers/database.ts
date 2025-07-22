@@ -10,16 +10,33 @@ import { TokenGenerators } from '@/lib/utils/token-generator';
 import { validateEmail, validateUUID } from '@/lib/utils/validators';
 
 import { authLogger, timeOperation } from '../logger';
-import { PasswordExpirationService, DEFAULT_PASSWORD_EXPIRATION_CONFIG } from '../password-expiration';
-import { PasswordValidator, DEFAULT_PASSWORD_POLICY } from '../password-validator';
+import {
+  PasswordExpirationService,
+  DEFAULT_PASSWORD_EXPIRATION_CONFIG,
+} from '../password-expiration';
+import {
+  PasswordValidator,
+  DEFAULT_PASSWORD_POLICY,
+} from '../password-validator';
 import { RateLimiter } from '../rate-limiter';
 import { SessionManager, DEFAULT_SECURITY_CONFIG } from '../session-manager';
 import { TokenService } from '../token-service';
-import { type AuthProvider, type AuthResult, AuthUser, type SignUpRequest, type AuthConfiguration, type OAuthProvider, type OAuthResult, type UpdateProfileRequest } from '../types';
+import {
+  type AuthProvider,
+  type AuthResult,
+  AuthUser,
+  type SignUpRequest,
+  type AuthConfiguration,
+  type OAuthProvider,
+  type OAuthResult,
+  type UpdateProfileRequest,
+} from '../types';
 
 export class DatabaseAuthProvider implements AuthProvider {
   private readonly bcryptRounds = AUTH_CONFIG.BCRYPT_ROUNDS;
-  private readonly passwordValidator = new PasswordValidator(DEFAULT_PASSWORD_POLICY);
+  private readonly passwordValidator = new PasswordValidator(
+    DEFAULT_PASSWORD_POLICY,
+  );
   private readonly rateLimiter: RateLimiter;
   private readonly passwordExpiration: PasswordExpirationService;
   private readonly passwordHistoryLimit = AUTH_CONFIG.PASSWORD_HISTORY_LIMIT;
@@ -30,20 +47,39 @@ export class DatabaseAuthProvider implements AuthProvider {
   constructor(database: typeof db = db, sessionManager?: SessionManager) {
     this.database = database;
     this.rateLimiter = new RateLimiter(database);
-    this.passwordExpiration = new PasswordExpirationService(database, DEFAULT_PASSWORD_EXPIRATION_CONFIG);
+    this.passwordExpiration = new PasswordExpirationService(
+      database,
+      DEFAULT_PASSWORD_EXPIRATION_CONFIG,
+    );
     this.tokenService = new TokenService(database);
-    this.sessionManager = sessionManager || new SessionManager(database, DEFAULT_SECURITY_CONFIG);
+    this.sessionManager =
+      sessionManager || new SessionManager(database, DEFAULT_SECURITY_CONFIG);
   }
 
-  async authenticateUser(email: string, password: string, ipAddress?: string, userAgent?: string): Promise<AuthResult> {
+  async authenticateUser(
+    email: string,
+    password: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<AuthResult> {
     const startTime = Date.now();
 
     try {
       return await timeOperation('authenticate_user', async () => {
         // Check rate limit
-        const rateLimit = await this.rateLimiter.checkRateLimit(email, 'login', ipAddress);
+        const rateLimit = await this.rateLimiter.checkRateLimit(
+          email,
+          'login',
+          ipAddress,
+        );
         if (!rateLimit.allowed) {
-          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent);
+          await this.rateLimiter.recordAttempt(
+            email,
+            'login',
+            false,
+            ipAddress,
+            userAgent,
+          );
 
           const errorMessage = rateLimit.locked
             ? `Account temporarily locked. Try again after ${rateLimit.lockoutEndTime?.toLocaleTimeString()}`
@@ -90,7 +126,13 @@ export class DatabaseAuthProvider implements AuthProvider {
           .limit(1);
 
         if (!user || !user.password) {
-          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent);
+          await this.rateLimiter.recordAttempt(
+            email,
+            'login',
+            false,
+            ipAddress,
+            userAgent,
+          );
 
           authLogger.logAuthEvent({
             type: 'login',
@@ -113,7 +155,14 @@ export class DatabaseAuthProvider implements AuthProvider {
         const isPasswordValid = await bcrypt.verify(password, user.password);
 
         if (!isPasswordValid) {
-          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent, user.id);
+          await this.rateLimiter.recordAttempt(
+            email,
+            'login',
+            false,
+            ipAddress,
+            userAgent,
+            user.id,
+          );
 
           authLogger.logAuthEvent({
             type: 'login',
@@ -134,10 +183,18 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
 
         // Record successful attempt
-        await this.rateLimiter.recordAttempt(email, 'login', true, ipAddress, userAgent, user.id);
+        await this.rateLimiter.recordAttempt(
+          email,
+          'login',
+          true,
+          ipAddress,
+          userAgent,
+          user.id,
+        );
 
         // Check password expiration
-        const expirationResult = await this.passwordExpiration.checkPasswordExpiration(user.id);
+        const expirationResult =
+          await this.passwordExpiration.checkPasswordExpiration(user.id);
 
         // Log successful authentication
         authLogger.logAuthEvent({
@@ -207,88 +264,130 @@ export class DatabaseAuthProvider implements AuthProvider {
     }
   }
 
-  async createUser(userData: SignUpRequest, ipAddress?: string, userAgent?: string): Promise<AuthResult> {
+  async createUser(
+    userData: SignUpRequest,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<AuthResult> {
     const { email, password, name } = userData;
     const startTime = Date.now();
 
     try {
       return await timeOperation('create_user', async () => {
-      // Check rate limit
-      const rateLimit = await this.rateLimiter.checkRateLimit(email, 'signup', ipAddress);
-      if (!rateLimit.allowed) {
-        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent);
+        // Check rate limit
+        const rateLimit = await this.rateLimiter.checkRateLimit(
+          email,
+          'signup',
+          ipAddress,
+        );
+        if (!rateLimit.allowed) {
+          await this.rateLimiter.recordAttempt(
+            email,
+            'signup',
+            false,
+            ipAddress,
+            userAgent,
+          );
 
-        if (rateLimit.locked) {
+          if (rateLimit.locked) {
+            return {
+              success: false,
+              error: `Too many signup attempts. Try again after ${rateLimit.lockoutEndTime?.toLocaleTimeString()}`,
+            };
+          }
+
           return {
             success: false,
-            error: `Too many signup attempts. Try again after ${rateLimit.lockoutEndTime?.toLocaleTimeString()}`,
+            error: `Too many attempts. Try again in ${Math.ceil((rateLimit.resetTime.getTime() - Date.now()) / 60000)} minutes`,
           };
         }
 
-        return {
-          success: false,
-          error: `Too many attempts. Try again in ${Math.ceil((rateLimit.resetTime.getTime() - Date.now()) / 60000)} minutes`,
-        };
-      }
+        // Validate email format
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.isValid) {
+          await this.rateLimiter.recordAttempt(
+            email,
+            'signup',
+            false,
+            ipAddress,
+            userAgent,
+          );
+          return {
+            success: false,
+            error: emailValidation.error || 'Invalid email format',
+          };
+        }
 
-      // Validate email format
-      const emailValidation = validateEmail(email);
-      if (!emailValidation.isValid) {
-        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent);
-        return {
-          success: false,
-          error: emailValidation.error || 'Invalid email format',
-        };
-      }
-
-      // Validate password complexity
-      const passwordValidation = this.passwordValidator.validate(password, { email, name });
-      if (!passwordValidation.isValid) {
-        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent);
-        return {
-          success: false,
-          error: passwordValidation.errors.join('. '),
-        };
-      }
-
-      // Check if user already exists
-      const [existingUser] = await this.database
-        .select()
-        .from(users)
-        .where(eq(users.email, email))
-        .limit(1);
-
-      if (existingUser) {
-        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent);
-        return {
-          success: false,
-          error: 'Email already exists',
-        };
-      }
-
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, this.bcryptRounds);
-
-      // Create new user
-      const [newUser] = await this.database
-        .insert(users)
-        .values({
+        // Validate password complexity
+        const passwordValidation = this.passwordValidator.validate(password, {
           email,
-          name: name || null,
-          password: hashedPassword,
-          emailVerified: null,
-          image: null,
-        })
-        .returning();
+          name,
+        });
+        if (!passwordValidation.isValid) {
+          await this.rateLimiter.recordAttempt(
+            email,
+            'signup',
+            false,
+            ipAddress,
+            userAgent,
+          );
+          return {
+            success: false,
+            error: passwordValidation.errors.join('. '),
+          };
+        }
 
-      // Store password in history
-      await this.database.insert(passwordHistory).values({
-        userId: newUser.id,
-        passwordHash: hashedPassword,
-      });
+        // Check if user already exists
+        const [existingUser] = await this.database
+          .select()
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
+
+        if (existingUser) {
+          await this.rateLimiter.recordAttempt(
+            email,
+            'signup',
+            false,
+            ipAddress,
+            userAgent,
+          );
+          return {
+            success: false,
+            error: 'Email already exists',
+          };
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, this.bcryptRounds);
+
+        // Create new user
+        const [newUser] = await this.database
+          .insert(users)
+          .values({
+            email,
+            name: name || null,
+            password: hashedPassword,
+            emailVerified: null,
+            image: null,
+          })
+          .returning();
+
+        // Store password in history
+        await this.database.insert(passwordHistory).values({
+          userId: newUser.id,
+          passwordHash: hashedPassword,
+        });
 
         // Record successful attempt
-        await this.rateLimiter.recordAttempt(email, 'signup', true, ipAddress, userAgent, newUser.id);
+        await this.rateLimiter.recordAttempt(
+          email,
+          'signup',
+          true,
+          ipAddress,
+          userAgent,
+          newUser.id,
+        );
 
         // Log successful signup
         authLogger.logAuthEvent({
@@ -334,7 +433,10 @@ export class DatabaseAuthProvider implements AuthProvider {
       // Check for specific error types
       if (error instanceof Error) {
         // Handle duplicate email error
-        if (error.message.includes('duplicate') || error.message.includes('unique')) {
+        if (
+          error.message.includes('duplicate') ||
+          error.message.includes('unique')
+        ) {
           authLogger.logSecurityEvent({
             type: 'duplicate_registration',
             email,
@@ -447,7 +549,10 @@ export class DatabaseAuthProvider implements AuthProvider {
     }
   }
 
-  async updateUser(id: string, data: UpdateProfileRequest): Promise<AuthResult> {
+  async updateUser(
+    id: string,
+    data: UpdateProfileRequest,
+  ): Promise<AuthResult> {
     try {
       // Validate UUID format
       const uuidValidation = validateUUID(id);
@@ -608,7 +713,11 @@ export class DatabaseAuthProvider implements AuthProvider {
     }
   }
 
-  async changeUserPassword(id: string, currentPassword: string, newPassword: string): Promise<AuthResult> {
+  async changeUserPassword(
+    id: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<AuthResult> {
     try {
       // Validate UUID format
       const uuidValidation = validateUUID(id);
@@ -634,7 +743,10 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Verify current password
-      const isCurrentPasswordValid = await bcrypt.verify(currentPassword, user.password);
+      const isCurrentPasswordValid = await bcrypt.verify(
+        currentPassword,
+        user.password,
+      );
       if (!isCurrentPasswordValid) {
         return {
           success: false,
@@ -663,7 +775,10 @@ export class DatabaseAuthProvider implements AuthProvider {
         .limit(this.passwordHistoryLimit);
 
       for (const oldPassword of recentPasswords) {
-        const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash);
+        const isReusedPassword = await bcrypt.verify(
+          newPassword,
+          oldPassword.passwordHash,
+        );
         if (isReusedPassword) {
           return {
             success: false,
@@ -704,7 +819,10 @@ export class DatabaseAuthProvider implements AuthProvider {
         await this.sessionManager.invalidateUserSessions(id, 'password_change');
       } catch (error) {
         // Log but don't fail the password change if session invalidation fails
-        console.error('Failed to invalidate sessions after password change:', error);
+        console.error(
+          'Failed to invalidate sessions after password change:',
+          error,
+        );
       }
 
       // Clean up old password history (keep only last N passwords)
@@ -721,10 +839,12 @@ export class DatabaseAuthProvider implements AuthProvider {
         // Batch delete operation instead of individual deletes
         await this.database
           .delete(passwordHistory)
-          .where(and(
-            eq(passwordHistory.userId, id),
-            sql`${passwordHistory.id} = ANY(${idsToDelete})`,
-          ));
+          .where(
+            and(
+              eq(passwordHistory.userId, id),
+              sql`${passwordHistory.id} = ANY(${idsToDelete})`,
+            ),
+          );
       }
 
       // Return user without password
@@ -742,7 +862,10 @@ export class DatabaseAuthProvider implements AuthProvider {
     }
   }
 
-  async resetUserPassword(id: string, newPassword: string): Promise<AuthResult> {
+  async resetUserPassword(
+    id: string,
+    newPassword: string,
+  ): Promise<AuthResult> {
     try {
       // Validate UUID format
       const uuidValidation = validateUUID(id);
@@ -788,7 +911,10 @@ export class DatabaseAuthProvider implements AuthProvider {
         .limit(this.passwordHistoryLimit);
 
       for (const oldPassword of recentPasswords) {
-        const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash);
+        const isReusedPassword = await bcrypt.verify(
+          newPassword,
+          oldPassword.passwordHash,
+        );
         if (isReusedPassword) {
           return {
             success: false,
@@ -836,7 +962,10 @@ export class DatabaseAuthProvider implements AuthProvider {
         await this.sessionManager.invalidateUserSessions(id, 'password_change');
       } catch (error) {
         // Log but don't fail the password change if session invalidation fails
-        console.error('Failed to invalidate sessions after password change:', error);
+        console.error(
+          'Failed to invalidate sessions after password change:',
+          error,
+        );
       }
 
       // Clean up old password history (keep only last N passwords)
@@ -853,10 +982,12 @@ export class DatabaseAuthProvider implements AuthProvider {
         // Batch delete operation instead of individual deletes
         await this.database
           .delete(passwordHistory)
-          .where(and(
-            eq(passwordHistory.userId, id),
-            sql`${passwordHistory.id} = ANY(${idsToDelete})`,
-          ));
+          .where(
+            and(
+              eq(passwordHistory.userId, id),
+              sql`${passwordHistory.id} = ANY(${idsToDelete})`,
+            ),
+          );
       }
 
       // Return user without password
@@ -948,7 +1079,9 @@ export class DatabaseAuthProvider implements AuthProvider {
   }
 
   // Email verification methods
-  async sendEmailVerification(email: string): Promise<{ success: boolean; error?: string }> {
+  async sendEmailVerification(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Check if user exists
       const [user] = await this.database
@@ -973,7 +1106,11 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Create verification token (expires in 24 hours)
-      const tokenData = await this.tokenService.createToken(email, 'email_verification', 24 * 60);
+      const tokenData = await this.tokenService.createToken(
+        email,
+        'email_verification',
+        24 * 60,
+      );
 
       // Send verification email
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
@@ -1005,7 +1142,9 @@ export class DatabaseAuthProvider implements AuthProvider {
     }
   }
 
-  async verifyEmailWithToken(token: string): Promise<{ success: boolean; error?: string }> {
+  async verifyEmailWithToken(
+    token: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Extract email from token (tokens are stored as "type:token" format)
       const [, actualToken] = token.split(':');
@@ -1019,7 +1158,11 @@ export class DatabaseAuthProvider implements AuthProvider {
       // Efficient token verification - single query to find the token and user
       const verification = await this.tokenService.verifyTokenById(token);
 
-      if (verification.valid && verification.type === 'email_verification' && verification.identifier) {
+      if (
+        verification.valid &&
+        verification.type === 'email_verification' &&
+        verification.identifier
+      ) {
         // Find the user by email (identifier)
         const [user] = await this.database
           .select()
@@ -1069,7 +1212,9 @@ export class DatabaseAuthProvider implements AuthProvider {
   }
 
   // Password reset methods
-  async sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+  async sendPasswordReset(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Check if user exists
       const [user] = await this.database
@@ -1084,7 +1229,11 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Create password reset token (expires in 1 hour)
-      const tokenData = await this.tokenService.createToken(email, 'password_reset', 60);
+      const tokenData = await this.tokenService.createToken(
+        email,
+        'password_reset',
+        60,
+      );
 
       // Send password reset email
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
@@ -1100,7 +1249,10 @@ export class DatabaseAuthProvider implements AuthProvider {
       });
 
       if (!emailResult.success) {
-        console.error('Failed to send password reset email:', emailResult.error);
+        console.error(
+          'Failed to send password reset email:',
+          emailResult.error,
+        );
         // For security, don't reveal email sending failures
         return { success: true };
       }
@@ -1115,12 +1267,19 @@ export class DatabaseAuthProvider implements AuthProvider {
     }
   }
 
-  async resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+  async resetPasswordWithToken(
+    token: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Use efficient token verification - single query to find the token and user
       const verification = await this.tokenService.verifyTokenById(token);
 
-      if (!verification.valid || verification.type !== 'password_reset' || !verification.identifier) {
+      if (
+        !verification.valid ||
+        verification.type !== 'password_reset' ||
+        !verification.identifier
+      ) {
         return {
           success: false,
           error: 'Invalid or expired token',
@@ -1162,7 +1321,10 @@ export class DatabaseAuthProvider implements AuthProvider {
         .limit(this.passwordHistoryLimit);
 
       for (const oldPassword of recentPasswords) {
-        const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash);
+        const isReusedPassword = await bcrypt.verify(
+          newPassword,
+          oldPassword.passwordHash,
+        );
         if (isReusedPassword) {
           return {
             success: false,

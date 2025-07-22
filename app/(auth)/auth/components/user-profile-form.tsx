@@ -19,15 +19,19 @@ const profileSchema = z.object({
   image: z.string().url('Invalid image URL').optional().or(z.literal('')),
 });
 
-type ProfileFormData = z.infer<typeof profileSchema>
+type ProfileFormData = z.infer<typeof profileSchema>;
 
 interface UserProfileFormProps {
-  user: AuthUser
-  onSuccess: (user: AuthUser) => void
-  onError: (error: string) => void
+  user: AuthUser;
+  onSuccess: (user: AuthUser) => void;
+  onError: (error: string) => void;
 }
 
-export function UserProfileForm({ user, onSuccess, onError }: UserProfileFormProps) {
+export function UserProfileForm({
+  user,
+  onSuccess,
+  onError,
+}: UserProfileFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailVerified, setEmailVerified] = useState(!!user.emailVerified);
 
@@ -76,74 +80,78 @@ export function UserProfileForm({ user, onSuccess, onError }: UserProfileFormPro
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Profile Information</h3>
+    <div className='space-y-6'>
+      <div className='space-y-4'>
+        <h3 className='text-lg font-medium'>Profile Information</h3>
 
         {/* Avatar Upload Section */}
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-700">Avatar</h4>
-          <AvatarUpload
-            user={user}
-            onSuccess={onSuccess}
-            onError={onError}
-          />
+        <div className='space-y-2'>
+          <h4 className='text-sm font-medium text-gray-700'>Avatar</h4>
+          <AvatarUpload user={user} onSuccess={onSuccess} onError={onError} />
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className='space-y-4'
+          noValidate
+        >
           <div>
-            <label htmlFor="profile-name" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor='profile-name'
+              className='block text-sm font-medium text-gray-700'
+            >
               Name
             </label>
             <Input
               {...register('name')}
-              type="text"
-              id="profile-name"
+              type='text'
+              id='profile-name'
               variant={errors.name ? 'error' : 'default'}
-              className="mt-1 block w-full"
-              placeholder="Enter your name"
+              className='mt-1 block w-full'
+              placeholder='Enter your name'
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.name.message}
-              </p>
+              <p className='mt-1 text-sm text-red-600'>{errors.name.message}</p>
             )}
           </div>
 
           <div>
-            <label htmlFor="profile-email" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor='profile-email'
+              className='block text-sm font-medium text-gray-700'
+            >
               Email
             </label>
             <Input
               {...register('email')}
-              type="email"
-              id="profile-email"
+              type='email'
+              id='profile-email'
               variant={errors.email ? 'error' : 'default'}
-              className="mt-1 block w-full"
-              placeholder="Enter your email"
+              className='mt-1 block w-full'
+              placeholder='Enter your email'
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600">
+              <p className='mt-1 text-sm text-red-600'>
                 {errors.email.message}
               </p>
             )}
 
             {/* Email verification status */}
-            <div className="mt-2 flex items-center gap-2">
+            <div className='mt-2 flex items-center gap-2'>
               {emailVerified && !hasEmailChanged ? (
-                <div className="flex items-center gap-2 text-sm text-green-600">
+                <div className='flex items-center gap-2 text-sm text-green-600'>
                   <span>✅</span>
                   <span>Email verified</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-sm text-amber-600">
+                <div className='flex items-center gap-2 text-sm text-amber-600'>
                   <span>⚠️</span>
                   <span>Email not verified</span>
                   {!hasEmailChanged && (
                     <button
-                      type="button"
+                      type='button'
                       onClick={handleVerifyEmail}
-                      className="text-blue-600 hover:text-blue-800 underline"
+                      className='text-blue-600 underline hover:text-blue-800'
                     >
                       Verify now
                     </button>
@@ -154,31 +162,34 @@ export function UserProfileForm({ user, onSuccess, onError }: UserProfileFormPro
           </div>
 
           <div>
-            <label htmlFor="profile-image" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor='profile-image'
+              className='block text-sm font-medium text-gray-700'
+            >
               Profile Image URL
             </label>
             <Input
               {...register('image')}
-              type="url"
-              id="profile-image"
+              type='url'
+              id='profile-image'
               variant={errors.image ? 'error' : 'default'}
-              className="mt-1 block w-full"
-              placeholder="https://example.com/avatar.jpg"
+              className='mt-1 block w-full'
+              placeholder='https://example.com/avatar.jpg'
             />
             {errors.image && (
-              <p className="mt-1 text-sm text-red-600">
+              <p className='mt-1 text-sm text-red-600'>
                 {errors.image.message}
               </p>
             )}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className='flex items-center gap-4'>
             <button
-              type="submit"
+              type='submit'
               disabled={isSubmitting}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className='flex items-center gap-2 rounded-md bg-blue-600 px-6 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50'
             >
-              {isSubmitting && <Spinner size="sm" />}
+              {isSubmitting && <Spinner size='sm' />}
               {isSubmitting ? 'Updating...' : 'Update Profile'}
             </button>
           </div>

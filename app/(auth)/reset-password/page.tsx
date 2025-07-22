@@ -49,7 +49,9 @@ export default function ResetPasswordPage() {
 
       if (data.success) {
         setStatus('success');
-        setMessage('Password reset successfully! You can now sign in with your new password.');
+        setMessage(
+          'Password reset successfully! You can now sign in with your new password.',
+        );
       } else {
         setMessage(data.error || 'Failed to reset password');
       }
@@ -62,26 +64,34 @@ export default function ResetPasswordPage() {
 
   if (status === 'error') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full space-y-8 p-8">
-          <div className="text-center">
-            <h2 className="mt-6 text-3xl font-bold text-gray-900">
+      <div className='flex min-h-screen items-center justify-center bg-gray-50'>
+        <div className='w-full max-w-md space-y-8 p-8'>
+          <div className='text-center'>
+            <h2 className='mt-6 text-3xl font-bold text-gray-900'>
               Reset Password
             </h2>
           </div>
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-              <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <div className='text-center'>
+            <div className='mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100'>
+              <svg
+                className='h-6 w-6 text-red-600'
+                fill='none'
+                viewBox='0 0 24 24'
+                stroke='currentColor'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M6 18L18 6M6 6l12 12'
+                />
               </svg>
             </div>
-            <p className="mt-4 text-sm text-red-600">
-              {message}
-            </p>
-            <div className="mt-6">
+            <p className='mt-4 text-sm text-red-600'>{message}</p>
+            <div className='mt-6'>
               <a
-                href="/auth"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                href='/auth'
+                className='flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
               >
                 Back to Auth
               </a>
@@ -94,26 +104,34 @@ export default function ResetPasswordPage() {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full space-y-8 p-8">
-          <div className="text-center">
-            <h2 className="mt-6 text-3xl font-bold text-gray-900">
+      <div className='flex min-h-screen items-center justify-center bg-gray-50'>
+        <div className='w-full max-w-md space-y-8 p-8'>
+          <div className='text-center'>
+            <h2 className='mt-6 text-3xl font-bold text-gray-900'>
               Password Reset Complete
             </h2>
           </div>
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-              <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          <div className='text-center'>
+            <div className='mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100'>
+              <svg
+                className='h-6 w-6 text-green-600'
+                fill='none'
+                viewBox='0 0 24 24'
+                stroke='currentColor'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M5 13l4 4L19 7'
+                />
               </svg>
             </div>
-            <p className="mt-4 text-sm text-green-600">
-              {message}
-            </p>
-            <div className="mt-6">
+            <p className='mt-4 text-sm text-green-600'>{message}</p>
+            <div className='mt-6'>
               <a
-                href="/auth"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                href='/auth'
+                className='flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
               >
                 Sign In Now
               </a>
@@ -125,59 +143,63 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+    <div className='flex min-h-screen items-center justify-center bg-gray-50'>
+      <div className='w-full max-w-md space-y-8 p-8'>
+        <div className='text-center'>
+          <h2 className='mt-6 text-3xl font-bold text-gray-900'>
             Reset Your Password
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className='mt-2 text-sm text-gray-600'>
             Enter your new password below
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className='mt-8 space-y-6' onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor='password'
+              className='block text-sm font-medium text-gray-700'
+            >
               New Password
             </label>
             <input
-              id="password"
-              type="password"
+              id='password'
+              type='password'
               required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter new password"
+              onChange={e => setPassword(e.target.value)}
+              className='mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none'
+              placeholder='Enter new password'
             />
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor='confirmPassword'
+              className='block text-sm font-medium text-gray-700'
+            >
               Confirm New Password
             </label>
             <input
-              id="confirmPassword"
-              type="password"
+              id='confirmPassword'
+              type='password'
               required
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Confirm new password"
+              onChange={e => setConfirmPassword(e.target.value)}
+              className='mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none'
+              placeholder='Confirm new password'
             />
           </div>
 
           {message && (
-            <div className="text-red-600 text-sm text-center">
-              {message}
-            </div>
+            <div className='text-center text-sm text-red-600'>{message}</div>
           )}
 
           <div>
             <button
-              type="submit"
+              type='submit'
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className='flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50'
             >
               {loading ? 'Resetting...' : 'Reset Password'}
             </button>

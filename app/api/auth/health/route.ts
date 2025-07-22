@@ -34,8 +34,12 @@ export async function GET(request: NextRequest) {
           );
       }
 
-      const statusCode = result.status === 'healthy' ? 200 :
-                        result.status === 'degraded' ? 200 : 503;
+      const statusCode =
+        result.status === 'healthy'
+          ? 200
+          : result.status === 'degraded'
+            ? 200
+            : 503;
 
       return NextResponse.json(result, { status: statusCode });
     }
@@ -43,8 +47,12 @@ export async function GET(request: NextRequest) {
     // Otherwise, return complete health status
     const healthStatus = await authHealthChecker.checkOverallHealth();
 
-    const statusCode = healthStatus.overall.status === 'healthy' ? 200 :
-                      healthStatus.overall.status === 'degraded' ? 200 : 503;
+    const statusCode =
+      healthStatus.overall.status === 'healthy'
+        ? 200
+        : healthStatus.overall.status === 'degraded'
+          ? 200
+          : 503;
 
     return NextResponse.json(healthStatus, { status: statusCode });
   } catch (error) {
@@ -56,7 +64,8 @@ export async function GET(request: NextRequest) {
         timestamp: new Date(),
         error: 'Health check failed',
         details: {
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          errorMessage:
+            error instanceof Error ? error.message : 'Unknown error',
         },
       },
       { status: 503 },

@@ -91,7 +91,9 @@ export class OAuthIntegration {
       if (conflictResult.existingUserId) {
         // User exists, get user data
         const service = await authService;
-        const existingUser = await service.getUserById(conflictResult.existingUserId);
+        const existingUser = await service.getUserById(
+          conflictResult.existingUserId,
+        );
         if (existingUser.success && existingUser.user) {
           user = existingUser.user;
         }
@@ -163,7 +165,11 @@ export class OAuthIntegration {
   /**
    * Get available OAuth providers
    */
-  getAvailableProviders(): Array<{ id: string; name: string; configured: boolean }> {
+  getAvailableProviders(): Array<{
+    id: string;
+    name: string;
+    configured: boolean;
+  }> {
     return oauthService.getAvailableProviders();
   }
 }

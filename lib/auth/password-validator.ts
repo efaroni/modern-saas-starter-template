@@ -1,17 +1,17 @@
 export interface PasswordValidationResult {
-  isValid: boolean
-  errors: string[]
-  score: number // 0-100 password strength score
+  isValid: boolean;
+  errors: string[];
+  score: number; // 0-100 password strength score
 }
 
 export interface PasswordPolicy {
-  minLength: number
-  requireUppercase: boolean
-  requireLowercase: boolean
-  requireNumbers: boolean
-  requireSpecialChars: boolean
-  forbidCommonPasswords: boolean
-  forbidUserInfo: boolean
+  minLength: number;
+  requireUppercase: boolean;
+  requireLowercase: boolean;
+  requireNumbers: boolean;
+  requireSpecialChars: boolean;
+  forbidCommonPasswords: boolean;
+  forbidUserInfo: boolean;
 }
 
 export const DEFAULT_PASSWORD_POLICY: PasswordPolicy = {
@@ -26,11 +26,31 @@ export const DEFAULT_PASSWORD_POLICY: PasswordPolicy = {
 
 // Common passwords to reject
 const COMMON_PASSWORDS = [
-  'password', 'password123', '123456', '123456789', 'qwerty',
-  'abc123', 'password1', 'admin', 'letmein', 'welcome',
-  'monkey', '1234567890', 'dragon', 'master', 'hello',
-  'login', 'pass', 'admin123', 'root', 'administrator',
-  'test', 'guest', 'user', 'demo', 'sample',
+  'password',
+  'password123',
+  '123456',
+  '123456789',
+  'qwerty',
+  'abc123',
+  'password1',
+  'admin',
+  'letmein',
+  'welcome',
+  'monkey',
+  '1234567890',
+  'dragon',
+  'master',
+  'hello',
+  'login',
+  'pass',
+  'admin123',
+  'root',
+  'administrator',
+  'test',
+  'guest',
+  'user',
+  'demo',
+  'sample',
 ];
 
 export class PasswordValidator {
@@ -43,13 +63,18 @@ export class PasswordValidator {
   /**
    * Validates a password against the configured policy
    */
-  validate(password: string, userInfo?: { email?: string, name?: string }): PasswordValidationResult {
+  validate(
+    password: string,
+    userInfo?: { email?: string; name?: string },
+  ): PasswordValidationResult {
     const errors: string[] = [];
     let score = 0;
 
     // Length check
     if (password.length < this.policy.minLength) {
-      errors.push(`Password must be at least ${this.policy.minLength} characters long`);
+      errors.push(
+        `Password must be at least ${this.policy.minLength} characters long`,
+      );
     } else {
       score += Math.min(25, (password.length - this.policy.minLength) * 2);
     }
@@ -73,7 +98,10 @@ export class PasswordValidator {
       score += 20;
     }
 
-    if (this.policy.requireSpecialChars && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    if (
+      this.policy.requireSpecialChars &&
+      !/[!@#$%^&*(),.?":{}|<>]/.test(password)
+    ) {
       errors.push('Password must contain at least one special character');
     } else if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
       score += 15;
@@ -81,12 +109,18 @@ export class PasswordValidator {
 
     // Common password check
     if (this.policy.forbidCommonPasswords && this.isCommonPassword(password)) {
-      errors.push('Password is too common, please choose a more unique password');
+      errors.push(
+        'Password is too common, please choose a more unique password',
+      );
       score -= 30;
     }
 
     // User info check
-    if (this.policy.forbidUserInfo && userInfo && this.containsUserInfo(password, userInfo)) {
+    if (
+      this.policy.forbidUserInfo &&
+      userInfo &&
+      this.containsUserInfo(password, userInfo)
+    ) {
       errors.push('Password should not contain your email or name');
       score -= 20;
     }
@@ -135,15 +169,19 @@ export class PasswordValidator {
    */
   private isCommonPassword(password: string): boolean {
     const lowerPassword = password.toLowerCase();
-    return COMMON_PASSWORDS.some(common =>
-      lowerPassword.includes(common) || common.includes(lowerPassword),
+    return COMMON_PASSWORDS.some(
+      common =>
+        lowerPassword.includes(common) || common.includes(lowerPassword),
     );
   }
 
   /**
    * Checks if password contains user information
    */
-  private containsUserInfo(password: string, userInfo: { email?: string, name?: string }): boolean {
+  private containsUserInfo(
+    password: string,
+    userInfo: { email?: string; name?: string },
+  ): boolean {
     const lowerPassword = password.toLowerCase();
 
     if (userInfo.email) {
@@ -181,12 +219,19 @@ export class PasswordValidator {
    * Checks for sequential characters (e.g., "abc", "123")
    */
   private hasSequentialCharacters(password: string): boolean {
-    const sequences = ['abcdefghijklmnopqrstuvwxyz', '0123456789', 'qwertyuiop'];
+    const sequences = [
+      'abcdefghijklmnopqrstuvwxyz',
+      '0123456789',
+      'qwertyuiop',
+    ];
 
     for (const sequence of sequences) {
       for (let i = 0; i < password.length - 2; i++) {
         const substr = password.substring(i, i + 3).toLowerCase();
-        if (sequence.includes(substr) || sequence.split('').reverse().join('').includes(substr)) {
+        if (
+          sequence.includes(substr) ||
+          sequence.split('').reverse().join('').includes(substr)
+        ) {
           return true;
         }
       }
@@ -201,7 +246,9 @@ export class PasswordValidator {
     const suggestions: string[] = [];
 
     if (password.length < 12) {
-      suggestions.push('Make your password longer (12+ characters recommended)');
+      suggestions.push(
+        'Make your password longer (12+ characters recommended)',
+      );
     }
 
     if (!/[A-Z]/.test(password)) {

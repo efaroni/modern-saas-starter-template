@@ -15,7 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Modern SaaS Starter Template',
-  description: 'A comprehensive SaaS starter template with authentication, payments, AI, and more',
+  description:
+    'A comprehensive SaaS starter template with authentication, payments, AI, and more',
 };
 
 export default function RootLayout({
@@ -24,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang='en'>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

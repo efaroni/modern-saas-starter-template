@@ -1,44 +1,59 @@
 export interface AuthEvent {
-  type: 'login' | 'signup' | 'logout' | 'password_change' | 'password_reset' | 'email_verification' | 'oauth_login' | 'account_locked' | 'suspicious_activity'
-  userId?: string
-  email?: string
-  ipAddress?: string
-  userAgent?: string
-  success: boolean
-  error?: string
-  metadata?: Record<string, any>
-  timestamp: Date
-  duration?: number // in milliseconds
-  sessionId?: string
+  type:
+    | 'login'
+    | 'signup'
+    | 'logout'
+    | 'password_change'
+    | 'password_reset'
+    | 'email_verification'
+    | 'oauth_login'
+    | 'account_locked'
+    | 'suspicious_activity';
+  userId?: string;
+  email?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  success: boolean;
+  error?: string;
+  metadata?: Record<string, any>;
+  timestamp: Date;
+  duration?: number; // in milliseconds
+  sessionId?: string;
 }
 
 export interface SecurityEvent {
-  type: 'brute_force' | 'account_takeover' | 'unusual_location' | 'multiple_failed_attempts' | 'password_breach' | 'suspicious_oauth'
-  userId?: string
-  email?: string
-  ipAddress?: string
-  userAgent?: string
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  details: Record<string, any>
-  timestamp: Date
-  actionTaken?: string
+  type:
+    | 'brute_force'
+    | 'account_takeover'
+    | 'unusual_location'
+    | 'multiple_failed_attempts'
+    | 'password_breach'
+    | 'suspicious_oauth';
+  userId?: string;
+  email?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  details: Record<string, any>;
+  timestamp: Date;
+  actionTaken?: string;
 }
 
 export interface PerformanceMetric {
-  operation: string
-  duration: number
-  success: boolean
-  metadata?: Record<string, any>
-  timestamp: Date
+  operation: string;
+  duration: number;
+  success: boolean;
+  metadata?: Record<string, any>;
+  timestamp: Date;
 }
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface Logger {
-  logAuthEvent(event: AuthEvent): void
-  logSecurityEvent(event: SecurityEvent): void
-  logPerformanceMetric(metric: PerformanceMetric): void
-  log(level: LogLevel, message: string, metadata?: Record<string, any>): void
+  logAuthEvent(event: AuthEvent): void;
+  logSecurityEvent(event: SecurityEvent): void;
+  logPerformanceMetric(metric: PerformanceMetric): void;
+  log(level: LogLevel, message: string, metadata?: Record<string, any>): void;
 }
 
 export class AuthLogger implements Logger {
@@ -117,9 +132,17 @@ export class AuthLogger implements Logger {
     // Log slow operations
     const slowThreshold = 1000; // 1 second
     if (metric.duration > slowThreshold) {
-      this.log('warn', `Slow operation: ${metric.operation} took ${metric.duration}ms`, logData);
+      this.log(
+        'warn',
+        `Slow operation: ${metric.operation} took ${metric.duration}ms`,
+        logData,
+      );
     } else {
-      this.log('debug', `Operation: ${metric.operation} completed in ${metric.duration}ms`, logData);
+      this.log(
+        'debug',
+        `Operation: ${metric.operation} completed in ${metric.duration}ms`,
+        logData,
+      );
     }
 
     // Send metrics to monitoring
@@ -159,28 +182,38 @@ export class AuthLogger implements Logger {
   private logToConsole(level: LogLevel, message: string, data: any): void {
     const colors = {
       debug: '\x1b[36m', // cyan
-      info: '\x1b[32m',  // green
-      warn: '\x1b[33m',  // yellow
-      error: '\x1b[31m',  // red
+      info: '\x1b[32m', // green
+      warn: '\x1b[33m', // yellow
+      error: '\x1b[31m', // red
     };
     const reset = '\x1b[0m';
 
     const color = colors[level] || '';
     const timestamp = new Date().toISOString();
 
-    console.log(`${color}[${timestamp}] ${level.toUpperCase()}: ${message}${reset}`);
-    if (data && Object.keys(data).length > 3) { // Only log extra data if it's substantial
+    console.log(
+      `${color}[${timestamp}] ${level.toUpperCase()}: ${message}${reset}`,
+    );
+    if (data && Object.keys(data).length > 3) {
+      // Only log extra data if it's substantial
       console.log(`${color}${JSON.stringify(data, null, 2)}${reset}`);
     }
   }
 
-  private getLogLevelForSeverity(severity: SecurityEvent['severity']): LogLevel {
+  private getLogLevelForSeverity(
+    severity: SecurityEvent['severity'],
+  ): LogLevel {
     switch (severity) {
-      case 'low': return 'info';
-      case 'medium': return 'warn';
-      case 'high': return 'error';
-      case 'critical': return 'error';
-      default: return 'info';
+      case 'low':
+        return 'info';
+      case 'medium':
+        return 'warn';
+      case 'high':
+        return 'error';
+      case 'critical':
+        return 'error';
+      default:
+        return 'info';
     }
   }
 
@@ -236,7 +269,7 @@ export function timeOperation<T>(
   const start = Date.now();
 
   return fn().then(
-    (result) => {
+    result => {
       const duration = Date.now() - start;
       authLogger.logPerformanceMetric({
         operation,
@@ -247,7 +280,7 @@ export function timeOperation<T>(
       });
       return result;
     },
-    (error) => {
+    error => {
       const duration = Date.now() - start;
       authLogger.logPerformanceMetric({
         operation,

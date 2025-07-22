@@ -1,15 +1,24 @@
-import { type EmailService, type EmailResult, type PasswordResetEmailData, type EmailVerificationData, type WelcomeEmailData } from './types';
+import {
+  type EmailService,
+  type EmailResult,
+  type PasswordResetEmailData,
+  type EmailVerificationData,
+  type WelcomeEmailData,
+} from './types';
 
 export class MockEmailService implements EmailService {
   private sentEmails: Array<{
-    to: string
-    type: 'password_reset' | 'verification' | 'welcome'
-    data: PasswordResetEmailData | EmailVerificationData | WelcomeEmailData
-    sentAt: Date
+    to: string;
+    type: 'password_reset' | 'verification' | 'welcome';
+    data: PasswordResetEmailData | EmailVerificationData | WelcomeEmailData;
+    sentAt: Date;
   }> = [];
   private shouldFail = false;
 
-  async sendPasswordResetEmail(email: string, data: PasswordResetEmailData): Promise<EmailResult> {
+  async sendPasswordResetEmail(
+    email: string,
+    data: PasswordResetEmailData,
+  ): Promise<EmailResult> {
     // Simulate email sending delay
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -35,7 +44,10 @@ export class MockEmailService implements EmailService {
     };
   }
 
-  async sendVerificationEmail(email: string, data: EmailVerificationData): Promise<EmailResult> {
+  async sendVerificationEmail(
+    email: string,
+    data: EmailVerificationData,
+  ): Promise<EmailResult> {
     // Simulate email sending delay
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -61,7 +73,10 @@ export class MockEmailService implements EmailService {
     };
   }
 
-  async sendWelcomeEmail(email: string, data: WelcomeEmailData): Promise<EmailResult> {
+  async sendWelcomeEmail(
+    email: string,
+    data: WelcomeEmailData,
+  ): Promise<EmailResult> {
     // Simulate email sending delay
     await new Promise(resolve => setTimeout(resolve, 100));
 

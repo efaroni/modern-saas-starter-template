@@ -1,7 +1,11 @@
 import { eq, and } from 'drizzle-orm';
 
 import { config } from '@/lib/config';
-import { userApiKeys, type SelectUserApiKey, type InsertUserApiKey } from '@/lib/db/schema';
+import {
+  userApiKeys,
+  type SelectUserApiKey,
+  type InsertUserApiKey,
+} from '@/lib/db/schema';
 import { encrypt, decrypt, maskApiKey } from '@/lib/encryption';
 
 // Lazy load db to avoid connection issues during import
@@ -45,9 +49,10 @@ const mockUserApiKeys: SelectUserApiKey[] = [
 ];
 
 // For development, we'll use a mock user ID since auth isn't implemented yet
-const MOCK_USER_ID = process.env.NODE_ENV === 'test'
-  ? '00000000-0000-0000-0000-000000000001'
-  : 'mock-user-1';
+const MOCK_USER_ID =
+  process.env.NODE_ENV === 'test'
+    ? '00000000-0000-0000-0000-000000000001'
+    : 'mock-user-1';
 
 export const userApiKeyService = {
   async list(userId?: string): Promise<SelectUserApiKey[]> {
@@ -59,7 +64,8 @@ export const userApiKeyService = {
 
     try {
       const db = await getDb();
-      const keys = await db.select()
+      const keys = await db
+        .select()
         .from(userApiKeys)
         .where(eq(userApiKeys.userId, currentUserId))
         .orderBy(userApiKeys.createdAt);
@@ -76,7 +82,9 @@ export const userApiKeyService = {
     }
   },
 
-  async create(data: Omit<InsertUserApiKey, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<SelectUserApiKey> {
+  async create(
+    data: Omit<InsertUserApiKey, 'id' | 'createdAt' | 'updatedAt' | 'userId'>,
+  ): Promise<SelectUserApiKey> {
     const userId = MOCK_USER_ID; // Will be replaced with actual user ID from auth
 
     if (shouldUseMock()) {
@@ -104,11 +112,14 @@ export const userApiKeyService = {
       const encryptedPrivateKey = encrypt(data.privateKeyEncrypted);
 
       const db = await getDb();
-      const [created] = await db.insert(userApiKeys).values({
-        ...data,
-        userId,
-        privateKeyEncrypted: encryptedPrivateKey,
-      }).returning();
+      const [created] = await db
+        .insert(userApiKeys)
+        .values({
+          ...data,
+          userId,
+          privateKeyEncrypted: encryptedPrivateKey,
+        })
+        .returning();
 
       // Return with masked keys - NEVER return the encrypted or real keys
       return {
@@ -120,9 +131,15 @@ export const userApiKeyService = {
       // Check for unique constraint violation (Postgres error code 23505)
       // Handle both direct PostgreSQL errors and DrizzleQueryError with cause
       const postgresError = (error as { cause?: unknown }).cause || error;
-      if ((postgresError as { code?: string }).code === '23505' ||
-          (error as { message?: string }).message?.includes('duplicate key value') ||
-          (postgresError as { message?: string }).message?.includes('duplicate key value')) {
+      if (
+        (postgresError as { code?: string }).code === '23505' ||
+        (error as { message?: string }).message?.includes(
+          'duplicate key value',
+        ) ||
+        (postgresError as { message?: string }).message?.includes(
+          'duplicate key value',
+        )
+      ) {
         throw new Error('API_KEY_DUPLICATE');
       }
 
@@ -134,7 +151,9 @@ export const userApiKeyService = {
     const currentUserId = userId || MOCK_USER_ID;
 
     if (shouldUseMock()) {
-      const index = mockUserApiKeys.findIndex(k => k.id === id && k.userId === currentUserId);
+      const index = mockUserApiKeys.findIndex(
+        k => k.id === id && k.userId === currentUserId,
+      );
       if (index === -1) throw new Error('API key not found');
       // In mock mode, we'd normally remove from a real store
       return;
@@ -142,11 +161,11 @@ export const userApiKeyService = {
 
     try {
       const db = await getDb();
-      const [deleted] = await db.delete(userApiKeys)
-        .where(and(
-          eq(userApiKeys.id, id),
-          eq(userApiKeys.userId, currentUserId),
-        ))
+      const [deleted] = await db
+        .delete(userApiKeys)
+        .where(
+          and(eq(userApiKeys.id, id), eq(userApiKeys.userId, currentUserId)),
+        )
         .returning();
 
       if (!deleted) throw new Error('API key not found');
@@ -155,21 +174,31 @@ export const userApiKeyService = {
     }
   },
 
-  async getByProvider(provider: string, userId?: string): Promise<SelectUserApiKey | null> {
+  async getByProvider(
+    provider: string,
+    userId?: string,
+  ): Promise<SelectUserApiKey | null> {
     const currentUserId = userId || MOCK_USER_ID;
 
     if (shouldUseMock()) {
-      return mockUserApiKeys.find(k => k.provider === provider && k.userId === currentUserId) || null;
+      return (
+        mockUserApiKeys.find(
+          k => k.provider === provider && k.userId === currentUserId,
+        ) || null
+      );
     }
 
     try {
       const db = await getDb();
-      const [result] = await db.select()
+      const [result] = await db
+        .select()
         .from(userApiKeys)
-        .where(and(
-          eq(userApiKeys.provider, provider),
-          eq(userApiKeys.userId, currentUserId),
-        ))
+        .where(
+          and(
+            eq(userApiKeys.provider, provider),
+            eq(userApiKeys.userId, currentUserId),
+          ),
+        )
         .limit(1);
 
       return result || null;
@@ -180,22 +209,30 @@ export const userApiKeyService = {
   },
 
   // SERVER-SIDE ONLY: Get decrypted private key for actual API calls
-  async getDecryptedPrivateKey(provider: string, userId?: string): Promise<string | null> {
+  async getDecryptedPrivateKey(
+    provider: string,
+    userId?: string,
+  ): Promise<string | null> {
     const currentUserId = userId || MOCK_USER_ID;
 
     if (shouldUseMock()) {
-      const key = mockUserApiKeys.find(k => k.provider === provider && k.userId === currentUserId);
+      const key = mockUserApiKeys.find(
+        k => k.provider === provider && k.userId === currentUserId,
+      );
       return key?.privateKeyEncrypted || null;
     }
 
     try {
       const db = await getDb();
-      const [result] = await db.select({ privateKeyEncrypted: userApiKeys.privateKeyEncrypted })
+      const [result] = await db
+        .select({ privateKeyEncrypted: userApiKeys.privateKeyEncrypted })
         .from(userApiKeys)
-        .where(and(
-          eq(userApiKeys.provider, provider),
-          eq(userApiKeys.userId, currentUserId),
-        ))
+        .where(
+          and(
+            eq(userApiKeys.provider, provider),
+            eq(userApiKeys.userId, currentUserId),
+          ),
+        )
         .limit(1);
 
       if (!result) return null;
@@ -209,22 +246,30 @@ export const userApiKeyService = {
   },
 
   // SERVER-SIDE ONLY: Get decrypted public key for actual API calls
-  async getDecryptedPublicKey(provider: string, userId?: string): Promise<string | null> {
+  async getDecryptedPublicKey(
+    provider: string,
+    userId?: string,
+  ): Promise<string | null> {
     const currentUserId = userId || MOCK_USER_ID;
 
     if (shouldUseMock()) {
-      const key = mockUserApiKeys.find(k => k.provider === provider && k.userId === currentUserId);
+      const key = mockUserApiKeys.find(
+        k => k.provider === provider && k.userId === currentUserId,
+      );
       return key?.publicKey || null;
     }
 
     try {
       const db = await getDb();
-      const [result] = await db.select({ publicKey: userApiKeys.publicKey })
+      const [result] = await db
+        .select({ publicKey: userApiKeys.publicKey })
         .from(userApiKeys)
-        .where(and(
-          eq(userApiKeys.provider, provider),
-          eq(userApiKeys.userId, currentUserId),
-        ))
+        .where(
+          and(
+            eq(userApiKeys.provider, provider),
+            eq(userApiKeys.userId, currentUserId),
+          ),
+        )
         .limit(1);
 
       if (!result?.publicKey) return null;

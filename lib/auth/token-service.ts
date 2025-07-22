@@ -3,14 +3,17 @@ import { eq, and, lt, like } from 'drizzle-orm';
 import { verificationTokens } from '@/lib/db/schema';
 import { db } from '@/lib/db/server';
 import { addMinutes } from '@/lib/utils/date-time';
-import { generateSecureToken, TokenSecurityLevel } from '@/lib/utils/token-generator';
+import {
+  generateSecureToken,
+  TokenSecurityLevel,
+} from '@/lib/utils/token-generator';
 
-export type TokenType = 'email_verification' | 'password_reset'
+export type TokenType = 'email_verification' | 'password_reset';
 
 export interface TokenData {
-  token: string
-  expires: Date
-  type: TokenType
+  token: string;
+  expires: Date;
+  type: TokenType;
 }
 
 export class TokenService {
@@ -29,7 +32,11 @@ export class TokenService {
   /**
    * Create a new verification token
    */
-  async createToken(identifier: string, type: TokenType, expiresInMinutes: number = 60): Promise<TokenData> {
+  async createToken(
+    identifier: string,
+    type: TokenType,
+    expiresInMinutes: number = 60,
+  ): Promise<TokenData> {
     const token = this.generateToken();
     const expires = addMinutes(expiresInMinutes);
 
@@ -68,7 +75,9 @@ export class TokenService {
   /**
    * Verify a token without knowing the identifier (more efficient for email verification)
    */
-  async verifyTokenById(token: string): Promise<{ valid: boolean; type?: TokenType; identifier?: string }> {
+  async verifyTokenById(
+    token: string,
+  ): Promise<{ valid: boolean; type?: TokenType; identifier?: string }> {
     try {
       // Find the token without requiring identifier
       const [tokenRecord] = await this.database
@@ -112,7 +121,10 @@ export class TokenService {
   /**
    * Verify and consume a token (legacy method - kept for compatibility)
    */
-  async verifyToken(token: string, identifier: string): Promise<{ valid: boolean; type?: TokenType }> {
+  async verifyToken(
+    token: string,
+    identifier: string,
+  ): Promise<{ valid: boolean; type?: TokenType }> {
     try {
       // Find the token
       const [tokenRecord] = await this.database
@@ -169,12 +181,10 @@ export class TokenService {
    */
   async cleanupExpiredTokens(): Promise<void> {
     try {
-      await this.database
-        .delete(verificationTokens)
-        .where(
-          // Remove tokens that have expired
-          lt(verificationTokens.expires, new Date()),
-        );
+      await this.database.delete(verificationTokens).where(
+        // Remove tokens that have expired
+        lt(verificationTokens.expires, new Date()),
+      );
     } catch (error) {
       console.error('Failed to cleanup expired tokens:', error);
     }
@@ -183,7 +193,9 @@ export class TokenService {
   /**
    * Get all tokens for an identifier (for testing purposes)
    */
-  async getTokensForIdentifier(identifier: string): Promise<Array<{ token: string; expires: Date }>> {
+  async getTokensForIdentifier(
+    identifier: string,
+  ): Promise<Array<{ token: string; expires: Date }>> {
     try {
       const tokens = await this.database
         .select()

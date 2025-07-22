@@ -15,10 +15,10 @@ export async function getUserApiKeys() {
 }
 
 export async function createUserApiKey(data: {
-  provider: string
-  privateKey: string
-  publicKey?: string
-  metadata?: Record<string, unknown>
+  provider: string;
+  privateKey: string;
+  publicKey?: string;
+  metadata?: Record<string, unknown>;
 }) {
   try {
     if (data.provider === 'openai' && !data.privateKey.startsWith('sk-')) {
@@ -30,7 +30,8 @@ export async function createUserApiKey(data: {
     }
 
     const isMockKey = data.privateKey.includes('mock');
-    const isProductionEnvironment = process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test';
+    const isProductionEnvironment =
+      process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test';
 
     if (isMockKey && isProductionEnvironment) {
       return {
@@ -93,7 +94,8 @@ export async function deleteUserApiKey(id: string) {
 export async function testUserApiKey(provider: string, privateKey: string) {
   try {
     const isMockKey = privateKey.includes('mock');
-    const isProductionEnvironment = process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test';
+    const isProductionEnvironment =
+      process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test';
 
     if (isMockKey && isProductionEnvironment) {
       return {

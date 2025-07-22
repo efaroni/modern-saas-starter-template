@@ -7,41 +7,41 @@ import { db } from '@/lib/db/server';
 import { redisCache } from './redis';
 
 export interface CachedUserProfile {
-  id: string
-  email: string
-  name?: string
-  image?: string
-  emailVerified?: Date
-  createdAt: Date
-  updatedAt: Date
+  id: string;
+  email: string;
+  name?: string;
+  image?: string;
+  emailVerified?: Date;
+  createdAt: Date;
+  updatedAt: Date;
   apiKeys?: {
-    provider: string
-    hasKey: boolean
-    publicKey?: string
-  }[]
+    provider: string;
+    hasKey: boolean;
+    publicKey?: string;
+  }[];
   preferences?: {
-    theme?: 'light' | 'dark' | 'system'
-    notifications?: boolean
-    language?: string
-  }
+    theme?: 'light' | 'dark' | 'system';
+    notifications?: boolean;
+    language?: string;
+  };
   stats?: {
-    lastLogin?: Date
-    loginCount?: number
-    sessionCount?: number
-  }
+    lastLogin?: Date;
+    loginCount?: number;
+    sessionCount?: number;
+  };
 }
 
 export interface UserProfileCacheConfig {
-  profileTTL: number        // Profile cache TTL in seconds
-  includeApiKeys: boolean   // Whether to include API keys info
-  includePreferences: boolean // Whether to include user preferences
-  includeStats: boolean     // Whether to include user statistics
-  keyPrefix: string         // Cache key prefix
+  profileTTL: number; // Profile cache TTL in seconds
+  includeApiKeys: boolean; // Whether to include API keys info
+  includePreferences: boolean; // Whether to include user preferences
+  includeStats: boolean; // Whether to include user statistics
+  keyPrefix: string; // Cache key prefix
 }
 
 export const DEFAULT_USER_PROFILE_CACHE_CONFIG: UserProfileCacheConfig = {
-  profileTTL: 900,          // 15 minutes
-  includeApiKeys: false,    // Don't include API keys by default (security)
+  profileTTL: 900, // 15 minutes
+  includeApiKeys: false, // Don't include API keys by default (security)
   includePreferences: true,
   includeStats: true,
   keyPrefix: 'profile:',
@@ -160,7 +160,9 @@ export class UserProfileCache {
         operation: 'user_profile_cache_error',
         duration: Date.now() - startTime,
         success: false,
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
+        metadata: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
         timestamp: new Date(),
       });
 
@@ -170,13 +172,15 @@ export class UserProfileCache {
   }
 
   // Get multiple user profiles
-  async getUserProfiles(userIds: string[]): Promise<Map<string, CachedUserProfile>> {
+  async getUserProfiles(
+    userIds: string[],
+  ): Promise<Map<string, CachedUserProfile>> {
     const startTime = Date.now();
     const profiles = new Map<string, CachedUserProfile>();
 
     try {
       // Get all profiles in parallel
-      const profilePromises = userIds.map(async (userId) => {
+      const profilePromises = userIds.map(async userId => {
         const profile = await this.getUserProfile(userId);
         if (profile) {
           profiles.set(userId, profile);
@@ -202,7 +206,9 @@ export class UserProfileCache {
         operation: 'batch_user_profiles_error',
         duration: Date.now() - startTime,
         success: false,
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
+        metadata: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
         timestamp: new Date(),
       });
 
@@ -212,7 +218,10 @@ export class UserProfileCache {
   }
 
   // Update user profile in cache
-  async updateUserProfile(userId: string, updates: Partial<CachedUserProfile>): Promise<void> {
+  async updateUserProfile(
+    userId: string,
+    updates: Partial<CachedUserProfile>,
+  ): Promise<void> {
     try {
       const cacheKey = `${this.config.keyPrefix}${userId}`;
 
@@ -248,7 +257,9 @@ export class UserProfileCache {
   // Invalidate multiple user profiles
   async invalidateUserProfiles(userIds: string[]): Promise<void> {
     try {
-      const deletePromises = userIds.map(userId => this.invalidateUserProfile(userId));
+      const deletePromises = userIds.map(userId =>
+        this.invalidateUserProfile(userId),
+      );
       await Promise.all(deletePromises);
 
       authLogger.log('debug', 'Multiple user profile caches invalidated', {
@@ -272,7 +283,9 @@ export class UserProfileCache {
         .limit(limit);
 
       // Cache each user profile
-      const cachePromises = recentUsers.map(user => this.getUserProfile(user.id));
+      const cachePromises = recentUsers.map(user =>
+        this.getUserProfile(user.id),
+      );
       await Promise.all(cachePromises);
 
       authLogger.log('info', 'User profile cache warmed up', {
@@ -285,7 +298,9 @@ export class UserProfileCache {
   }
 
   // Get user profile by email (with caching)
-  async getUserProfileByEmail(email: string): Promise<CachedUserProfile | null> {
+  async getUserProfileByEmail(
+    email: string,
+  ): Promise<CachedUserProfile | null> {
     const startTime = Date.now();
 
     try {
@@ -328,7 +343,11 @@ export class UserProfileCache {
 
       // Cache by email as well (shorter TTL for security)
       if (profile) {
-        await this.cache.set(cacheKey, profile, Math.min(this.config.profileTTL, 300));
+        await this.cache.set(
+          cacheKey,
+          profile,
+          Math.min(this.config.profileTTL, 300),
+        );
       }
 
       authLogger.logPerformanceMetric({
@@ -345,7 +364,9 @@ export class UserProfileCache {
         operation: 'user_profile_by_email_cache_error',
         duration: Date.now() - startTime,
         success: false,
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
+        metadata: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
         timestamp: new Date(),
       });
 
@@ -393,12 +414,16 @@ export const userProfileCache = new UserProfileCache();
 // Export user profile cache utilities
 export const userProfileCacheUtils = {
   getUserProfile: (userId: string) => userProfileCache.getUserProfile(userId),
-  getUserProfiles: (userIds: string[]) => userProfileCache.getUserProfiles(userIds),
-  getUserProfileByEmail: (email: string) => userProfileCache.getUserProfileByEmail(email),
+  getUserProfiles: (userIds: string[]) =>
+    userProfileCache.getUserProfiles(userIds),
+  getUserProfileByEmail: (email: string) =>
+    userProfileCache.getUserProfileByEmail(email),
   updateUserProfile: (userId: string, updates: Partial<CachedUserProfile>) =>
     userProfileCache.updateUserProfile(userId, updates),
-  invalidateUserProfile: (userId: string) => userProfileCache.invalidateUserProfile(userId),
-  invalidateUserProfiles: (userIds: string[]) => userProfileCache.invalidateUserProfiles(userIds),
+  invalidateUserProfile: (userId: string) =>
+    userProfileCache.invalidateUserProfile(userId),
+  invalidateUserProfiles: (userIds: string[]) =>
+    userProfileCache.invalidateUserProfiles(userIds),
   warmUpCache: (limit?: number) => userProfileCache.warmUpCache(limit),
   getCacheStats: () => userProfileCache.getCacheStats(),
   clearAllCache: () => userProfileCache.clearAllCache(),

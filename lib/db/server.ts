@@ -18,7 +18,11 @@ export { db, getDatabasePool } from './connection-pool';
 export { queryOptimizer, optimizedQueries } from './query-optimization';
 
 // Export migration utilities (server-only)
-export { runMigrations, getMigrationStatus, validateDatabaseSchema } from './migrate';
+export {
+  runMigrations,
+  getMigrationStatus,
+  validateDatabaseSchema,
+} from './migrate';
 export { DatabaseMigrator } from './migrate';
 
 // Export schema for server use

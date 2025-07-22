@@ -1,27 +1,31 @@
 import { AUTH_CONFIG } from '@/lib/config/app-config';
 import { db } from '@/lib/db/server';
 
-import { DatabaseSessionStorage, SessionConfig, DEFAULT_SESSION_CONFIG } from './database-session-storage';
+import {
+  DatabaseSessionStorage,
+  SessionConfig,
+  DEFAULT_SESSION_CONFIG,
+} from './database-session-storage';
 import { type AuthUser } from './types';
 
 export interface SessionSecurityConfig {
   // Session timeouts
-  maxAge: number
-  inactivityTimeout: number
+  maxAge: number;
+  inactivityTimeout: number;
 
   // Security policies
-  maxConcurrentSessions: number
-  suspiciousActivityThreshold: number
+  maxConcurrentSessions: number;
+  suspiciousActivityThreshold: number;
 
   // Cookie settings
-  cookieName: string
+  cookieName: string;
   cookieOptions: {
-    httpOnly: boolean
-    secure: boolean
-    sameSite: 'strict' | 'lax' | 'none'
-    path: string
-    domain?: string
-  }
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: 'strict' | 'lax' | 'none';
+    path: string;
+    domain?: string;
+  };
 }
 
 export const DEFAULT_SECURITY_CONFIG: SessionSecurityConfig = {
@@ -43,7 +47,10 @@ export class SessionManager {
   private storage: DatabaseSessionStorage;
   private config: SessionSecurityConfig;
 
-  constructor(database: typeof db = db, config: SessionSecurityConfig = DEFAULT_SECURITY_CONFIG) {
+  constructor(
+    database: typeof db = db,
+    config: SessionSecurityConfig = DEFAULT_SECURITY_CONFIG,
+  ) {
     this.config = config;
     this.storage = new DatabaseSessionStorage(database, {
       maxAge: config.maxAge,
@@ -61,9 +68,9 @@ export class SessionManager {
     ipAddress?: string,
     userAgent?: string,
   ): Promise<{
-    sessionToken: string
-    expires: Date
-    cookieOptions: any
+    sessionToken: string;
+    expires: Date;
+    cookieOptions: any;
   }> {
     try {
       const sessionToken = await this.storage.createSession(
@@ -84,7 +91,9 @@ export class SessionManager {
         },
       };
     } catch (error) {
-      throw new Error(`Session creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Session creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -96,10 +105,10 @@ export class SessionManager {
     ipAddress?: string,
     userAgent?: string,
   ): Promise<{
-    valid: boolean
-    user?: AuthUser
-    suspicious?: boolean
-    action?: 'refresh' | 'invalidate'
+    valid: boolean;
+    user?: AuthUser;
+    suspicious?: boolean;
+    action?: 'refresh' | 'invalidate';
   }> {
     try {
       this.storage.setSessionToken(sessionToken);
@@ -110,9 +119,14 @@ export class SessionManager {
       }
 
       // Check for suspicious activity
-      const suspicious = ipAddress && userAgent ?
-        await this.detectSuspiciousActivity(sessionToken, ipAddress, userAgent) :
-        false;
+      const suspicious =
+        ipAddress && userAgent
+          ? await this.detectSuspiciousActivity(
+              sessionToken,
+              ipAddress,
+              userAgent,
+            )
+          : false;
 
       if (suspicious) {
         // Invalidate session on suspicious activity
@@ -164,7 +178,10 @@ export class SessionManager {
   /**
    * Invalidate all sessions for a user (security action)
    */
-  async invalidateUserSessions(userId: string, reason: string = 'security'): Promise<void> {
+  async invalidateUserSessions(
+    userId: string,
+    reason: string = 'security',
+  ): Promise<void> {
     await this.storage.invalidateUserSessions(userId, reason);
   }
 
@@ -200,8 +217,8 @@ export class SessionManager {
    * Get cookie configuration for setting secure cookies
    */
   getCookieConfig(): {
-    name: string
-    options: any
+    name: string;
+    options: any;
   } {
     return {
       name: this.config.cookieName,

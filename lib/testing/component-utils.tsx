@@ -1,37 +1,55 @@
 import { type ReactElement, type ReactNode } from 'react';
 
 import { jest } from '@jest/globals';
-import { render, screen, fireEvent, waitFor, type RenderOptions } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  type RenderOptions,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Extended render options for better testing
 export interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
   // Add common providers and wrappers
-  withAuth?: boolean
-  withRouter?: boolean
-  withQueryClient?: boolean
-  initialUrl?: string
+  withAuth?: boolean;
+  withRouter?: boolean;
+  withQueryClient?: boolean;
+  initialUrl?: string;
   mockAuth?: {
-    user?: any
-    isAuthenticated?: boolean
-    permissions?: string[]
-  }
+    user?: any;
+    isAuthenticated?: boolean;
+    permissions?: string[];
+  };
 }
 
 // Mock providers for testing
-const MockAuthProvider = ({ children, mockAuth }: { children: ReactNode; mockAuth?: any }) => {
+const MockAuthProvider = ({
+  children,
+  mockAuth,
+}: {
+  children: ReactNode;
+  mockAuth?: any;
+}) => {
   // Mock auth context
-  return <div data-testid="mock-auth-provider">{children}</div>;
+  return <div data-testid='mock-auth-provider'>{children}</div>;
 };
 
-const MockRouterProvider = ({ children, initialUrl }: { children: ReactNode; initialUrl?: string }) => {
+const MockRouterProvider = ({
+  children,
+  initialUrl,
+}: {
+  children: ReactNode;
+  initialUrl?: string;
+}) => {
   // Mock router context
-  return <div data-testid="mock-router-provider">{children}</div>;
+  return <div data-testid='mock-router-provider'>{children}</div>;
 };
 
 const MockQueryProvider = ({ children }: { children: ReactNode }) => {
   // Mock query client
-  return <div data-testid="mock-query-provider">{children}</div>;
+  return <div data-testid='mock-query-provider'>{children}</div>;
 };
 
 // Enhanced render function with common providers
@@ -56,11 +74,17 @@ export const renderWithProviders = (
     }
 
     if (withRouter) {
-      component = <MockRouterProvider initialUrl={initialUrl}>{component}</MockRouterProvider>;
+      component = (
+        <MockRouterProvider initialUrl={initialUrl}>
+          {component}
+        </MockRouterProvider>
+      );
     }
 
     if (withAuth) {
-      component = <MockAuthProvider mockAuth={mockAuth}>{component}</MockAuthProvider>;
+      component = (
+        <MockAuthProvider mockAuth={mockAuth}>{component}</MockAuthProvider>
+      );
     }
 
     return component;
@@ -122,9 +146,10 @@ export const componentTestUtils = {
 
       // Check for missing labels on form elements
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) {
-        const hasLabel = el.getAttribute('aria-label') ||
-                        el.getAttribute('aria-labelledby') ||
-                        document.querySelector(`label[for="${el.id}"]`);
+        const hasLabel =
+          el.getAttribute('aria-label') ||
+          el.getAttribute('aria-labelledby') ||
+          document.querySelector(`label[for="${el.id}"]`);
         if (!hasLabel) {
           issues.push(`Missing label for ${el.tagName.toLowerCase()}`);
         }
@@ -137,11 +162,14 @@ export const componentTestUtils = {
   /**
    * Test component interactions
    */
-  async testInteractions(component: ReactElement, interactions: {
-    name: string
-    action: () => Promise<void>
-    expectation: () => Promise<void>
-  }[]) {
+  async testInteractions(
+    component: ReactElement,
+    interactions: {
+      name: string;
+      action: () => Promise<void>;
+      expectation: () => Promise<void>;
+    }[],
+  ) {
     const { user } = renderWithProviders(component);
     const results = [];
 
@@ -165,7 +193,10 @@ export const componentTestUtils = {
   /**
    * Test component loading states
    */
-  async testLoadingStates(component: ReactElement, loadingProps: Record<string, boolean>) {
+  async testLoadingStates(
+    component: ReactElement,
+    loadingProps: Record<string, boolean>,
+  ) {
     const results = [];
 
     for (const [propName, isLoading] of Object.entries(loadingProps)) {
@@ -176,7 +207,9 @@ export const componentTestUtils = {
 
       if (isLoading) {
         // Look for common loading indicators
-        const loadingIndicators = container.querySelectorAll('[data-testid*="loading"], [class*="loading"], [class*="spinner"]');
+        const loadingIndicators = container.querySelectorAll(
+          '[data-testid*="loading"], [class*="loading"], [class*="spinner"]',
+        );
         results.push({
           propName,
           isLoading,
@@ -199,7 +232,10 @@ export const componentTestUtils = {
   /**
    * Test component error states
    */
-  async testErrorStates(component: ReactElement, errorProps: Record<string, string | null>) {
+  async testErrorStates(
+    component: ReactElement,
+    errorProps: Record<string, string | null>,
+  ) {
     const results = [];
 
     for (const [propName, errorMessage] of Object.entries(errorProps)) {
@@ -210,8 +246,11 @@ export const componentTestUtils = {
 
       if (errorMessage) {
         // Look for error message display
-        const errorElements = container.querySelectorAll('[data-testid*="error"], [class*="error"], [role="alert"]');
-        const hasErrorText = container.textContent?.includes(errorMessage) || false;
+        const errorElements = container.querySelectorAll(
+          '[data-testid*="error"], [class*="error"], [role="alert"]',
+        );
+        const hasErrorText =
+          container.textContent?.includes(errorMessage) || false;
 
         results.push({
           propName,
@@ -242,9 +281,10 @@ export const formTestUtils = {
    */
   async fillForm(formData: Record<string, string>, user = userEvent.setup()) {
     for (const [fieldName, value] of Object.entries(formData)) {
-      const field = screen.getByLabelText(new RegExp(fieldName, 'i')) ||
-                   screen.getByPlaceholderText(new RegExp(fieldName, 'i')) ||
-                   screen.getByDisplayValue('');
+      const field =
+        screen.getByLabelText(new RegExp(fieldName, 'i')) ||
+        screen.getByPlaceholderText(new RegExp(fieldName, 'i')) ||
+        screen.getByDisplayValue('');
 
       if (field) {
         await user.clear(field);
@@ -256,14 +296,20 @@ export const formTestUtils = {
   /**
    * Submit form and wait for response
    */
-  async submitForm(submitButtonText = /submit|save|create/i, user = userEvent.setup()) {
+  async submitForm(
+    submitButtonText = /submit|save|create/i,
+    user = userEvent.setup(),
+  ) {
     const submitButton = screen.getByRole('button', { name: submitButtonText });
     await user.click(submitButton);
 
     // Wait for potential async operations
-    await waitFor(() => {
-      // This is a placeholder - in real usage, you'd wait for specific conditions
-    }, { timeout: 5000 });
+    await waitFor(
+      () => {
+        // This is a placeholder - in real usage, you'd wait for specific conditions
+      },
+      { timeout: 5000 },
+    );
   },
 
   /**
@@ -272,9 +318,9 @@ export const formTestUtils = {
   async testValidation(
     component: ReactElement,
     validationTests: {
-      field: string
-      invalidValue: string
-      expectedError: string
+      field: string;
+      invalidValue: string;
+      expectedError: string;
     }[],
   ) {
     const { user } = renderWithProviders(component);
@@ -293,7 +339,9 @@ export const formTestUtils = {
 
       // Check for error message
       await waitFor(() => {
-        const errorText = screen.queryByText(new RegExp(test.expectedError, 'i'));
+        const errorText = screen.queryByText(
+          new RegExp(test.expectedError, 'i'),
+        );
         results.push({
           field: test.field,
           invalidValue: test.invalidValue,
@@ -312,7 +360,7 @@ export const mockUtils = {
   /**
    * Create mock function with tracking
    */
-  createMockFunction<T extends(...args: any[]) => any>(
+  createMockFunction<T extends (...args: any[]) => any>(
     name: string,
     implementation?: T,
   ): jest.MockedFunction<T> {
@@ -325,7 +373,7 @@ export const mockUtils = {
    * Mock API responses
    */
   mockApiResponse(data: any, delay = 0) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       setTimeout(() => resolve(data), delay);
     });
   },

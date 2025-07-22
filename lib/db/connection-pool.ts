@@ -6,20 +6,20 @@ import * as schema from './schema';
 
 export interface ConnectionPoolConfig {
   // Connection pool settings
-  max: number              // Maximum number of connections in pool
-  idle_timeout: number     // Milliseconds before closing idle connections
-  connect_timeout: number  // Milliseconds before connection timeout
+  max: number; // Maximum number of connections in pool
+  idle_timeout: number; // Milliseconds before closing idle connections
+  connect_timeout: number; // Milliseconds before connection timeout
 
   // Query settings
-  prepare: boolean         // Use prepared statements
-  transform: object        // Transform settings
+  prepare: boolean; // Use prepared statements
+  transform: object; // Transform settings
 
   // SSL settings
-  ssl?: boolean | 'require' | 'prefer'
+  ssl?: boolean | 'require' | 'prefer';
 
   // Connection retry settings
-  max_lifetime: number     // Maximum lifetime of a connection in seconds
-  max_uses: number        // Maximum uses of a connection before recycling
+  max_lifetime: number; // Maximum lifetime of a connection in seconds
+  max_uses: number; // Maximum uses of a connection before recycling
 }
 
 // Create default pool config using centralized database configuration
@@ -30,9 +30,9 @@ function createDefaultPoolConfig(): ConnectionPoolConfig {
     max: dbConfig.poolSize,
     idle_timeout: dbConfig.idleTimeout * 1000, // Convert seconds to ms
     connect_timeout: dbConfig.connectTimeout * 1000, // Convert seconds to ms
-    prepare: true,              // Use prepared statements for performance
+    prepare: true, // Use prepared statements for performance
     transform: {
-      undefined: null,          // Transform undefined to null for PostgreSQL
+      undefined: null, // Transform undefined to null for PostgreSQL
     },
     ssl: process.env.NODE_ENV === 'production' ? 'require' : false,
     max_lifetime: dbConfig.maxLifetime,
@@ -40,26 +40,27 @@ function createDefaultPoolConfig(): ConnectionPoolConfig {
   };
 }
 
-export const DEFAULT_POOL_CONFIG: ConnectionPoolConfig = createDefaultPoolConfig();
+export const DEFAULT_POOL_CONFIG: ConnectionPoolConfig =
+  createDefaultPoolConfig();
 
 export interface DatabaseHealth {
-  healthy: boolean
+  healthy: boolean;
   connections: {
-    active: number
-    idle: number
-    waiting: number
-    max: number
-  }
+    active: number;
+    idle: number;
+    waiting: number;
+    max: number;
+  };
   performance: {
-    avgQueryTime: number
-    slowQueries: number
-    totalQueries: number
-  }
+    avgQueryTime: number;
+    slowQueries: number;
+    totalQueries: number;
+  };
   errors: {
-    connectionErrors: number
-    queryErrors: number
-    timeouts: number
-  }
+    connectionErrors: number;
+    queryErrors: number;
+    timeouts: number;
+  };
 }
 
 export class DatabaseConnectionPool {
@@ -69,18 +70,21 @@ export class DatabaseConnectionPool {
   private healthStats: DatabaseHealth;
   private dbConfig = getDatabaseConfig();
   private queryMetrics: {
-    totalQueries: number
-    totalTime: number
-    slowQueries: number
-    errors: number
+    totalQueries: number;
+    totalTime: number;
+    slowQueries: number;
+    errors: number;
     slowQueryDetails: Array<{
-      query: string
-      duration: number
-      timestamp: Date
-    }>
+      query: string;
+      duration: number;
+      timestamp: Date;
+    }>;
   };
 
-  constructor(connectionString: string, config?: Partial<ConnectionPoolConfig>) {
+  constructor(
+    connectionString: string,
+    config?: Partial<ConnectionPoolConfig>,
+  ) {
     this.config = { ...DEFAULT_POOL_CONFIG, ...config };
     this.queryMetrics = {
       totalQueries: 0,
@@ -101,12 +105,12 @@ export class DatabaseConnectionPool {
       max_uses: this.config.max_uses,
 
       // Connection event handlers
-      onnotice: (notice) => {
+      onnotice: notice => {
         console.log('PostgreSQL notice:', notice);
       },
 
       // Error handling
-      onclose: (connectionId) => {
+      onclose: connectionId => {
         console.log(`PostgreSQL connection ${connectionId} closed`);
       },
 
@@ -200,12 +204,15 @@ export class DatabaseConnectionPool {
       }
 
       // Log slow query for monitoring
-      console.warn(`[DB] Slow query detected: ${queryTime}ms (threshold: ${this.dbConfig.slowQueryThreshold}ms)`);
+      console.warn(
+        `[DB] Slow query detected: ${queryTime}ms (threshold: ${this.dbConfig.slowQueryThreshold}ms)`,
+      );
     }
 
     // Update health stats
     this.healthStats.performance.totalQueries = this.queryMetrics.totalQueries;
-    this.healthStats.performance.avgQueryTime = this.queryMetrics.totalTime / this.queryMetrics.totalQueries;
+    this.healthStats.performance.avgQueryTime =
+      this.queryMetrics.totalTime / this.queryMetrics.totalQueries;
     this.healthStats.performance.slowQueries = this.queryMetrics.slowQueries;
 
     // Check for concerning patterns and alert
@@ -215,20 +222,31 @@ export class DatabaseConnectionPool {
   private checkPerformanceAlerts(): void {
     // Alert on high error rate
     const errorRate = this.queryMetrics.errors / this.queryMetrics.totalQueries;
-    if (errorRate > 0.1 && this.queryMetrics.totalQueries > 10) { // 10% error rate
-      console.error(`[DB ALERT] High error rate: ${(errorRate * 100).toFixed(1)}% (${this.queryMetrics.errors}/${this.queryMetrics.totalQueries})`);
+    if (errorRate > 0.1 && this.queryMetrics.totalQueries > 10) {
+      // 10% error rate
+      console.error(
+        `[DB ALERT] High error rate: ${(errorRate * 100).toFixed(1)}% (${this.queryMetrics.errors}/${this.queryMetrics.totalQueries})`,
+      );
     }
 
     // Alert on high slow query rate
-    const slowQueryRate = this.queryMetrics.slowQueries / this.queryMetrics.totalQueries;
-    if (slowQueryRate > 0.2 && this.queryMetrics.totalQueries > 5) { // 20% slow query rate
-      console.warn(`[DB ALERT] High slow query rate: ${(slowQueryRate * 100).toFixed(1)}% (${this.queryMetrics.slowQueries}/${this.queryMetrics.totalQueries})`);
+    const slowQueryRate =
+      this.queryMetrics.slowQueries / this.queryMetrics.totalQueries;
+    if (slowQueryRate > 0.2 && this.queryMetrics.totalQueries > 5) {
+      // 20% slow query rate
+      console.warn(
+        `[DB ALERT] High slow query rate: ${(slowQueryRate * 100).toFixed(1)}% (${this.queryMetrics.slowQueries}/${this.queryMetrics.totalQueries})`,
+      );
     }
 
     // Alert on very high average query time
-    const avgQueryTime = this.queryMetrics.totalTime / this.queryMetrics.totalQueries;
-    if (avgQueryTime > this.dbConfig.slowQueryThreshold * 0.5) { // 50% of slow query threshold
-      console.warn(`[DB ALERT] High average query time: ${avgQueryTime.toFixed(2)}ms`);
+    const avgQueryTime =
+      this.queryMetrics.totalTime / this.queryMetrics.totalQueries;
+    if (avgQueryTime > this.dbConfig.slowQueryThreshold * 0.5) {
+      // 50% of slow query threshold
+      console.warn(
+        `[DB ALERT] High average query time: ${avgQueryTime.toFixed(2)}ms`,
+      );
     }
   }
 
@@ -239,7 +257,11 @@ export class DatabaseConnectionPool {
       await this.sql`SELECT 1`;
 
       // Get connection pool stats if available
-      const poolStats = (this.sql as unknown as { options?: { active?: number; idle?: number; total?: number } }).options;
+      const poolStats = (
+        this.sql as unknown as {
+          options?: { active?: number; idle?: number; total?: number };
+        }
+      ).options;
 
       this.healthStats.healthy = true;
       this.healthStats.connections = {
@@ -260,34 +282,48 @@ export class DatabaseConnectionPool {
     }
   }
 
-  private checkConnectionPoolAlerts(connections: { active: number; idle: number; waiting: number; max: number }): void {
+  private checkConnectionPoolAlerts(connections: {
+    active: number;
+    idle: number;
+    waiting: number;
+    max: number;
+  }): void {
     // Alert on high connection pool utilization
     const utilization = connections.active / connections.max;
-    if (utilization > 0.8) { // 80% utilization
-      console.warn(`[DB ALERT] Connection pool near saturation: ${(utilization * 100).toFixed(1)}% (${connections.active}/${connections.max})`);
+    if (utilization > 0.8) {
+      // 80% utilization
+      console.warn(
+        `[DB ALERT] Connection pool near saturation: ${(utilization * 100).toFixed(1)}% (${connections.active}/${connections.max})`,
+      );
     }
 
     // Alert on waiting connections
     if (connections.waiting > 0) {
-      console.warn(`[DB ALERT] Connections waiting in queue: ${connections.waiting}`);
+      console.warn(
+        `[DB ALERT] Connections waiting in queue: ${connections.waiting}`,
+      );
     }
 
     // Alert on very low idle connections
     if (connections.idle === 0 && connections.active > connections.max * 0.5) {
-      console.warn(`[DB ALERT] No idle connections available (${connections.active} active)`);
+      console.warn(
+        `[DB ALERT] No idle connections available (${connections.active} active)`,
+      );
     }
   }
 
   // Get query performance metrics
   getPerformanceMetrics(): {
-    totalQueries: number
-    averageQueryTime: number
-    slowQueryCount: number
-    errorRate: number
-    topSlowQueries: Array<{ query: string; duration: number; timestamp: Date }>
+    totalQueries: number;
+    averageQueryTime: number;
+    slowQueryCount: number;
+    errorRate: number;
+    topSlowQueries: Array<{ query: string; duration: number; timestamp: Date }>;
   } {
-    const avgQueryTime = this.queryMetrics.totalTime / this.queryMetrics.totalQueries || 0;
-    const errorRate = this.queryMetrics.errors / this.queryMetrics.totalQueries || 0;
+    const avgQueryTime =
+      this.queryMetrics.totalTime / this.queryMetrics.totalQueries || 0;
+    const errorRate =
+      this.queryMetrics.errors / this.queryMetrics.totalQueries || 0;
 
     // Get top 10 slowest queries
     const topSlowQueries = this.queryMetrics.slowQueryDetails
@@ -335,7 +371,9 @@ export class DatabaseConnectionPool {
       }
 
       await Promise.all(warmupPromises);
-      console.log(`Database connection pool warmed up with ${warmupCount} connections`);
+      console.log(
+        `Database connection pool warmed up with ${warmupCount} connections`,
+      );
     } catch (error) {
       console.error('Error warming up database connection pool:', error);
     }
@@ -345,9 +383,11 @@ export class DatabaseConnectionPool {
   getPerformanceMetrics() {
     return {
       ...this.queryMetrics,
-      avgQueryTime: this.queryMetrics.totalTime / this.queryMetrics.totalQueries,
+      avgQueryTime:
+        this.queryMetrics.totalTime / this.queryMetrics.totalQueries,
       errorRate: this.queryMetrics.errors / this.queryMetrics.totalQueries,
-      slowQueryRate: this.queryMetrics.slowQueries / this.queryMetrics.totalQueries,
+      slowQueryRate:
+        this.queryMetrics.slowQueries / this.queryMetrics.totalQueries,
     };
   }
 

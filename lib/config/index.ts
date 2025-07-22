@@ -23,7 +23,8 @@ export const config = {
   services: {
     stripe: {
       enabled: !!process.env.STRIPE_SECRET_KEY,
-      publicKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock',
+      publicKey:
+        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock',
     },
     openai: {
       enabled: !!process.env.OPENAI_API_KEY,

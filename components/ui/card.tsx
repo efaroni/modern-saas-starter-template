@@ -12,7 +12,8 @@ interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
   children: React.ReactNode;
 }
 
-interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {
+interface CardDescriptionProps
+  extends React.HTMLAttributes<HTMLParagraphElement> {
   children: React.ReactNode;
 }
 
@@ -27,7 +28,7 @@ interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Card({ className = '', children, ...props }: CardProps) {
   return (
     <div
-      className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className}`}
+      className={`bg-card text-card-foreground rounded-lg border shadow-sm ${className}`}
       {...props}
     >
       {children}
@@ -35,7 +36,11 @@ export function Card({ className = '', children, ...props }: CardProps) {
   );
 }
 
-export function CardHeader({ className = '', children, ...props }: CardHeaderProps) {
+export function CardHeader({
+  className = '',
+  children,
+  ...props
+}: CardHeaderProps) {
   return (
     <div className={`flex flex-col space-y-1.5 p-6 ${className}`} {...props}>
       {children}
@@ -43,10 +48,14 @@ export function CardHeader({ className = '', children, ...props }: CardHeaderPro
   );
 }
 
-export function CardTitle({ className = '', children, ...props }: CardTitleProps) {
+export function CardTitle({
+  className = '',
+  children,
+  ...props
+}: CardTitleProps) {
   return (
     <h3
-      className={`text-2xl font-semibold leading-none tracking-tight ${className}`}
+      className={`text-2xl leading-none font-semibold tracking-tight ${className}`}
       {...props}
     >
       {children}
@@ -54,19 +63,35 @@ export function CardTitle({ className = '', children, ...props }: CardTitleProps
   );
 }
 
-export function CardDescription({ className = '', children, ...props }: CardDescriptionProps) {
+export function CardDescription({
+  className = '',
+  children,
+  ...props
+}: CardDescriptionProps) {
   return (
-    <p className={`text-sm text-muted-foreground ${className}`} {...props}>
+    <p className={`text-muted-foreground text-sm ${className}`} {...props}>
       {children}
     </p>
   );
 }
 
-export function CardContent({ className = '', children, ...props }: CardContentProps) {
-  return <div className={`p-6 pt-0 ${className}`} {...props}>{children}</div>;
+export function CardContent({
+  className = '',
+  children,
+  ...props
+}: CardContentProps) {
+  return (
+    <div className={`p-6 pt-0 ${className}`} {...props}>
+      {children}
+    </div>
+  );
 }
 
-export function CardFooter({ className = '', children, ...props }: CardFooterProps) {
+export function CardFooter({
+  className = '',
+  children,
+  ...props
+}: CardFooterProps) {
   return (
     <div className={`flex items-center p-6 pt-0 ${className}`} {...props}>
       {children}

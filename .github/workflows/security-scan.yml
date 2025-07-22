@@ -2,9 +2,9 @@ name: 🔒 Security Scanning
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   schedule:
     # Daily scan at 2 AM UTC
     - cron: '0 2 * * *'
@@ -16,10 +16,10 @@ on:
         default: 'full'
         type: choice
         options:
-        - full
-        - codeql
-        - dependencies
-        - secrets
+          - full
+          - codeql
+          - dependencies
+          - secrets
 
 permissions:
   actions: read
@@ -38,19 +38,19 @@ jobs:
     name: 🔍 CodeQL Security Analysis
     runs-on: ubuntu-latest
     if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'codeql' || github.event.inputs.scan_type == ''
-    
+
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript' ]
-    
+        language: ['javascript']
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           # Fetch full history for better analysis
           fetch-depth: 0
-      
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
@@ -73,13 +73,13 @@ jobs:
                   kind: problem
                   severity: warning
                   tags: security
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: |
           npm ci --prefer-offline --no-audit
@@ -87,35 +87,35 @@ jobs:
           npm run build --if-present
         env:
           # Provide minimal env vars for build
-          NEXTAUTH_SECRET: "dummy-secret-for-build"
-          NEXTAUTH_URL: "http://localhost:3000"
-      
+          NEXTAUTH_SECRET: 'dummy-secret-for-build'
+          NEXTAUTH_URL: 'http://localhost:3000'
+
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{matrix.language}}"
+          category: '/language:${{matrix.language}}'
           upload: true
           # Custom SARIF category for easier filtering
-          sarif-category: "codeql-${{matrix.language}}"
+          sarif-category: 'codeql-${{matrix.language}}'
 
   # Job 2: Secret Detection with Gitleaks
   secret-detection:
     name: 🔐 Secret Detection
     runs-on: ubuntu-latest
     if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'secrets' || github.event.inputs.scan_type == ''
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Cache Gitleaks
         uses: actions/cache@v4
         with:
           path: ~/.cache/gitleaks
           key: ${{ env.CACHE_KEY_PREFIX }}-gitleaks-${{ runner.os }}
-      
+
       - name: Run Gitleaks Secret Detection
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -142,56 +142,56 @@ jobs:
               '''your-.*-here''',
               '''replace-with-actual'''
             ]
-            
+
             [rules.generic-api-key]
             id = "generic-api-key"
             description = "Generic API Key"
             regex = '''(?i)(?:api[_-]?key|apikey|secret|token)[_-]?[:=]\s*['"]?([a-zA-Z0-9_\-]{16,})['"]*'''
             secretGroup = 1
-            
+
             [rules.stripe-keys]
             id = "stripe-secret-key"
             description = "Stripe Secret Key"
             regex = '''sk_live_[a-zA-Z0-9]{24,}'''
-            
+
             [rules.aws-keys]
             id = "aws-access-key"
             description = "AWS Access Key"
             regex = '''AKIA[0-9A-Z]{16}'''
-            
+
             [rules.openai-keys]
             id = "openai-api-key" 
             description = "OpenAI API Key"
             regex = '''sk-[a-zA-Z0-9]{48}'''
-            
+
             [rules.database-urls]
             id = "database-connection"
             description = "Database Connection String"
             regex = '''(?i)(?:postgres|mysql|mongodb)://[^:\s]+:[^@\s]+@[^/\s]+'''
-      
+
       - name: Upload Gitleaks SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif
-          category: "gitleaks"
+          category: 'gitleaks'
 
   # Job 3: Dependency Vulnerability Scanning
   dependency-scan:
     name: 📦 Dependency Security Scan
     runs-on: ubuntu-latest
     if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'dependencies' || github.event.inputs.scan_type == ''
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
@@ -199,10 +199,10 @@ jobs:
           key: ${{ env.CACHE_KEY_PREFIX }}-node-modules-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ env.CACHE_KEY_PREFIX }}-node-modules-${{ runner.os }}-
-      
+
       - name: Install dependencies
         run: npm ci --prefer-offline
-      
+
       - name: Run npm audit
         id: npm-audit
         run: |
@@ -212,7 +212,7 @@ jobs:
           else
             echo "npm_audit_status=failed" >> $GITHUB_OUTPUT
           fi
-          
+
           # Parse results and create summary
           node -e "
             const fs = require('fs');
@@ -250,12 +250,12 @@ jobs:
             }
           " >> $GITHUB_OUTPUT
         continue-on-error: true
-      
+
       - name: Convert npm audit to SARIF
         if: always()
         run: |
           npm install -g @microsoft/sarif-multitool
-          
+
           # Create SARIF from npm audit results
           node -e "
             const fs = require('fs');
@@ -320,14 +320,14 @@ jobs:
             }
           "
         continue-on-error: true
-      
+
       - name: Upload npm audit SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: npm-audit.sarif
-          category: "npm-audit"
-      
+          category: 'npm-audit'
+
       - name: Fail on critical/high vulnerabilities
         if: steps.npm-audit.outputs.critical != '0' || steps.npm-audit.outputs.high != '0'
         run: |
@@ -342,20 +342,20 @@ jobs:
     name: 🐍 Snyk Vulnerability Scan
     runs-on: ubuntu-latest
     if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'dependencies' || github.event.inputs.scan_type == ''
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci --prefer-offline
-      
+
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
         continue-on-error: true
@@ -363,44 +363,44 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high --sarif-file-output=snyk.sarif
-      
+
       - name: Upload Snyk results to GitHub Code Scanning
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk.sarif
-          category: "snyk"
+          category: 'snyk'
 
   # Job 5: License Compliance Check
   license-check:
     name: 📄 License Compliance
     runs-on: ubuntu-latest
     if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install license checker
         run: npm install -g license-checker
-      
+
       - name: Install dependencies
         run: npm ci --prefer-offline
-      
+
       - name: Check licenses
         id: license-check
         run: |
           echo "Checking licenses..."
-          
+
           # Define prohibited licenses (copyleft, commercial restrictions)
           PROHIBITED_LICENSES="GPL-2.0,GPL-3.0,AGPL-1.0,AGPL-3.0,LGPL-2.1,LGPL-3.0,EPL-1.0,EPL-2.0,MPL-1.1,MPL-2.0,CDDL-1.0,CDDL-1.1,OSL-3.0,EUPL-1.1,EUPL-1.2"
-          
+
           # Run license check
           if license-checker --json --excludePrivatePackages > licenses.json; then
             echo "License check completed successfully"
@@ -408,7 +408,7 @@ jobs:
             echo "License check failed"
             exit 1
           fi
-          
+
           # Parse and validate licenses
           node -e "
             const fs = require('fs');
@@ -451,11 +451,11 @@ jobs:
     name: 🐳 Container Security Scan
     runs-on: ubuntu-latest
     if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Check for Dockerfile
         id: dockerfile-check
         run: |
@@ -466,12 +466,12 @@ jobs:
             echo "dockerfile_exists=false" >> $GITHUB_OUTPUT
             echo "No Dockerfile found, skipping container scan"
           fi
-      
+
       - name: Build Docker image
         if: steps.dockerfile-check.outputs.dockerfile_exists == 'true'
         run: |
           docker build -t saas-security-scan:latest .
-      
+
       - name: Run Trivy container scan
         if: steps.dockerfile-check.outputs.dockerfile_exists == 'true'
         uses: aquasecurity/trivy-action@master
@@ -480,87 +480,87 @@ jobs:
           format: 'sarif'
           output: 'trivy-container.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
-      
+
       - name: Upload Trivy scan results
         if: steps.dockerfile-check.outputs.dockerfile_exists == 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-container.sarif
-          category: "trivy-container"
+          category: 'trivy-container'
 
   # Job 7: Custom Security Rules
   custom-security-checks:
     name: 🛡️ Custom Security Checks
     runs-on: ubuntu-latest
     if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      
+
       - name: Custom SaaS Security Checks
         run: |
           echo "🔍 Running custom security checks for SaaS application..."
-          
+
           # Check for hardcoded secrets patterns
           echo "Checking for hardcoded secrets..."
           SECRETS_FOUND=0
-          
+
           # Common secret patterns specific to this stack
           if grep -r "sk_live_" --include="*.ts" --include="*.js" --include="*.json" . --exclude-dir=node_modules; then
             echo "❌ Live Stripe keys found in code"
             SECRETS_FOUND=1
           fi
-          
+
           if grep -r "sk-[a-zA-Z0-9]\{48\}" --include="*.ts" --include="*.js" . --exclude-dir=node_modules; then
             echo "❌ OpenAI API keys found in code"
             SECRETS_FOUND=1
           fi
-          
+
           # Check for unsafe authentication patterns
           echo "Checking authentication security..."
           AUTH_ISSUES=0
-          
+
           if grep -r "password.*===.*password" --include="*.ts" --include="*.js" . --exclude-dir=node_modules --exclude-dir=tests; then
             echo "⚠️ Potential plain text password comparison found"
             AUTH_ISSUES=1
           fi
-          
+
           # Check for SQL injection vulnerabilities
           echo "Checking for SQL injection risks..."
           SQL_ISSUES=0
-          
+
           if grep -r "\`.*\${.*}\`.*sql\|sql.*\`.*\${.*}\`" --include="*.ts" --include="*.js" . --exclude-dir=node_modules; then
             echo "⚠️ Potential SQL injection vulnerability found"
             SQL_ISSUES=1
           fi
-          
+
           # Check for XSS vulnerabilities
           echo "Checking for XSS risks..."
           XSS_ISSUES=0
-          
+
           if grep -r "dangerouslySetInnerHTML\|innerHTML.*=" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" . --exclude-dir=node_modules; then
             echo "⚠️ Potential XSS vulnerability found"
             XSS_ISSUES=1
           fi
-          
+
           # Check environment variable handling
           echo "Checking environment variable security..."
           ENV_ISSUES=0
-          
+
           if grep -r "process\.env\[.*\]" --include="*.ts" --include="*.js" . --exclude-dir=node_modules; then
             echo "⚠️ Dynamic environment variable access found (prefer process.env.VAR_NAME)"
             ENV_ISSUES=1
           fi
-          
+
           # Summary
           TOTAL_ISSUES=$((SECRETS_FOUND + AUTH_ISSUES + SQL_ISSUES + XSS_ISSUES + ENV_ISSUES))
-          
+
           echo "📊 Custom Security Check Summary:"
           echo "- Hardcoded secrets: $SECRETS_FOUND"
           echo "- Authentication issues: $AUTH_ISSUES"
@@ -568,26 +568,33 @@ jobs:
           echo "- XSS vulnerabilities: $XSS_ISSUES"
           echo "- Environment variable issues: $ENV_ISSUES"
           echo "- Total issues: $TOTAL_ISSUES"
-          
+
           if [ $SECRETS_FOUND -gt 0 ]; then
             echo "❌ Critical security issues found!"
             exit 1
           fi
-          
+
           if [ $TOTAL_ISSUES -gt 2 ]; then
             echo "⚠️ Multiple security issues found. Please review and fix."
             exit 1
           fi
-          
+
           echo "✅ Custom security checks passed"
 
   # Job 8: Security Summary and PR Comment
   security-summary:
     name: 📋 Security Summary
     runs-on: ubuntu-latest
-    needs: [codeql-analysis, secret-detection, dependency-scan, license-check, custom-security-checks]
+    needs:
+      [
+        codeql-analysis,
+        secret-detection,
+        dependency-scan,
+        license-check,
+        custom-security-checks,
+      ]
     if: always()
-    
+
     steps:
       - name: Generate Security Report
         id: security-report
@@ -596,42 +603,42 @@ jobs:
           echo "" >> security-report.md
           echo "| Security Check | Status | Details |" >> security-report.md
           echo "|---------------|--------|---------|" >> security-report.md
-          
+
           # CodeQL results
           if [ "${{ needs.codeql-analysis.result }}" == "success" ]; then
             echo "| CodeQL Analysis | ✅ Passed | No critical vulnerabilities detected |" >> security-report.md
           else
             echo "| CodeQL Analysis | ❌ Failed | Vulnerabilities detected - check Security tab |" >> security-report.md
           fi
-          
+
           # Secret detection results
           if [ "${{ needs.secret-detection.result }}" == "success" ]; then
             echo "| Secret Detection | ✅ Passed | No secrets detected in repository |" >> security-report.md
           else
             echo "| Secret Detection | ❌ Failed | Potential secrets found - review immediately |" >> security-report.md
           fi
-          
+
           # Dependency scan results  
           if [ "${{ needs.dependency-scan.result }}" == "success" ]; then
             echo "| Dependency Scan | ✅ Passed | No critical dependency vulnerabilities |" >> security-report.md
           else
             echo "| Dependency Scan | ❌ Failed | High/critical vulnerabilities in dependencies |" >> security-report.md
           fi
-          
+
           # License check results
           if [ "${{ needs.license-check.result }}" == "success" ]; then
             echo "| License Check | ✅ Passed | All licenses are compliant |" >> security-report.md
           else
             echo "| License Check | ❌ Failed | License compliance issues found |" >> security-report.md
           fi
-          
+
           # Custom security checks
           if [ "${{ needs.custom-security-checks.result }}" == "success" ]; then
             echo "| Custom Security | ✅ Passed | No custom security issues found |" >> security-report.md
           else
             echo "| Custom Security | ❌ Failed | Security issues detected in code patterns |" >> security-report.md
           fi
-          
+
           echo "" >> security-report.md
           echo "### Next Steps" >> security-report.md
           echo "1. Review any failed checks in the GitHub Security tab" >> security-report.md
@@ -641,7 +648,7 @@ jobs:
           echo "" >> security-report.md
           echo "---" >> security-report.md
           echo "*This report was generated automatically by the Security Scanning workflow*" >> security-report.md
-      
+
       - name: Comment PR with security results
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
@@ -649,18 +656,18 @@ jobs:
           script: |
             const fs = require('fs');
             const report = fs.readFileSync('security-report.md', 'utf8');
-            
+
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
-            
+
             const botComment = comments.find(comment => 
               comment.user.type === 'Bot' && 
               comment.body.includes('🔒 Security Scan Results')
             );
-            
+
             if (botComment) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
@@ -676,7 +683,7 @@ jobs:
                 body: report
               });
             }
-      
+
       - name: Upload security report
         uses: actions/upload-artifact@v4
         with:
@@ -688,9 +695,15 @@ jobs:
   notify-on-failure:
     name: 🚨 Failure Notification
     runs-on: ubuntu-latest
-    needs: [codeql-analysis, secret-detection, dependency-scan, custom-security-checks]
+    needs:
+      [
+        codeql-analysis,
+        secret-detection,
+        dependency-scan,
+        custom-security-checks,
+      ]
     if: always() && (needs.codeql-analysis.result == 'failure' || needs.secret-detection.result == 'failure' || needs.dependency-scan.result == 'failure' || needs.custom-security-checks.result == 'failure')
-    
+
     steps:
       - name: Send notification
         run: |
@@ -702,7 +715,7 @@ jobs:
           echo ""
           echo "Please review the security findings immediately:"
           echo "https://github.com/${{ github.repository }}/security/code-scanning"
-          
+
           # In a real implementation, you might want to:
           # - Send Slack/Teams notification
           # - Create an issue

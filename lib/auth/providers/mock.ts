@@ -4,7 +4,16 @@ import { hashSync, compareSync } from '@node-rs/bcrypt';
 
 import { validateEmail } from '@/lib/utils/validators';
 
-import { type AuthProvider, type AuthResult, type AuthUser, type SignUpRequest, type AuthConfiguration, type OAuthProvider, type OAuthResult, type UpdateProfileRequest } from '../types';
+import {
+  type AuthProvider,
+  type AuthResult,
+  type AuthUser,
+  type SignUpRequest,
+  type AuthConfiguration,
+  type OAuthProvider,
+  type OAuthResult,
+  type UpdateProfileRequest,
+} from '../types';
 
 /**
  * SECURITY NOTE: This MockAuthProvider demonstrates proper password security patterns.
@@ -15,24 +24,29 @@ import { type AuthProvider, type AuthResult, type AuthUser, type SignUpRequest, 
  */
 
 interface MockUserWithPassword extends AuthUser {
-  password: string
+  password: string;
 }
 
 export class MockAuthProvider implements AuthProvider {
   private mockUsers = new Map<string, MockUserWithPassword>([
-    ['test-user-id', {
-      id: 'test-user-id',
-      email: 'test@example.com',
-      name: 'Test User',
-      image: null,
-      emailVerified: new Date(),
-      password: hashSync('password', 12), // Properly hashed password (test password: 'password')
-    }],
+    [
+      'test-user-id',
+      {
+        id: 'test-user-id',
+        email: 'test@example.com',
+        name: 'Test User',
+        image: null,
+        emailVerified: new Date(),
+        password: hashSync('password', 12), // Properly hashed password (test password: 'password')
+      },
+    ],
   ]);
 
   async authenticateUser(email: string, password: string): Promise<AuthResult> {
     // Find user by email
-    const user = Array.from(this.mockUsers.values()).find(u => u.email === email);
+    const user = Array.from(this.mockUsers.values()).find(
+      u => u.email === email,
+    );
 
     // Use secure password comparison even in mock implementation
     if (user && compareSync(password, user.password)) {
@@ -71,7 +85,9 @@ export class MockAuthProvider implements AuthProvider {
     }
 
     // Check if user already exists
-    const existingUser = Array.from(this.mockUsers.values()).find(u => u.email === email);
+    const existingUser = Array.from(this.mockUsers.values()).find(
+      u => u.email === email,
+    );
     if (existingUser) {
       return {
         success: false,
@@ -115,7 +131,9 @@ export class MockAuthProvider implements AuthProvider {
   }
 
   async getUserByEmail(email: string): Promise<AuthResult> {
-    const user = Array.from(this.mockUsers.values()).find(u => u.email === email);
+    const user = Array.from(this.mockUsers.values()).find(
+      u => u.email === email,
+    );
     if (user) {
       const { password: _, ...authUser } = user;
       return {
@@ -191,7 +209,8 @@ export class MockAuthProvider implements AuthProvider {
       {
         id: 'github',
         name: 'GitHub',
-        iconUrl: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
+        iconUrl:
+          'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
       },
     ];
   }
@@ -203,7 +222,10 @@ export class MockAuthProvider implements AuthProvider {
     };
   }
 
-  async updateUser(id: string, data: UpdateProfileRequest): Promise<AuthResult> {
+  async updateUser(
+    id: string,
+    data: UpdateProfileRequest,
+  ): Promise<AuthResult> {
     const user = this.mockUsers.get(id);
 
     if (!user) {
@@ -288,7 +310,11 @@ export class MockAuthProvider implements AuthProvider {
     };
   }
 
-  async changeUserPassword(id: string, currentPassword: string, newPassword: string): Promise<AuthResult> {
+  async changeUserPassword(
+    id: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<AuthResult> {
     const user = this.mockUsers.get(id);
 
     if (!user) {
@@ -325,7 +351,10 @@ export class MockAuthProvider implements AuthProvider {
     };
   }
 
-  async resetUserPassword(id: string, newPassword: string): Promise<AuthResult> {
+  async resetUserPassword(
+    id: string,
+    newPassword: string,
+  ): Promise<AuthResult> {
     const user = this.mockUsers.get(id);
 
     if (!user) {
@@ -355,23 +384,32 @@ export class MockAuthProvider implements AuthProvider {
   }
 
   // Email verification methods
-  async sendEmailVerification(email: string): Promise<{ success: boolean; error?: string }> {
+  async sendEmailVerification(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
     // Mock implementation - just return success
     return { success: true };
   }
 
-  async verifyEmailWithToken(token: string): Promise<{ success: boolean; error?: string }> {
+  async verifyEmailWithToken(
+    token: string,
+  ): Promise<{ success: boolean; error?: string }> {
     // Mock implementation - just return success
     return { success: true };
   }
 
   // Password reset methods
-  async sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+  async sendPasswordReset(
+    email: string,
+  ): Promise<{ success: boolean; error?: string }> {
     // Mock implementation - just return success
     return { success: true };
   }
 
-  async resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+  async resetPasswordWithToken(
+    token: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> {
     // Mock implementation - just return success
     return { success: true };
   }

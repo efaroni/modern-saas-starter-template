@@ -19,12 +19,14 @@ export const authConfig = {
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: AUTH_CONFIG.ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING,
+      allowDangerousEmailAccountLinking:
+        AUTH_CONFIG.ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING,
     }),
     GitHub({
       clientId: process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_SECRET!,
-      allowDangerousEmailAccountLinking: AUTH_CONFIG.ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING,
+      allowDangerousEmailAccountLinking:
+        AUTH_CONFIG.ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING,
     }),
   ],
   pages: {
@@ -118,9 +120,10 @@ export const authConfig = {
   useSecureCookies: process.env.NODE_ENV === 'production',
   cookies: {
     sessionToken: {
-      name: process.env.NODE_ENV === 'production'
-        ? '__Secure-next-auth.session-token'
-        : 'next-auth.session-token',
+      name:
+        process.env.NODE_ENV === 'production'
+          ? '__Secure-next-auth.session-token'
+          : 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: AUTH_CONFIG.COOKIE_SAME_SITE,

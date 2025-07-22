@@ -8,8 +8,9 @@ export async function GET(_request: NextRequest) {
     // This includes checking critical dependencies like database
     const healthStatus = await authHealthChecker.checkOverallHealth();
 
-    const isReady = healthStatus.database.status === 'healthy' &&
-                   healthStatus.sessionStorage.status === 'healthy';
+    const isReady =
+      healthStatus.database.status === 'healthy' &&
+      healthStatus.sessionStorage.status === 'healthy';
 
     if (!isReady) {
       return NextResponse.json(
@@ -51,7 +52,8 @@ export async function GET(_request: NextRequest) {
         timestamp: new Date(),
         error: 'Readiness check failed',
         details: {
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          errorMessage:
+            error instanceof Error ? error.message : 'Unknown error',
         },
       },
       { status: 503 },

@@ -5,19 +5,19 @@ import { sessionCache } from './session-cache';
 import { userProfileCache } from './user-profile-cache';
 
 export interface InvalidationRule {
-  event: string
-  caches: ('session' | 'profile' | 'oauth')[]
-  pattern?: string
-  userIds?: string[]
-  delay?: number // milliseconds
+  event: string;
+  caches: ('session' | 'profile' | 'oauth')[];
+  pattern?: string;
+  userIds?: string[];
+  delay?: number; // milliseconds
 }
 
 export interface CacheInvalidationConfig {
-  enableAutoInvalidation: boolean
-  rules: InvalidationRule[]
-  batchSize: number
-  maxRetries: number
-  retryDelay: number
+  enableAutoInvalidation: boolean;
+  rules: InvalidationRule[];
+  batchSize: number;
+  maxRetries: number;
+  retryDelay: number;
 }
 
 export const DEFAULT_CACHE_INVALIDATION_CONFIG: CacheInvalidationConfig = {
@@ -91,11 +91,11 @@ export const DEFAULT_CACHE_INVALIDATION_CONFIG: CacheInvalidationConfig = {
 export class CacheInvalidator {
   private config: CacheInvalidationConfig;
   private invalidationQueue: Array<{
-    event: string
-    userIds: string[]
-    caches: ('session' | 'profile' | 'oauth')[]
-    timestamp: Date
-    retries: number
+    event: string;
+    userIds: string[];
+    caches: ('session' | 'profile' | 'oauth')[];
+    timestamp: Date;
+    retries: number;
   }> = [];
 
   private processing = false;
@@ -112,8 +112,8 @@ export class CacheInvalidator {
     event: string,
     userIds: string | string[],
     options?: {
-      immediate?: boolean
-      caches?: ('session' | 'profile' | 'oauth')[]
+      immediate?: boolean;
+      caches?: ('session' | 'profile' | 'oauth')[];
     },
   ): Promise<void> {
     const startTime = Date.now();
@@ -126,14 +126,19 @@ export class CacheInvalidator {
       const userIdArray = Array.isArray(userIds) ? userIds : [userIds];
 
       // Find matching rules
-      const matchingRules = this.config.rules.filter(rule => rule.event === event);
+      const matchingRules = this.config.rules.filter(
+        rule => rule.event === event,
+      );
       if (matchingRules.length === 0) {
-        authLogger.log('debug', 'No invalidation rules found for event', { event });
+        authLogger.log('debug', 'No invalidation rules found for event', {
+          event,
+        });
         return;
       }
 
       // Determine which caches to invalidate
-      const cachesToInvalidate = options?.caches ||
+      const cachesToInvalidate =
+        options?.caches ||
         Array.from(new Set(matchingRules.flatMap(rule => rule.caches)));
 
       if (options?.immediate) {
@@ -162,7 +167,6 @@ export class CacheInvalidator {
         },
         timestamp: new Date(),
       });
-
     } catch (error) {
       authLogger.logPerformanceMetric({
         operation: 'cache_invalidation_error',
@@ -210,7 +214,9 @@ export class CacheInvalidator {
         // Invalidate OAuth cache
         if (caches.includes('oauth')) {
           invalidationPromises.push(
-            ...batch.map(userId => oauthTokenCache.invalidateUserOAuthTokens(userId)),
+            ...batch.map(userId =>
+              oauthTokenCache.invalidateUserOAuthTokens(userId),
+            ),
           );
         }
 
@@ -233,7 +239,6 @@ export class CacheInvalidator {
         },
         timestamp: new Date(),
       });
-
     } catch (error) {
       authLogger.logPerformanceMetric({
         operation: 'cache_invalidation_failed',
@@ -276,7 +281,11 @@ export class CacheInvalidator {
 
         // Process each group
         for (const [cacheTypesStr, userIds] of groupedByCache) {
-          const cacheTypes = cacheTypesStr.split(',') as ('session' | 'profile' | 'oauth')[];
+          const cacheTypes = cacheTypesStr.split(',') as (
+            | 'session'
+            | 'profile'
+            | 'oauth'
+          )[];
           const uniqueUserIds = Array.from(new Set(userIds));
 
           try {
@@ -285,8 +294,8 @@ export class CacheInvalidator {
             console.error('Error processing invalidation queue:', error);
 
             // Retry logic
-            const failedItems = queuedItems.filter(item =>
-              item.caches.sort().join(',') === cacheTypesStr,
+            const failedItems = queuedItems.filter(
+              item => item.caches.sort().join(',') === cacheTypesStr,
             );
 
             for (const item of failedItems) {
@@ -299,17 +308,20 @@ export class CacheInvalidator {
                   setTimeout(resolve, this.config.retryDelay * item.retries),
                 );
               } else {
-                authLogger.log('error', 'Cache invalidation failed after max retries', {
-                  event: item.event,
-                  userIds: item.userIds,
-                  caches: item.caches,
-                  retries: item.retries,
-                });
+                authLogger.log(
+                  'error',
+                  'Cache invalidation failed after max retries',
+                  {
+                    event: item.event,
+                    userIds: item.userIds,
+                    caches: item.caches,
+                    retries: item.retries,
+                  },
+                );
               }
             }
           }
         }
-
       } catch (error) {
         console.error('Queue processor error:', error);
       } finally {
@@ -351,7 +363,9 @@ export class CacheInvalidator {
         operation: 'clear_all_caches_error',
         duration: Date.now() - startTime,
         success: false,
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
+        metadata: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
         timestamp: new Date(),
       });
 
@@ -361,9 +375,9 @@ export class CacheInvalidator {
 
   // Get invalidation queue status
   getQueueStatus(): {
-    queueLength: number
-    processing: boolean
-    config: CacheInvalidationConfig
+    queueLength: number;
+    processing: boolean;
+    config: CacheInvalidationConfig;
   } {
     return {
       queueLength: this.invalidationQueue.length,
@@ -384,10 +398,15 @@ export const cacheInvalidator = new CacheInvalidator();
 
 // Export utility functions
 export const cacheInvalidationUtils = {
-  invalidateForEvent: (event: string, userIds: string | string[], options?: any) =>
-    cacheInvalidator.invalidateForEvent(event, userIds, options),
-  invalidateImmediately: (userIds: string | string[], caches: ('session' | 'profile' | 'oauth')[]) =>
-    cacheInvalidator.invalidateImmediately(userIds, caches),
+  invalidateForEvent: (
+    event: string,
+    userIds: string | string[],
+    options?: any,
+  ) => cacheInvalidator.invalidateForEvent(event, userIds, options),
+  invalidateImmediately: (
+    userIds: string | string[],
+    caches: ('session' | 'profile' | 'oauth')[],
+  ) => cacheInvalidator.invalidateImmediately(userIds, caches),
   clearAllCaches: () => cacheInvalidator.clearAllCaches(),
   getQueueStatus: () => cacheInvalidator.getQueueStatus(),
 };

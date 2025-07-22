@@ -1,14 +1,14 @@
 // Performance monitoring utilities
 
 export interface PerformanceThresholds {
-  lcp: { good: number; poor: number }
-  fid: { good: number; poor: number }
-  cls: { good: number; poor: number }
-  fcp: { good: number; poor: number }
-  ttfb: { good: number; poor: number }
-  renderTime: { good: number; poor: number }
-  apiResponseTime: { good: number; poor: number }
-  memoryUsage: { good: number; poor: number }
+  lcp: { good: number; poor: number };
+  fid: { good: number; poor: number };
+  cls: { good: number; poor: number };
+  fcp: { good: number; poor: number };
+  ttfb: { good: number; poor: number };
+  renderTime: { good: number; poor: number };
+  apiResponseTime: { good: number; poor: number };
+  memoryUsage: { good: number; poor: number };
 }
 
 export const DEFAULT_THRESHOLDS: PerformanceThresholds = {
@@ -22,7 +22,7 @@ export const DEFAULT_THRESHOLDS: PerformanceThresholds = {
   memoryUsage: { good: 50 * 1024 * 1024, poor: 100 * 1024 * 1024 }, // 50MB good, 100MB poor
 };
 
-export type PerformanceScore = 'good' | 'needs-improvement' | 'poor'
+export type PerformanceScore = 'good' | 'needs-improvement' | 'poor';
 
 /**
  * Calculate performance score based on value and thresholds
@@ -55,7 +55,8 @@ export function calculateOverallScore(
       scores[key] = score;
 
       // Convert to numeric for averaging
-      totalScore += score === 'good' ? 3 : score === 'needs-improvement' ? 2 : 1;
+      totalScore +=
+        score === 'good' ? 3 : score === 'needs-improvement' ? 2 : 1;
       metricCount++;
     }
   });
@@ -63,8 +64,7 @@ export function calculateOverallScore(
   // Calculate overall score
   const avgScore = metricCount > 0 ? totalScore / metricCount : 3;
   const overallScore: PerformanceScore =
-    avgScore >= 2.5 ? 'good' :
-    avgScore >= 1.5 ? 'needs-improvement' : 'poor';
+    avgScore >= 2.5 ? 'good' : avgScore >= 1.5 ? 'needs-improvement' : 'poor';
 
   return { score: overallScore, details: scores };
 }
@@ -95,9 +95,9 @@ export function getPerformanceInsights(
   metrics: Record<string, number>,
   thresholds: PerformanceThresholds = DEFAULT_THRESHOLDS,
 ): {
-  insights: string[]
-  recommendations: string[]
-  priority: 'low' | 'medium' | 'high'
+  insights: string[];
+  recommendations: string[];
+  priority: 'low' | 'medium' | 'high';
 } {
   const insights: string[] = [];
   const recommendations: string[] = [];
@@ -108,11 +108,17 @@ export function getPerformanceInsights(
     const lcpScore = calculateScore(metrics.lcp, thresholds.lcp);
     if (lcpScore === 'poor') {
       insights.push(`LCP is ${formatMetric(metrics.lcp, 'ms')}, which is poor`);
-      recommendations.push('Optimize largest contentful paint by reducing server response time, using a CDN, or optimizing images');
+      recommendations.push(
+        'Optimize largest contentful paint by reducing server response time, using a CDN, or optimizing images',
+      );
       priority = 'high';
     } else if (lcpScore === 'needs-improvement') {
-      insights.push(`LCP is ${formatMetric(metrics.lcp, 'ms')}, which needs improvement`);
-      recommendations.push('Consider optimizing images, preloading critical resources, or improving server response time');
+      insights.push(
+        `LCP is ${formatMetric(metrics.lcp, 'ms')}, which needs improvement`,
+      );
+      recommendations.push(
+        'Consider optimizing images, preloading critical resources, or improving server response time',
+      );
       if (priority === 'low') priority = 'medium';
     }
   }
@@ -122,11 +128,17 @@ export function getPerformanceInsights(
     const fidScore = calculateScore(metrics.fid, thresholds.fid);
     if (fidScore === 'poor') {
       insights.push(`FID is ${formatMetric(metrics.fid, 'ms')}, which is poor`);
-      recommendations.push('Reduce JavaScript execution time, break up long tasks, or use a web worker');
+      recommendations.push(
+        'Reduce JavaScript execution time, break up long tasks, or use a web worker',
+      );
       priority = 'high';
     } else if (fidScore === 'needs-improvement') {
-      insights.push(`FID is ${formatMetric(metrics.fid, 'ms')}, which needs improvement`);
-      recommendations.push('Optimize JavaScript execution or defer non-essential scripts');
+      insights.push(
+        `FID is ${formatMetric(metrics.fid, 'ms')}, which needs improvement`,
+      );
+      recommendations.push(
+        'Optimize JavaScript execution or defer non-essential scripts',
+      );
       if (priority === 'low') priority = 'medium';
     }
   }
@@ -135,32 +147,54 @@ export function getPerformanceInsights(
   if (metrics.cls) {
     const clsScore = calculateScore(metrics.cls, thresholds.cls);
     if (clsScore === 'poor') {
-      insights.push(`CLS is ${formatMetric(metrics.cls, 'score')}, which is poor`);
-      recommendations.push('Add size attributes to images, reserve space for ads, or avoid inserting content above existing content');
+      insights.push(
+        `CLS is ${formatMetric(metrics.cls, 'score')}, which is poor`,
+      );
+      recommendations.push(
+        'Add size attributes to images, reserve space for ads, or avoid inserting content above existing content',
+      );
       priority = 'high';
     } else if (clsScore === 'needs-improvement') {
-      insights.push(`CLS is ${formatMetric(metrics.cls, 'score')}, which needs improvement`);
-      recommendations.push('Improve layout stability by setting dimensions on media elements');
+      insights.push(
+        `CLS is ${formatMetric(metrics.cls, 'score')}, which needs improvement`,
+      );
+      recommendations.push(
+        'Improve layout stability by setting dimensions on media elements',
+      );
       if (priority === 'low') priority = 'medium';
     }
   }
 
   // Analyze memory usage
   if (metrics.memoryUsage) {
-    const memoryScore = calculateScore(metrics.memoryUsage, thresholds.memoryUsage);
+    const memoryScore = calculateScore(
+      metrics.memoryUsage,
+      thresholds.memoryUsage,
+    );
     if (memoryScore === 'poor') {
-      insights.push(`Memory usage is ${formatMetric(metrics.memoryUsage, 'MB')}, which is high`);
-      recommendations.push('Check for memory leaks, optimize images, or reduce JavaScript bundle size');
+      insights.push(
+        `Memory usage is ${formatMetric(metrics.memoryUsage, 'MB')}, which is high`,
+      );
+      recommendations.push(
+        'Check for memory leaks, optimize images, or reduce JavaScript bundle size',
+      );
       if (priority !== 'high') priority = 'medium';
     }
   }
 
   // Analyze API response time
   if (metrics.apiResponseTime) {
-    const apiScore = calculateScore(metrics.apiResponseTime, thresholds.apiResponseTime);
+    const apiScore = calculateScore(
+      metrics.apiResponseTime,
+      thresholds.apiResponseTime,
+    );
     if (apiScore === 'poor') {
-      insights.push(`API response time is ${formatMetric(metrics.apiResponseTime, 'ms')}, which is slow`);
-      recommendations.push('Optimize database queries, use caching, or improve server infrastructure');
+      insights.push(
+        `API response time is ${formatMetric(metrics.apiResponseTime, 'ms')}, which is slow`,
+      );
+      recommendations.push(
+        'Optimize database queries, use caching, or improve server infrastructure',
+      );
       if (priority !== 'high') priority = 'medium';
     }
   }
@@ -176,7 +210,7 @@ export function getPerformanceInsights(
 /**
  * Performance monitoring decorators
  */
-export function measurePerformance<T extends(...args: any[]) => any>(
+export function measurePerformance<T extends (...args: any[]) => any>(
   target: T,
   name?: string,
 ): T {
@@ -211,11 +245,11 @@ export function measurePerformance<T extends(...args: any[]) => any>(
  * Resource timing utilities
  */
 export interface ResourceTiming {
-  name: string
-  duration: number
-  size: number
-  type: string
-  cached: boolean
+  name: string;
+  duration: number;
+  size: number;
+  type: string;
+  cached: boolean;
 }
 
 export function getResourceTimings(): ResourceTiming[] {
@@ -223,7 +257,9 @@ export function getResourceTimings(): ResourceTiming[] {
     return [];
   }
 
-  const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+  const resources = performance.getEntriesByType(
+    'resource',
+  ) as PerformanceResourceTiming[];
 
   return resources.map(resource => ({
     name: resource.name,
@@ -263,15 +299,15 @@ function getResourceType(url: string): string {
  * Performance budget utilities
  */
 export interface PerformanceBudget {
-  lcp: number
-  fid: number
-  cls: number
-  fcp: number
-  ttfb: number
-  totalJSSize: number
-  totalCSSSize: number
-  totalImageSize: number
-  totalFontSize: number
+  lcp: number;
+  fid: number;
+  cls: number;
+  fcp: number;
+  ttfb: number;
+  totalJSSize: number;
+  totalCSSSize: number;
+  totalImageSize: number;
+  totalFontSize: number;
 }
 
 export const DEFAULT_BUDGET: PerformanceBudget = {
@@ -290,43 +326,58 @@ export function checkPerformanceBudget(
   metrics: Record<string, number>,
   budget: PerformanceBudget = DEFAULT_BUDGET,
 ): {
-  passed: boolean
-  violations: string[]
-  warnings: string[]
+  passed: boolean;
+  violations: string[];
+  warnings: string[];
 } {
   const violations: string[] = [];
   const warnings: string[] = [];
 
   // Check Core Web Vitals
   if (metrics.lcp > budget.lcp) {
-    violations.push(`LCP (${formatMetric(metrics.lcp, 'ms')}) exceeds budget (${formatMetric(budget.lcp, 'ms')})`);
+    violations.push(
+      `LCP (${formatMetric(metrics.lcp, 'ms')}) exceeds budget (${formatMetric(budget.lcp, 'ms')})`,
+    );
   }
 
   if (metrics.fid > budget.fid) {
-    violations.push(`FID (${formatMetric(metrics.fid, 'ms')}) exceeds budget (${formatMetric(budget.fid, 'ms')})`);
+    violations.push(
+      `FID (${formatMetric(metrics.fid, 'ms')}) exceeds budget (${formatMetric(budget.fid, 'ms')})`,
+    );
   }
 
   if (metrics.cls > budget.cls) {
-    violations.push(`CLS (${formatMetric(metrics.cls, 'score')}) exceeds budget (${formatMetric(budget.cls, 'score')})`);
+    violations.push(
+      `CLS (${formatMetric(metrics.cls, 'score')}) exceeds budget (${formatMetric(budget.cls, 'score')})`,
+    );
   }
 
   // Check resource sizes
   const resourceTimings = getResourceTimings();
-  const resourceSizes = resourceTimings.reduce((acc, resource) => {
-    acc[resource.type] = (acc[resource.type] || 0) + resource.size;
-    return acc;
-  }, {} as Record<string, number>);
+  const resourceSizes = resourceTimings.reduce(
+    (acc, resource) => {
+      acc[resource.type] = (acc[resource.type] || 0) + resource.size;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   if (resourceSizes.javascript > budget.totalJSSize) {
-    violations.push(`JavaScript size (${formatMetric(resourceSizes.javascript, 'MB')}) exceeds budget (${formatMetric(budget.totalJSSize, 'MB')})`);
+    violations.push(
+      `JavaScript size (${formatMetric(resourceSizes.javascript, 'MB')}) exceeds budget (${formatMetric(budget.totalJSSize, 'MB')})`,
+    );
   }
 
   if (resourceSizes.stylesheet > budget.totalCSSSize) {
-    violations.push(`CSS size (${formatMetric(resourceSizes.stylesheet, 'MB')}) exceeds budget (${formatMetric(budget.totalCSSSize, 'MB')})`);
+    violations.push(
+      `CSS size (${formatMetric(resourceSizes.stylesheet, 'MB')}) exceeds budget (${formatMetric(budget.totalCSSSize, 'MB')})`,
+    );
   }
 
   if (resourceSizes.image > budget.totalImageSize) {
-    warnings.push(`Image size (${formatMetric(resourceSizes.image, 'MB')}) exceeds budget (${formatMetric(budget.totalImageSize, 'MB')})`);
+    warnings.push(
+      `Image size (${formatMetric(resourceSizes.image, 'MB')}) exceeds budget (${formatMetric(budget.totalImageSize, 'MB')})`,
+    );
   }
 
   return {
@@ -340,10 +391,10 @@ export function checkPerformanceBudget(
  * Performance monitoring setup
  */
 export function setupPerformanceMonitoring(config: {
-  reportToConsole?: boolean
-  reportToAPI?: boolean
-  apiEndpoint?: string
-  sampleRate?: number
+  reportToConsole?: boolean;
+  reportToAPI?: boolean;
+  apiEndpoint?: string;
+  sampleRate?: number;
 }) {
   if (typeof window === 'undefined') return;
 
@@ -360,7 +411,7 @@ export function setupPerformanceMonitoring(config: {
   let observer: PerformanceObserver | null = null;
 
   try {
-    observer = new PerformanceObserver((list) => {
+    observer = new PerformanceObserver(list => {
       const entries = list.getEntries();
 
       entries.forEach(entry => {

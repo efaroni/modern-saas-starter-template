@@ -24,12 +24,20 @@ export const AUTH_CONFIG = {
 
   // Session Management
   SESSION_DURATION_HOURS: parseEnvInt('AUTH_SESSION_DURATION_HOURS', 24),
-  SESSION_DURATION_MS: parseEnvInt('AUTH_SESSION_DURATION_HOURS', 24) * 60 * 60 * 1000,
-  SESSION_CLEANUP_INTERVAL_MS: parseEnvInt('AUTH_SESSION_CLEANUP_INTERVAL_HOURS', 1) * 60 * 60 * 1000,
+  SESSION_DURATION_MS:
+    parseEnvInt('AUTH_SESSION_DURATION_HOURS', 24) * 60 * 60 * 1000,
+  SESSION_CLEANUP_INTERVAL_MS:
+    parseEnvInt('AUTH_SESSION_CLEANUP_INTERVAL_HOURS', 1) * 60 * 60 * 1000,
 
   // Token Expiration
-  EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS: parseEnvInt('AUTH_EMAIL_VERIFICATION_EXPIRY_HOURS', 1),
-  PASSWORD_RESET_TOKEN_EXPIRY_HOURS: parseEnvInt('AUTH_PASSWORD_RESET_EXPIRY_HOURS', 24),
+  EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS: parseEnvInt(
+    'AUTH_EMAIL_VERIFICATION_EXPIRY_HOURS',
+    1,
+  ),
+  PASSWORD_RESET_TOKEN_EXPIRY_HOURS: parseEnvInt(
+    'AUTH_PASSWORD_RESET_EXPIRY_HOURS',
+    24,
+  ),
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MINUTES: parseEnvInt('AUTH_RATE_LIMIT_WINDOW_MINUTES', 15),
@@ -42,8 +50,14 @@ export const AUTH_CONFIG = {
   ),
 
   // Cookie Security
-  COOKIE_SECURE: parseEnvBool('AUTH_COOKIE_SECURE', process.env.NODE_ENV === 'production'),
-  COOKIE_SAME_SITE: process.env.NODE_ENV === 'production' ? 'strict' as const : 'lax' as const,
+  COOKIE_SECURE: parseEnvBool(
+    'AUTH_COOKIE_SECURE',
+    process.env.NODE_ENV === 'production',
+  ),
+  COOKIE_SAME_SITE:
+    process.env.NODE_ENV === 'production'
+      ? ('strict' as const)
+      : ('lax' as const),
 } as const;
 
 // Database Configuration moved to lib/db/config.ts for better organization
@@ -51,8 +65,14 @@ export const AUTH_CONFIG = {
 // API Configuration
 export const API_CONFIG = {
   // Rate Limiting
-  DEFAULT_RATE_LIMIT_REQUESTS: parseEnvInt('API_DEFAULT_RATE_LIMIT_REQUESTS', 100),
-  DEFAULT_RATE_LIMIT_WINDOW_MS: parseEnvInt('API_DEFAULT_RATE_LIMIT_WINDOW_MS', 60000), // 1 minute
+  DEFAULT_RATE_LIMIT_REQUESTS: parseEnvInt(
+    'API_DEFAULT_RATE_LIMIT_REQUESTS',
+    100,
+  ),
+  DEFAULT_RATE_LIMIT_WINDOW_MS: parseEnvInt(
+    'API_DEFAULT_RATE_LIMIT_WINDOW_MS',
+    60000,
+  ), // 1 minute
 
   // Request Timeout
   REQUEST_TIMEOUT_MS: parseEnvInt('API_REQUEST_TIMEOUT_MS', 30000),
@@ -87,7 +107,11 @@ export const UPLOAD_CONFIG = {
 
   // Allowed File Types
   ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'text/plain', 'application/msword'],
+  ALLOWED_DOCUMENT_TYPES: [
+    'application/pdf',
+    'text/plain',
+    'application/msword',
+  ],
 
   // Storage
   STORAGE_PROVIDER: process.env.UPLOAD_STORAGE_PROVIDER || 'local',
@@ -129,7 +153,8 @@ export const LOGGING_CONFIG = {
 // Validation Helpers
 export const VALIDATION_CONFIG = {
   // UUID Regex Pattern (extracted from repeated usage)
-  UUID_PATTERN: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  UUID_PATTERN:
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
 
   // Email Validation
   EMAIL_PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -160,12 +185,12 @@ export const APP_CONFIG = {
 } as const;
 
 // Type exports for TypeScript support
-export type AuthConfig = typeof AUTH_CONFIG
-export type ApiConfig = typeof API_CONFIG
-export type EmailConfig = typeof EMAIL_CONFIG
-export type UploadConfig = typeof UPLOAD_CONFIG
-export type CacheConfig = typeof CACHE_CONFIG
-export type LoggingConfig = typeof LOGGING_CONFIG
-export type ValidationConfig = typeof VALIDATION_CONFIG
-export type EnvConfig = typeof ENV_CONFIG
-export type AppConfig = typeof APP_CONFIG
+export type AuthConfig = typeof AUTH_CONFIG;
+export type ApiConfig = typeof API_CONFIG;
+export type EmailConfig = typeof EMAIL_CONFIG;
+export type UploadConfig = typeof UPLOAD_CONFIG;
+export type CacheConfig = typeof CACHE_CONFIG;
+export type LoggingConfig = typeof LOGGING_CONFIG;
+export type ValidationConfig = typeof VALIDATION_CONFIG;
+export type EnvConfig = typeof ENV_CONFIG;
+export type AppConfig = typeof APP_CONFIG;

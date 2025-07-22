@@ -13,24 +13,34 @@ interface AlertTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
   children: React.ReactNode;
 }
 
-export function Alert({ variant = 'default', className = '', children, ...props }: AlertProps) {
+export function Alert({
+  variant = 'default',
+  className = '',
+  children,
+  ...props
+}: AlertProps) {
   const baseClasses = 'relative w-full rounded-lg border p-4';
 
   const variants = {
     default: 'bg-background text-foreground',
-    destructive: 'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive',
+    destructive:
+      'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive',
   };
 
   const classes = `${baseClasses} ${variants[variant]} ${className}`;
 
   return (
-    <div className={classes} role="alert" {...props}>
+    <div className={classes} role='alert' {...props}>
       {children}
     </div>
   );
 }
 
-export function AlertDescription({ className = '', children, ...props }: AlertDescriptionProps) {
+export function AlertDescription({
+  className = '',
+  children,
+  ...props
+}: AlertDescriptionProps) {
   return (
     <div className={`text-sm [&_p]:leading-relaxed ${className}`} {...props}>
       {children}
@@ -38,9 +48,16 @@ export function AlertDescription({ className = '', children, ...props }: AlertDe
   );
 }
 
-export function AlertTitle({ className = '', children, ...props }: AlertTitleProps) {
+export function AlertTitle({
+  className = '',
+  children,
+  ...props
+}: AlertTitleProps) {
   return (
-    <h5 className={`mb-1 font-medium leading-none tracking-tight ${className}`} {...props}>
+    <h5
+      className={`mb-1 leading-none font-medium tracking-tight ${className}`}
+      {...props}
+    >
       {children}
     </h5>
   );

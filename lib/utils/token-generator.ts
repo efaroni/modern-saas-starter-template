@@ -14,20 +14,20 @@ import { randomBytes } from 'crypto';
  */
 
 export interface TokenOptions {
-  length?: number
-  includeTimestamp?: boolean
-  prefix?: string
-  charset?: 'hex' | 'base64' | 'alphanumeric' | 'base62'
+  length?: number;
+  includeTimestamp?: boolean;
+  prefix?: string;
+  charset?: 'hex' | 'base64' | 'alphanumeric' | 'base62';
 }
 
 /**
  * Security levels for different token types
  */
 export enum TokenSecurityLevel {
-  LOW = 'low',      // For non-sensitive operations (e.g., UI state)
+  LOW = 'low', // For non-sensitive operations (e.g., UI state)
   MEDIUM = 'medium', // For session tokens
-  HIGH = 'high',     // For password reset, email verification
-  CRITICAL = 'critical' // For API keys, encryption keys
+  HIGH = 'high', // For password reset, email verification
+  CRITICAL = 'critical', // For API keys, encryption keys
 }
 
 /**
@@ -68,7 +68,8 @@ export function generateSecureToken(
       token = randomBytes(config.length! / 2).toString('hex');
       break;
     case 'base64':
-      token = randomBytes(config.length! * 3 / 4).toString('base64')
+      token = randomBytes((config.length! * 3) / 4)
+        .toString('base64')
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=/g, '');
@@ -100,7 +101,8 @@ export function generateSecureToken(
  * Generates a base62 token (alphanumeric without special characters)
  */
 function generateBase62Token(length: number): string {
-  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charset =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let token = '';
 
   for (let i = 0; i < length; i++) {
@@ -116,7 +118,8 @@ function generateBase62Token(length: number): string {
  * ⚠️ SECURITY WARNING: Uses Math.random() - avoid for security-critical operations
  */
 function generateAlphanumericToken(length: number): string {
-  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charset =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let token = '';
 
   for (let i = 0; i < length; i++) {
@@ -134,7 +137,9 @@ export const TokenGenerators = {
    * For email verification tokens (high security, 64 chars)
    */
   emailVerification: (): string =>
-    generateSecureToken(TokenSecurityLevel.HIGH, { prefix: 'email_verification' }),
+    generateSecureToken(TokenSecurityLevel.HIGH, {
+      prefix: 'email_verification',
+    }),
 
   /**
    * For password reset tokens (high security, 64 chars)
@@ -145,8 +150,7 @@ export const TokenGenerators = {
   /**
    * For session tokens (medium security, 32 chars)
    */
-  session: (): string =>
-    generateSecureToken(TokenSecurityLevel.MEDIUM),
+  session: (): string => generateSecureToken(TokenSecurityLevel.MEDIUM),
 
   /**
    * For API keys (critical security, 128 chars)
@@ -163,8 +167,7 @@ export const TokenGenerators = {
   /**
    * For temporary codes (low security, 8 chars, alphanumeric)
    */
-  tempCode: (): string =>
-    generateSecureToken(TokenSecurityLevel.LOW),
+  tempCode: (): string => generateSecureToken(TokenSecurityLevel.LOW),
 
   /**
    * For test tokens (low security, predictable for testing)
@@ -172,14 +175,19 @@ export const TokenGenerators = {
   test: (prefix?: string): string => {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substring(2, 8);
-    return prefix ? `${prefix}_${timestamp}_${random}` : `${timestamp}_${random}`;
+    return prefix
+      ? `${prefix}_${timestamp}_${random}`
+      : `${timestamp}_${random}`;
   },
 };
 
 /**
  * Validates token format and structure
  */
-export function validateTokenFormat(token: string, expectedPrefix?: string): boolean {
+export function validateTokenFormat(
+  token: string,
+  expectedPrefix?: string,
+): boolean {
   if (!token || typeof token !== 'string') {
     return false;
   }

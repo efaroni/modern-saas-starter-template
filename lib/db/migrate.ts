@@ -9,17 +9,17 @@ import postgres from 'postgres';
 import { getDatabaseUrl } from './config';
 
 export interface MigrationStatus {
-  name: string
-  applied: boolean
-  appliedAt?: Date
-  checksum?: string
+  name: string;
+  applied: boolean;
+  appliedAt?: Date;
+  checksum?: string;
 }
 
 export interface MigrationResult {
-  success: boolean
-  migrationsApplied: string[]
-  errors: string[]
-  totalTime: number
+  success: boolean;
+  migrationsApplied: string[];
+  errors: string[];
+  totalTime: number;
 }
 
 export class DatabaseMigrator {
@@ -35,7 +35,8 @@ export class DatabaseMigrator {
     });
 
     this.db = drizzle(this.sql);
-    this.migrationsPath = migrationsPath || path.join(process.cwd(), 'lib/db/migrations');
+    this.migrationsPath =
+      migrationsPath || path.join(process.cwd(), 'lib/db/migrations');
   }
 
   // Run all pending migrations
@@ -76,12 +77,16 @@ export class DatabaseMigrator {
       }
 
       result.totalTime = Date.now() - startTime;
-      console.log(`All migrations completed successfully in ${result.totalTime}ms`);
+      console.log(
+        `All migrations completed successfully in ${result.totalTime}ms`,
+      );
 
       return result;
     } catch (error) {
       result.success = false;
-      result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+      result.errors.push(
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       result.totalTime = Date.now() - startTime;
 
       console.error('Migration failed:', error);
@@ -119,9 +124,15 @@ export class DatabaseMigrator {
     try {
       // Check if all expected tables exist
       const expectedTables = [
-        'users', 'accounts', 'sessions', 'verification_tokens',
-        'user_api_keys', 'password_history', 'auth_attempts',
-        'user_sessions', 'session_activity',
+        'users',
+        'accounts',
+        'sessions',
+        'verification_tokens',
+        'user_api_keys',
+        'password_history',
+        'auth_attempts',
+        'user_sessions',
+        'session_activity',
       ];
 
       for (const table of expectedTables) {
@@ -164,7 +175,9 @@ export class DatabaseMigrator {
         issues,
       };
     } catch (error) {
-      issues.push(`Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      issues.push(
+        `Schema validation error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return {
         valid: false,
         issues,
@@ -192,7 +205,9 @@ export class DatabaseMigrator {
       .sort();
   }
 
-  private async getAppliedMigrations(): Promise<Array<{ name: string; appliedAt: Date; checksum?: string }>> {
+  private async getAppliedMigrations(): Promise<
+    Array<{ name: string; appliedAt: Date; checksum?: string }>
+  > {
     const result = await this.sql`
       SELECT name, applied_at, checksum 
       FROM __drizzle_migrations 
@@ -215,7 +230,10 @@ export class DatabaseMigrator {
   }
 
   private async recordMigration(migrationName: string): Promise<void> {
-    const migrationPath = path.join(this.migrationsPath, `${migrationName}.sql`);
+    const migrationPath = path.join(
+      this.migrationsPath,
+      `${migrationName}.sql`,
+    );
     let checksum: string | null = null;
 
     if (fs.existsSync(migrationPath)) {
@@ -258,7 +276,9 @@ export async function runMigrations(connectionString?: string): Promise<void> {
   }
 }
 
-export async function getMigrationStatus(connectionString?: string): Promise<MigrationStatus[]> {
+export async function getMigrationStatus(
+  connectionString?: string,
+): Promise<MigrationStatus[]> {
   const connString = connectionString || getDatabaseUrl();
   if (!connString) {
     throw new Error('Database connection string is required');
@@ -273,7 +293,9 @@ export async function getMigrationStatus(connectionString?: string): Promise<Mig
   }
 }
 
-export async function validateDatabaseSchema(connectionString?: string): Promise<{ valid: boolean; issues: string[] }> {
+export async function validateDatabaseSchema(
+  connectionString?: string,
+): Promise<{ valid: boolean; issues: string[] }> {
   const connString = connectionString || getDatabaseUrl();
   if (!connString) {
     throw new Error('Database connection string is required');
@@ -308,7 +330,7 @@ export default DatabaseMigrator;
 
 // Run migrations if this file is executed directly
 if (require.main === module) {
-  runMigrate().catch((err) => {
+  runMigrate().catch(err => {
     console.error('Migration failed!');
     console.error(err);
     process.exit(1);

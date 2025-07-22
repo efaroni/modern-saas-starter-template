@@ -1,8 +1,8 @@
 import { API_KEY_VALIDATION } from '@/lib/constants/validation';
 
 export interface ApiKeyValidation {
-  isValid: boolean
-  error?: string
+  isValid: boolean;
+  error?: string;
 }
 
 /**
@@ -16,11 +16,17 @@ export function validateApiKeyFormat(key: string): ApiKeyValidation {
   }
 
   if (key !== key.trim()) {
-    return { isValid: false, error: 'API key cannot have leading or trailing whitespace' };
+    return {
+      isValid: false,
+      error: 'API key cannot have leading or trailing whitespace',
+    };
   }
 
   if (key.trim().length < API_KEY_VALIDATION.MIN_LENGTH) {
-    return { isValid: false, error: `API key must be at least ${API_KEY_VALIDATION.MIN_LENGTH} characters` };
+    return {
+      isValid: false,
+      error: `API key must be at least ${API_KEY_VALIDATION.MIN_LENGTH} characters`,
+    };
   }
 
   return { isValid: true };

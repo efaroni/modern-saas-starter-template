@@ -1,7 +1,8 @@
 import crypto from 'crypto';
 
 // Get encryption key from environment or generate one for development
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'dev-key-32-chars-change-in-prod!!';
+const ENCRYPTION_KEY =
+  process.env.ENCRYPTION_KEY || 'dev-key-32-chars-change-in-prod!!';
 
 // Ensure key is 32 bytes
 const KEY = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);

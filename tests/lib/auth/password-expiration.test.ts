@@ -132,7 +132,7 @@ describe('PasswordExpirationService', () => {
     it('should mark password as updated', async () => {
       // This should not throw an error
       await expect(
-        service.markPasswordUpdated(testUser.id)
+        service.markPasswordUpdated(testUser.id),
       ).resolves.not.toThrow();
     });
 
@@ -142,13 +142,13 @@ describe('PasswordExpirationService', () => {
   describe('notification methods', () => {
     it('should send expiration warning without throwing', async () => {
       await expect(
-        service.sendExpirationWarning(testUser.id)
+        service.sendExpirationWarning(testUser.id),
       ).resolves.not.toThrow();
     });
 
     it('should send expiration notification without throwing', async () => {
       await expect(
-        service.sendExpirationNotification(testUser.id)
+        service.sendExpirationNotification(testUser.id),
       ).resolves.not.toThrow();
     });
   });
@@ -217,7 +217,7 @@ describe('PasswordExpirationService', () => {
       });
 
       const result = await immediateService.checkPasswordExpiration(
-        testUser.id
+        testUser.id,
       );
 
       expect(result.isExpired).toBe(true);
