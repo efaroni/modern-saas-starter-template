@@ -51,7 +51,7 @@ on:
       - 'lib/**'
       - 'tests/e2e/**'
       - 'playwright.config.ts'
-      - '.github/workflows/e2e-tests.yml'
+      - '.github/workflows/**'
 
 # Security: minimal permissions
 permissions:
