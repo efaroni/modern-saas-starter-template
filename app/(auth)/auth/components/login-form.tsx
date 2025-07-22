@@ -1,22 +1,25 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Input } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
-import type { AuthUser } from '@/lib/auth/types'
-import { loginAction } from '@/app/actions/auth'
-import { OAuthButtons } from './oauth-buttons'
+import { useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { loginAction } from '@/app/actions/auth';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+import type { AuthUser } from '@/lib/auth/types';
+
+import { OAuthButtons } from './oauth-buttons';
 
 const loginSchema = z.object({
   email: z.string()
     .min(1, 'Email is required')
     .email('Invalid email format'),
   password: z.string()
-    .min(1, 'Password is required')
-})
+    .min(1, 'Password is required'),
+});
 
 type LoginFormData = z.infer<typeof loginSchema>
 
@@ -27,7 +30,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess, onError, onForgotPassword }: LoginFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -35,27 +38,27 @@ export function LoginForm({ onSuccess, onError, onForgotPassword }: LoginFormPro
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-  })
+  });
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       const result = await loginAction({
         email: data.email,
-        password: data.password
-      })
+        password: data.password,
+      });
 
       if (result.success && result.user) {
-        onSuccess(result.user)
+        onSuccess(result.user);
       } else {
-        onError(result.error || 'Login failed')
+        onError(result.error || 'Login failed');
       }
     } catch {
-      onError('An unexpected error occurred')
+      onError('An unexpected error occurred');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -121,5 +124,5 @@ export function LoginForm({ onSuccess, onError, onForgotPassword }: LoginFormPro
       {/* OAuth Buttons */}
       <OAuthButtons onSuccess={onSuccess} onError={onError} />
     </div>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from 'next/link';
 
 const sections = [
   {
@@ -81,7 +81,7 @@ const sections = [
     description: 'GitHub Actions and Vercel setup',
     features: ['Auto-deploy', 'Environment config', 'Health checks', 'Monitoring'],
   },
-]
+];
 
 export default function HomePage() {
   return (
@@ -126,9 +126,9 @@ export default function HomePage() {
                   {section.status === 'active' ? 'Ready' : 'Coming Soon'}
                 </span>
               </div>
-              
+
               <p className="text-gray-600 mb-4">{section.description}</p>
-              
+
               <div className="space-y-1">
                 {section.features.map((feature, i) => (
                   <div key={i} className="flex items-center text-sm text-gray-500">
@@ -148,5 +148,5 @@ export default function HomePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

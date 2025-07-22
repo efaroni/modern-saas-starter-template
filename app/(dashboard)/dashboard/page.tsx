@@ -6,5 +6,5 @@ export default function DashboardPage() {
         This is a placeholder for the main dashboard. Add your dashboard content here.
       </p>
     </div>
-  )
+  );
 }

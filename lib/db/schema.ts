@@ -1,6 +1,7 @@
-import { pgTable, text, timestamp, jsonb, uuid, unique, integer, primaryKey, boolean } from 'drizzle-orm/pg-core'
-import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
-import type { AdapterAccountType } from 'next-auth/adapters'
+import { pgTable, text, timestamp, jsonb, uuid, unique, integer, primaryKey, boolean } from 'drizzle-orm/pg-core';
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+
+import type { AdapterAccountType } from 'next-auth/adapters';
 
 // Users table - expanded for Auth.js
 export const users = pgTable('users', {
@@ -12,7 +13,7 @@ export const users = pgTable('users', {
   image: text('image'), // Avatar URL
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+});
 
 // OAuth accounts table
 export const accounts = pgTable('accounts', {
@@ -33,7 +34,7 @@ export const accounts = pgTable('accounts', {
   compoundKey: primaryKey({
     columns: [account.provider, account.providerAccountId],
   }),
-}))
+}));
 
 // Sessions table
 export const sessions = pgTable('sessions', {
@@ -42,7 +43,7 @@ export const sessions = pgTable('sessions', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   expires: timestamp('expires', { mode: 'date' }).notNull(),
-})
+});
 
 // Email verification tokens
 export const verificationTokens = pgTable('verification_tokens', {
@@ -53,7 +54,7 @@ export const verificationTokens = pgTable('verification_tokens', {
   compositePk: primaryKey({
     columns: [verificationToken.identifier, verificationToken.token],
   }),
-}))
+}));
 
 // Password reset tokens table for secure password reset functionality
 export const passwordResetTokens = pgTable('password_reset_tokens', {
@@ -63,7 +64,7 @@ export const passwordResetTokens = pgTable('password_reset_tokens', {
   used: boolean('used').default(false).notNull(),
   expiresAt: timestamp('expires_at', { mode: 'date' }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+});
 
 // User API Keys table for storing encrypted API keys
 export const userApiKeys = pgTable('user_api_keys', {
@@ -76,8 +77,8 @@ export const userApiKeys = pgTable('user_api_keys', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, table => ({
-  uniqueUserProvider: unique().on(table.userId, table.provider)
-}))
+  uniqueUserProvider: unique().on(table.userId, table.provider),
+}));
 
 // Password history table to prevent password reuse
 export const passwordHistory = pgTable('password_history', {
@@ -85,7 +86,7 @@ export const passwordHistory = pgTable('password_history', {
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   passwordHash: text('password_hash').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+});
 
 // Authentication attempts table for rate limiting and security monitoring
 export const authAttempts = pgTable('auth_attempts', {
@@ -97,7 +98,7 @@ export const authAttempts = pgTable('auth_attempts', {
   userAgent: text('user_agent'),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+});
 
 // Enhanced sessions table for session management
 export const userSessions = pgTable('user_sessions', {
@@ -110,7 +111,7 @@ export const userSessions = pgTable('user_sessions', {
   lastActivity: timestamp('last_activity').defaultNow().notNull(),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+});
 
 // Session activity log for security monitoring
 export const sessionActivity = pgTable('session_activity', {
@@ -121,29 +122,29 @@ export const sessionActivity = pgTable('session_activity', {
   userAgent: text('user_agent'),
   metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+});
 
 // Zod schemas for validation
-export const insertUserSchema = createInsertSchema(users)
-export const selectUserSchema = createSelectSchema(users)
-export const insertAccountSchema = createInsertSchema(accounts)
-export const selectAccountSchema = createSelectSchema(accounts)
-export const insertSessionSchema = createInsertSchema(sessions)
-export const selectSessionSchema = createSelectSchema(sessions)
-export const insertVerificationTokenSchema = createInsertSchema(verificationTokens)
-export const selectVerificationTokenSchema = createSelectSchema(verificationTokens)
-export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens)
-export const selectPasswordResetTokenSchema = createSelectSchema(passwordResetTokens)
-export const insertUserApiKeySchema = createInsertSchema(userApiKeys)
-export const selectUserApiKeySchema = createSelectSchema(userApiKeys)
-export const insertPasswordHistorySchema = createInsertSchema(passwordHistory)
-export const selectPasswordHistorySchema = createSelectSchema(passwordHistory)
-export const insertAuthAttemptSchema = createInsertSchema(authAttempts)
-export const selectAuthAttemptSchema = createSelectSchema(authAttempts)
-export const insertUserSessionSchema = createInsertSchema(userSessions)
-export const selectUserSessionSchema = createSelectSchema(userSessions)
-export const insertSessionActivitySchema = createInsertSchema(sessionActivity)
-export const selectSessionActivitySchema = createSelectSchema(sessionActivity)
+export const insertUserSchema = createInsertSchema(users);
+export const selectUserSchema = createSelectSchema(users);
+export const insertAccountSchema = createInsertSchema(accounts);
+export const selectAccountSchema = createSelectSchema(accounts);
+export const insertSessionSchema = createInsertSchema(sessions);
+export const selectSessionSchema = createSelectSchema(sessions);
+export const insertVerificationTokenSchema = createInsertSchema(verificationTokens);
+export const selectVerificationTokenSchema = createSelectSchema(verificationTokens);
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens);
+export const selectPasswordResetTokenSchema = createSelectSchema(passwordResetTokens);
+export const insertUserApiKeySchema = createInsertSchema(userApiKeys);
+export const selectUserApiKeySchema = createSelectSchema(userApiKeys);
+export const insertPasswordHistorySchema = createInsertSchema(passwordHistory);
+export const selectPasswordHistorySchema = createSelectSchema(passwordHistory);
+export const insertAuthAttemptSchema = createInsertSchema(authAttempts);
+export const selectAuthAttemptSchema = createSelectSchema(authAttempts);
+export const insertUserSessionSchema = createInsertSchema(userSessions);
+export const selectUserSessionSchema = createSelectSchema(userSessions);
+export const insertSessionActivitySchema = createInsertSchema(sessionActivity);
+export const selectSessionActivitySchema = createSelectSchema(sessionActivity);
 
 // Export types using the table structure
 export type User = typeof users.$inferSelect

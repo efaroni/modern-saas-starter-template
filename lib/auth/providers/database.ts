@@ -1,52 +1,54 @@
-import { AuthProvider, AuthResult, AuthUser, SignUpRequest, AuthConfiguration, OAuthProvider, OAuthResult, UpdateProfileRequest } from '../types'
-import { db } from '@/lib/db'
-import { users, passwordHistory, authAttempts } from '@/lib/db/schema'
-import { eq, desc, and, gte, sql } from 'drizzle-orm'
-import bcrypt from '@node-rs/bcrypt'
-import { PasswordValidator, DEFAULT_PASSWORD_POLICY } from '../password-validator'
-import { RateLimiter } from '../rate-limiter'
-import { PasswordExpirationService, DEFAULT_PASSWORD_EXPIRATION_CONFIG } from '../password-expiration'
-import { TokenService } from '../token-service'
-import { emailService } from '@/lib/email/service'
-import { authLogger, timeOperation } from '../logger'
-import { AUTH_CONFIG, VALIDATION_CONFIG } from '@/lib/config/app-config'
-import { validateEmail, validateUUID } from '@/lib/utils/validators'
-import { ErrorFactory, withErrorContext } from '@/lib/utils/error-handler'
-import { SessionManager, DEFAULT_SECURITY_CONFIG } from '../session-manager'
-import { TokenGenerators } from '@/lib/utils/token-generator'
+import bcrypt from '@node-rs/bcrypt';
+import { eq, desc, and, gte, sql } from 'drizzle-orm';
+
+import { AUTH_CONFIG, VALIDATION_CONFIG } from '@/lib/config/app-config';
+import { db } from '@/lib/db';
+import { users, passwordHistory, authAttempts } from '@/lib/db/schema';
+import { emailService } from '@/lib/email/service';
+import { ErrorFactory, withErrorContext } from '@/lib/utils/error-handler';
+import { TokenGenerators } from '@/lib/utils/token-generator';
+import { validateEmail, validateUUID } from '@/lib/utils/validators';
+
+import { authLogger, timeOperation } from '../logger';
+import { PasswordExpirationService, DEFAULT_PASSWORD_EXPIRATION_CONFIG } from '../password-expiration';
+import { PasswordValidator, DEFAULT_PASSWORD_POLICY } from '../password-validator';
+import { RateLimiter } from '../rate-limiter';
+import { SessionManager, DEFAULT_SECURITY_CONFIG } from '../session-manager';
+import { TokenService } from '../token-service';
+import { type AuthProvider, type AuthResult, AuthUser, type SignUpRequest, type AuthConfiguration, type OAuthProvider, type OAuthResult, type UpdateProfileRequest } from '../types';
 
 export class DatabaseAuthProvider implements AuthProvider {
-  private readonly bcryptRounds = AUTH_CONFIG.BCRYPT_ROUNDS
-  private readonly passwordValidator = new PasswordValidator(DEFAULT_PASSWORD_POLICY)
-  private readonly rateLimiter: RateLimiter
-  private readonly passwordExpiration: PasswordExpirationService
-  private readonly passwordHistoryLimit = AUTH_CONFIG.PASSWORD_HISTORY_LIMIT
-  private readonly tokenService: TokenService
-  private readonly database: typeof db
-  private readonly sessionManager: SessionManager
+  private readonly bcryptRounds = AUTH_CONFIG.BCRYPT_ROUNDS;
+  private readonly passwordValidator = new PasswordValidator(DEFAULT_PASSWORD_POLICY);
+  private readonly rateLimiter: RateLimiter;
+  private readonly passwordExpiration: PasswordExpirationService;
+  private readonly passwordHistoryLimit = AUTH_CONFIG.PASSWORD_HISTORY_LIMIT;
+  private readonly tokenService: TokenService;
+  private readonly database: typeof db;
+  private readonly sessionManager: SessionManager;
 
   constructor(database: typeof db = db, sessionManager?: SessionManager) {
-    this.database = database
-    this.rateLimiter = new RateLimiter(database)
-    this.passwordExpiration = new PasswordExpirationService(database, DEFAULT_PASSWORD_EXPIRATION_CONFIG)
-    this.tokenService = new TokenService(database)
-    this.sessionManager = sessionManager || new SessionManager(database, DEFAULT_SECURITY_CONFIG)
+    this.database = database;
+    this.rateLimiter = new RateLimiter(database);
+    this.passwordExpiration = new PasswordExpirationService(database, DEFAULT_PASSWORD_EXPIRATION_CONFIG);
+    this.tokenService = new TokenService(database);
+    this.sessionManager = sessionManager || new SessionManager(database, DEFAULT_SECURITY_CONFIG);
   }
 
   async authenticateUser(email: string, password: string, ipAddress?: string, userAgent?: string): Promise<AuthResult> {
-    const startTime = Date.now()
-    
+    const startTime = Date.now();
+
     try {
       return await timeOperation('authenticate_user', async () => {
         // Check rate limit
-        const rateLimit = await this.rateLimiter.checkRateLimit(email, 'login', ipAddress)
+        const rateLimit = await this.rateLimiter.checkRateLimit(email, 'login', ipAddress);
         if (!rateLimit.allowed) {
-          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent)
-          
-          const errorMessage = rateLimit.locked 
+          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent);
+
+          const errorMessage = rateLimit.locked
             ? `Account temporarily locked. Try again after ${rateLimit.lockoutEndTime?.toLocaleTimeString()}`
-            : `Too many attempts. Try again in ${Math.ceil((rateLimit.resetTime.getTime() - Date.now()) / 60000)} minutes`
-          
+            : `Too many attempts. Try again in ${Math.ceil((rateLimit.resetTime.getTime() - Date.now()) / 60000)} minutes`;
+
           // Log security event for rate limiting
           authLogger.logSecurityEvent({
             type: 'brute_force',
@@ -57,12 +59,12 @@ export class DatabaseAuthProvider implements AuthProvider {
             details: {
               attempts: rateLimit.remaining,
               locked: rateLimit.locked,
-              resetTime: rateLimit.resetTime
+              resetTime: rateLimit.resetTime,
             },
             timestamp: new Date(),
-            actionTaken: 'rate_limit_applied'
-          })
-          
+            actionTaken: 'rate_limit_applied',
+          });
+
           authLogger.logAuthEvent({
             type: 'login',
             email,
@@ -71,13 +73,13 @@ export class DatabaseAuthProvider implements AuthProvider {
             success: false,
             error: errorMessage,
             timestamp: new Date(),
-            duration: Date.now() - startTime
-          })
-          
+            duration: Date.now() - startTime,
+          });
+
           return {
             success: false,
-            error: errorMessage
-          }
+            error: errorMessage,
+          };
         }
 
         // Find user by email
@@ -85,11 +87,11 @@ export class DatabaseAuthProvider implements AuthProvider {
           .select()
           .from(users)
           .where(eq(users.email, email))
-          .limit(1)
-        
+          .limit(1);
+
         if (!user || !user.password) {
-          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent)
-          
+          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent);
+
           authLogger.logAuthEvent({
             type: 'login',
             email,
@@ -98,21 +100,21 @@ export class DatabaseAuthProvider implements AuthProvider {
             success: false,
             error: 'Invalid credentials',
             timestamp: new Date(),
-            duration: Date.now() - startTime
-          })
-          
+            duration: Date.now() - startTime,
+          });
+
           return {
             success: false,
-            error: 'Invalid credentials'
-          }
+            error: 'Invalid credentials',
+          };
         }
 
         // Verify password
-        const isPasswordValid = await bcrypt.verify(password, user.password)
-        
+        const isPasswordValid = await bcrypt.verify(password, user.password);
+
         if (!isPasswordValid) {
-          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent, user.id)
-          
+          await this.rateLimiter.recordAttempt(email, 'login', false, ipAddress, userAgent, user.id);
+
           authLogger.logAuthEvent({
             type: 'login',
             userId: user.id,
@@ -122,21 +124,21 @@ export class DatabaseAuthProvider implements AuthProvider {
             success: false,
             error: 'Invalid credentials',
             timestamp: new Date(),
-            duration: Date.now() - startTime
-          })
-          
+            duration: Date.now() - startTime,
+          });
+
           return {
             success: false,
-            error: 'Invalid credentials'
-          }
+            error: 'Invalid credentials',
+          };
         }
 
         // Record successful attempt
-        await this.rateLimiter.recordAttempt(email, 'login', true, ipAddress, userAgent, user.id)
+        await this.rateLimiter.recordAttempt(email, 'login', true, ipAddress, userAgent, user.id);
 
         // Check password expiration
-        const expirationResult = await this.passwordExpiration.checkPasswordExpiration(user.id)
-        
+        const expirationResult = await this.passwordExpiration.checkPasswordExpiration(user.id);
+
         // Log successful authentication
         authLogger.logAuthEvent({
           type: 'login',
@@ -150,21 +152,21 @@ export class DatabaseAuthProvider implements AuthProvider {
           metadata: {
             emailVerified: !!user.emailVerified,
             passwordExpired: expirationResult.isExpired,
-            passwordNearExpiration: expirationResult.isNearExpiration
-          }
-        })
-        
+            passwordNearExpiration: expirationResult.isNearExpiration,
+          },
+        });
+
         // Return user without password
-        const { password: _, ...authUser } = user
+        const { password: _, ...authUser } = user;
         return {
           success: true,
           user: authUser,
-          passwordExpiration: expirationResult
-        }
-      })
+          passwordExpiration: expirationResult,
+        };
+      });
     } catch (error) {
-      const duration = Date.now() - startTime
-      
+      const duration = Date.now() - startTime;
+
       authLogger.logAuthEvent({
         type: 'login',
         email,
@@ -176,10 +178,10 @@ export class DatabaseAuthProvider implements AuthProvider {
         duration,
         metadata: {
           errorType: error instanceof Error ? error.name : 'unknown',
-          errorMessage: error instanceof Error ? error.message : String(error)
-        }
-      })
-      
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      });
+
       // Log structured error for monitoring
       if (error instanceof Error) {
         authLogger.logSecurityEvent({
@@ -191,62 +193,62 @@ export class DatabaseAuthProvider implements AuthProvider {
           details: {
             operation: 'user_authentication',
             error: error.message,
-            duration
+            duration,
           },
           timestamp: new Date(),
-          actionTaken: 'authentication_failed'
-        })
+          actionTaken: 'authentication_failed',
+        });
       }
-      
+
       return {
         success: false,
-        error: 'Authentication failed'
-      }
+        error: 'Authentication failed',
+      };
     }
   }
 
   async createUser(userData: SignUpRequest, ipAddress?: string, userAgent?: string): Promise<AuthResult> {
-    const { email, password, name } = userData
-    const startTime = Date.now()
+    const { email, password, name } = userData;
+    const startTime = Date.now();
 
     try {
       return await timeOperation('create_user', async () => {
       // Check rate limit
-      const rateLimit = await this.rateLimiter.checkRateLimit(email, 'signup', ipAddress)
+      const rateLimit = await this.rateLimiter.checkRateLimit(email, 'signup', ipAddress);
       if (!rateLimit.allowed) {
-        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent)
-        
+        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent);
+
         if (rateLimit.locked) {
           return {
             success: false,
-            error: `Too many signup attempts. Try again after ${rateLimit.lockoutEndTime?.toLocaleTimeString()}`
-          }
+            error: `Too many signup attempts. Try again after ${rateLimit.lockoutEndTime?.toLocaleTimeString()}`,
+          };
         }
-        
+
         return {
           success: false,
-          error: `Too many attempts. Try again in ${Math.ceil((rateLimit.resetTime.getTime() - Date.now()) / 60000)} minutes`
-        }
+          error: `Too many attempts. Try again in ${Math.ceil((rateLimit.resetTime.getTime() - Date.now()) / 60000)} minutes`,
+        };
       }
 
       // Validate email format
-      const emailValidation = validateEmail(email)
+      const emailValidation = validateEmail(email);
       if (!emailValidation.isValid) {
-        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent)
+        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent);
         return {
           success: false,
-          error: emailValidation.error || 'Invalid email format'
-        }
+          error: emailValidation.error || 'Invalid email format',
+        };
       }
 
       // Validate password complexity
-      const passwordValidation = this.passwordValidator.validate(password, { email, name })
+      const passwordValidation = this.passwordValidator.validate(password, { email, name });
       if (!passwordValidation.isValid) {
-        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent)
+        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent);
         return {
           success: false,
-          error: passwordValidation.errors.join('. ')
-        }
+          error: passwordValidation.errors.join('. '),
+        };
       }
 
       // Check if user already exists
@@ -254,18 +256,18 @@ export class DatabaseAuthProvider implements AuthProvider {
         .select()
         .from(users)
         .where(eq(users.email, email))
-        .limit(1)
+        .limit(1);
 
       if (existingUser) {
-        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent)
+        await this.rateLimiter.recordAttempt(email, 'signup', false, ipAddress, userAgent);
         return {
           success: false,
-          error: 'Email already exists'
-        }
+          error: 'Email already exists',
+        };
       }
 
       // Hash password
-      const hashedPassword = await bcrypt.hash(password, this.bcryptRounds)
+      const hashedPassword = await bcrypt.hash(password, this.bcryptRounds);
 
       // Create new user
       const [newUser] = await this.database
@@ -275,18 +277,18 @@ export class DatabaseAuthProvider implements AuthProvider {
           name: name || null,
           password: hashedPassword,
           emailVerified: null,
-          image: null
+          image: null,
         })
-        .returning()
+        .returning();
 
       // Store password in history
       await this.database.insert(passwordHistory).values({
         userId: newUser.id,
-        passwordHash: hashedPassword
-      })
+        passwordHash: hashedPassword,
+      });
 
         // Record successful attempt
-        await this.rateLimiter.recordAttempt(email, 'signup', true, ipAddress, userAgent, newUser.id)
+        await this.rateLimiter.recordAttempt(email, 'signup', true, ipAddress, userAgent, newUser.id);
 
         // Log successful signup
         authLogger.logAuthEvent({
@@ -300,20 +302,20 @@ export class DatabaseAuthProvider implements AuthProvider {
           duration: Date.now() - startTime,
           metadata: {
             emailVerified: false,
-            hasName: !!name
-          }
-        })
+            hasName: !!name,
+          },
+        });
 
         // Return user without password
-        const { password: _, ...authUser } = newUser
+        const { password: _, ...authUser } = newUser;
         return {
           success: true,
-          user: authUser
-        }
-      })
+          user: authUser,
+        };
+      });
     } catch (error) {
-      const duration = Date.now() - startTime
-      
+      const duration = Date.now() - startTime;
+
       authLogger.logAuthEvent({
         type: 'signup',
         email,
@@ -325,10 +327,10 @@ export class DatabaseAuthProvider implements AuthProvider {
         duration,
         metadata: {
           errorType: error instanceof Error ? error.name : 'unknown',
-          errorMessage: error instanceof Error ? error.message : String(error)
-        }
-      })
-      
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      });
+
       // Check for specific error types
       if (error instanceof Error) {
         // Handle duplicate email error
@@ -342,18 +344,18 @@ export class DatabaseAuthProvider implements AuthProvider {
             details: {
               operation: 'user_creation',
               error: 'Email already exists',
-              duration
+              duration,
             },
             timestamp: new Date(),
-            actionTaken: 'registration_rejected'
-          })
-          
+            actionTaken: 'registration_rejected',
+          });
+
           return {
             success: false,
-            error: 'Email already exists'
-          }
+            error: 'Email already exists',
+          };
         }
-        
+
         // Log other database errors for monitoring
         authLogger.logSecurityEvent({
           type: 'database_error',
@@ -364,55 +366,55 @@ export class DatabaseAuthProvider implements AuthProvider {
           details: {
             operation: 'user_creation',
             error: error.message,
-            duration
+            duration,
           },
           timestamp: new Date(),
-          actionTaken: 'registration_failed'
-        })
+          actionTaken: 'registration_failed',
+        });
       }
-      
+
       return {
         success: false,
-        error: 'User creation failed'
-      }
+        error: 'User creation failed',
+      };
     }
   }
 
   async getUserById(id: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidValidation = validateUUID(id)
+      const uuidValidation = validateUUID(id);
       if (!uuidValidation.isValid) {
         return {
           success: true,
-          user: null
-        }
+          user: null,
+        };
       }
 
       const [user] = await this.database
         .select()
         .from(users)
         .where(eq(users.id, id))
-        .limit(1)
+        .limit(1);
 
       if (user) {
-        const { password: _, ...authUser } = user
+        const { password: _, ...authUser } = user;
         return {
           success: true,
-          user: authUser
-        }
+          user: authUser,
+        };
       }
 
       return {
         success: true,
-        user: null
-      }
+        user: null,
+      };
     } catch (error) {
-      console.error('Database getUserById error:', error)
+      console.error('Database getUserById error:', error);
       return {
         success: false,
-        error: 'Failed to get user'
-      }
+        error: 'Failed to get user',
+      };
     }
   }
 
@@ -422,38 +424,38 @@ export class DatabaseAuthProvider implements AuthProvider {
         .select()
         .from(users)
         .where(eq(users.email, email))
-        .limit(1)
+        .limit(1);
 
       if (user) {
-        const { password: _, ...authUser } = user
+        const { password: _, ...authUser } = user;
         return {
           success: true,
-          user: authUser
-        }
+          user: authUser,
+        };
       }
 
       return {
         success: true,
-        user: null
-      }
+        user: null,
+      };
     } catch (error) {
-      console.error('Database getUserByEmail error:', error)
+      console.error('Database getUserByEmail error:', error);
       return {
         success: false,
-        error: 'Failed to get user'
-      }
+        error: 'Failed to get user',
+      };
     }
   }
 
   async updateUser(id: string, data: UpdateProfileRequest): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidValidation = validateUUID(id)
+      const uuidValidation = validateUUID(id);
       if (!uuidValidation.isValid) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       // Check if user exists
@@ -461,23 +463,23 @@ export class DatabaseAuthProvider implements AuthProvider {
         .select()
         .from(users)
         .where(eq(users.id, id))
-        .limit(1)
+        .limit(1);
 
       if (!existingUser) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       // Validate email if updating
       if (data.email) {
-        const emailValidation = validateEmail(data.email)
+        const emailValidation = validateEmail(data.email);
         if (!emailValidation.isValid) {
           return {
             success: false,
-            error: emailValidation.error || 'Invalid email format'
-          }
+            error: emailValidation.error || 'Invalid email format',
+          };
         }
 
         // Check if email is already taken by another user
@@ -485,136 +487,136 @@ export class DatabaseAuthProvider implements AuthProvider {
           .select()
           .from(users)
           .where(eq(users.email, data.email))
-          .limit(1)
+          .limit(1);
 
         if (emailExists && emailExists.id !== id) {
           return {
             success: false,
-            error: 'Email already in use'
-          }
+            error: 'Email already in use',
+          };
         }
       }
 
       // Build update object
       const updateData: any = {
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      };
 
-      if (data.name !== undefined) updateData.name = data.name
+      if (data.name !== undefined) updateData.name = data.name;
       if (data.email !== undefined) {
-        updateData.email = data.email
-        updateData.emailVerified = null // Reset email verification when email changes
+        updateData.email = data.email;
+        updateData.emailVerified = null; // Reset email verification when email changes
       }
-      if (data.image !== undefined) updateData.image = data.image
+      if (data.image !== undefined) updateData.image = data.image;
 
       // Update user
       const [updatedUser] = await this.database
         .update(users)
         .set(updateData)
         .where(eq(users.id, id))
-        .returning()
+        .returning();
 
       // Return updated user without password
-      const { password: _, ...authUser } = updatedUser
+      const { password: _, ...authUser } = updatedUser;
       return {
         success: true,
-        user: authUser
-      }
+        user: authUser,
+      };
     } catch (error) {
-      console.error('Database updateUser error:', error)
+      console.error('Database updateUser error:', error);
       return {
         success: false,
-        error: 'Failed to update user'
-      }
+        error: 'Failed to update user',
+      };
     }
   }
 
   async deleteUser(id: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidValidation = validateUUID(id)
+      const uuidValidation = validateUUID(id);
       if (!uuidValidation.isValid) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       const [deletedUser] = await this.database
         .delete(users)
         .where(eq(users.id, id))
-        .returning()
+        .returning();
 
       if (!deletedUser) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       return {
-        success: true
-      }
+        success: true,
+      };
     } catch (error) {
-      console.error('Database deleteUser error:', error)
+      console.error('Database deleteUser error:', error);
       return {
         success: false,
-        error: 'Failed to delete user'
-      }
+        error: 'Failed to delete user',
+      };
     }
   }
 
   async verifyUserEmail(id: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidValidation = validateUUID(id)
+      const uuidValidation = validateUUID(id);
       if (!uuidValidation.isValid) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       const [updatedUser] = await this.database
         .update(users)
-        .set({ 
+        .set({
           emailVerified: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(users.id, id))
-        .returning()
+        .returning();
 
       if (!updatedUser) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       // Return user without password
-      const { password: _, ...authUser } = updatedUser
+      const { password: _, ...authUser } = updatedUser;
       return {
         success: true,
-        user: authUser
-      }
+        user: authUser,
+      };
     } catch (error) {
-      console.error('Database verifyUserEmail error:', error)
+      console.error('Database verifyUserEmail error:', error);
       return {
         success: false,
-        error: 'Failed to verify email'
-      }
+        error: 'Failed to verify email',
+      };
     }
   }
 
   async changeUserPassword(id: string, currentPassword: string, newPassword: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidValidation = validateUUID(id)
+      const uuidValidation = validateUUID(id);
       if (!uuidValidation.isValid) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       // Get user with password
@@ -622,34 +624,34 @@ export class DatabaseAuthProvider implements AuthProvider {
         .select()
         .from(users)
         .where(eq(users.id, id))
-        .limit(1)
+        .limit(1);
 
       if (!user || !user.password) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       // Verify current password
-      const isCurrentPasswordValid = await bcrypt.verify(currentPassword, user.password)
+      const isCurrentPasswordValid = await bcrypt.verify(currentPassword, user.password);
       if (!isCurrentPasswordValid) {
         return {
           success: false,
-          error: 'Current password is incorrect'
-        }
+          error: 'Current password is incorrect',
+        };
       }
 
       // Validate new password complexity
-      const passwordValidation = this.passwordValidator.validate(newPassword, { 
-        email: user.email, 
-        name: user.name 
-      })
+      const passwordValidation = this.passwordValidator.validate(newPassword, {
+        email: user.email,
+        name: user.name,
+      });
       if (!passwordValidation.isValid) {
         return {
           success: false,
-          error: passwordValidation.errors.join('. ')
-        }
+          error: passwordValidation.errors.join('. '),
+        };
       }
 
       // Check password history
@@ -658,51 +660,51 @@ export class DatabaseAuthProvider implements AuthProvider {
         .from(passwordHistory)
         .where(eq(passwordHistory.userId, id))
         .orderBy(desc(passwordHistory.createdAt))
-        .limit(this.passwordHistoryLimit)
+        .limit(this.passwordHistoryLimit);
 
       for (const oldPassword of recentPasswords) {
-        const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash)
+        const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash);
         if (isReusedPassword) {
           return {
             success: false,
-            error: `Cannot reuse any of your last ${this.passwordHistoryLimit} passwords`
-          }
+            error: `Cannot reuse any of your last ${this.passwordHistoryLimit} passwords`,
+          };
         }
       }
 
       // Hash new password
-      const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds)
+      const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds);
 
       // Update password
       const [updatedUser] = await this.database
         .update(users)
-        .set({ 
+        .set({
           password: hashedPassword,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(users.id, id))
-        .returning()
+        .returning();
 
       // Store password in history (only if user still exists)
       try {
         await this.database.insert(passwordHistory).values({
           userId: id,
-          passwordHash: hashedPassword
-        })
+          passwordHash: hashedPassword,
+        });
       } catch (error) {
         // Don't fail password change if history insertion fails
-        console.error('Failed to store password history:', error)
+        console.error('Failed to store password history:', error);
       }
 
       // Mark password as updated for expiration tracking
-      await this.passwordExpiration.markPasswordUpdated(id)
+      await this.passwordExpiration.markPasswordUpdated(id);
 
       // Invalidate all sessions for security after password change
       try {
-        await this.sessionManager.invalidateUserSessions(id, 'password_change')
+        await this.sessionManager.invalidateUserSessions(id, 'password_change');
       } catch (error) {
         // Log but don't fail the password change if session invalidation fails
-        console.error('Failed to invalidate sessions after password change:', error)
+        console.error('Failed to invalidate sessions after password change:', error);
       }
 
       // Clean up old password history (keep only last N passwords)
@@ -710,45 +712,45 @@ export class DatabaseAuthProvider implements AuthProvider {
         .select()
         .from(passwordHistory)
         .where(eq(passwordHistory.userId, id))
-        .orderBy(desc(passwordHistory.createdAt))
+        .orderBy(desc(passwordHistory.createdAt));
 
       if (allPasswords.length > this.passwordHistoryLimit) {
-        const passwordsToDelete = allPasswords.slice(this.passwordHistoryLimit)
-        const idsToDelete = passwordsToDelete.map(p => p.id)
-        
+        const passwordsToDelete = allPasswords.slice(this.passwordHistoryLimit);
+        const idsToDelete = passwordsToDelete.map(p => p.id);
+
         // Batch delete operation instead of individual deletes
         await this.database
           .delete(passwordHistory)
           .where(and(
             eq(passwordHistory.userId, id),
-            sql`${passwordHistory.id} = ANY(${idsToDelete})`
-          ))
+            sql`${passwordHistory.id} = ANY(${idsToDelete})`,
+          ));
       }
 
       // Return user without password
-      const { password: _, ...authUser } = updatedUser
+      const { password: _, ...authUser } = updatedUser;
       return {
         success: true,
-        user: authUser
-      }
+        user: authUser,
+      };
     } catch (error) {
-      console.error('Database changeUserPassword error:', error)
+      console.error('Database changeUserPassword error:', error);
       return {
         success: false,
-        error: 'Failed to change password'
-      }
+        error: 'Failed to change password',
+      };
     }
   }
 
   async resetUserPassword(id: string, newPassword: string): Promise<AuthResult> {
     try {
       // Validate UUID format
-      const uuidValidation = validateUUID(id)
+      const uuidValidation = validateUUID(id);
       if (!uuidValidation.isValid) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       // Get user info for password validation
@@ -756,25 +758,25 @@ export class DatabaseAuthProvider implements AuthProvider {
         .select()
         .from(users)
         .where(eq(users.id, id))
-        .limit(1)
+        .limit(1);
 
       if (!user) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       // Validate new password complexity
-      const passwordValidation = this.passwordValidator.validate(newPassword, { 
-        email: user.email, 
-        name: user.name 
-      })
+      const passwordValidation = this.passwordValidator.validate(newPassword, {
+        email: user.email,
+        name: user.name,
+      });
       if (!passwordValidation.isValid) {
         return {
           success: false,
-          error: passwordValidation.errors.join('. ')
-        }
+          error: passwordValidation.errors.join('. '),
+        };
       }
 
       // Check password history
@@ -783,58 +785,58 @@ export class DatabaseAuthProvider implements AuthProvider {
         .from(passwordHistory)
         .where(eq(passwordHistory.userId, id))
         .orderBy(desc(passwordHistory.createdAt))
-        .limit(this.passwordHistoryLimit)
+        .limit(this.passwordHistoryLimit);
 
       for (const oldPassword of recentPasswords) {
-        const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash)
+        const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash);
         if (isReusedPassword) {
           return {
             success: false,
-            error: `Cannot reuse any of your last ${this.passwordHistoryLimit} passwords`
-          }
+            error: `Cannot reuse any of your last ${this.passwordHistoryLimit} passwords`,
+          };
         }
       }
 
       // Hash new password
-      const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds)
+      const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds);
 
       // Update password (no current password verification needed for reset)
       const [updatedUser] = await this.database
         .update(users)
-        .set({ 
+        .set({
           password: hashedPassword,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(users.id, id))
-        .returning()
+        .returning();
 
       if (!updatedUser) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
 
       // Store password in history (only if user still exists)
       try {
         await this.database.insert(passwordHistory).values({
           userId: id,
-          passwordHash: hashedPassword
-        })
+          passwordHash: hashedPassword,
+        });
       } catch (error) {
         // Don't fail password change if history insertion fails
-        console.error('Failed to store password history:', error)
+        console.error('Failed to store password history:', error);
       }
 
       // Mark password as updated for expiration tracking
-      await this.passwordExpiration.markPasswordUpdated(id)
+      await this.passwordExpiration.markPasswordUpdated(id);
 
       // Invalidate all sessions for security after password change
       try {
-        await this.sessionManager.invalidateUserSessions(id, 'password_change')
+        await this.sessionManager.invalidateUserSessions(id, 'password_change');
       } catch (error) {
         // Log but don't fail the password change if session invalidation fails
-        console.error('Failed to invalidate sessions after password change:', error)
+        console.error('Failed to invalidate sessions after password change:', error);
       }
 
       // Clean up old password history (keep only last N passwords)
@@ -842,107 +844,107 @@ export class DatabaseAuthProvider implements AuthProvider {
         .select()
         .from(passwordHistory)
         .where(eq(passwordHistory.userId, id))
-        .orderBy(desc(passwordHistory.createdAt))
+        .orderBy(desc(passwordHistory.createdAt));
 
       if (allPasswords.length > this.passwordHistoryLimit) {
-        const passwordsToDelete = allPasswords.slice(this.passwordHistoryLimit)
-        const idsToDelete = passwordsToDelete.map(p => p.id)
-        
+        const passwordsToDelete = allPasswords.slice(this.passwordHistoryLimit);
+        const idsToDelete = passwordsToDelete.map(p => p.id);
+
         // Batch delete operation instead of individual deletes
         await this.database
           .delete(passwordHistory)
           .where(and(
             eq(passwordHistory.userId, id),
-            sql`${passwordHistory.id} = ANY(${idsToDelete})`
-          ))
+            sql`${passwordHistory.id} = ANY(${idsToDelete})`,
+          ));
       }
 
       // Return user without password
-      const { password: _, ...authUser } = updatedUser
+      const { password: _, ...authUser } = updatedUser;
       return {
         success: true,
-        user: authUser
-      }
+        user: authUser,
+      };
     } catch (error) {
-      console.error('Database resetUserPassword error:', error)
+      console.error('Database resetUserPassword error:', error);
       return {
         success: false,
-        error: 'Failed to reset password'
-      }
+        error: 'Failed to reset password',
+      };
     }
   }
 
   async signInWithOAuth(provider: string): Promise<OAuthResult> {
     try {
       // Validate provider
-      const availableProviders = this.getAvailableOAuthProviders()
-      const oauthProvider = availableProviders.find(p => p.id === provider)
-      
+      const availableProviders = this.getAvailableOAuthProviders();
+      const oauthProvider = availableProviders.find(p => p.id === provider);
+
       if (!oauthProvider) {
         return {
           success: false,
-          error: `OAuth provider '${provider}' is not supported`
-        }
+          error: `OAuth provider '${provider}' is not supported`,
+        };
       }
 
       // Generate state for CSRF protection
-      const state = TokenGenerators.csrf()
-      
+      const state = TokenGenerators.csrf();
+
       // Create OAuth redirect URL
-      const redirectUrl = `/api/auth/signin/${provider}?state=${state}`
-      
+      const redirectUrl = `/api/auth/signin/${provider}?state=${state}`;
+
       return {
         success: true,
-        redirectUrl
-      }
+        redirectUrl,
+      };
     } catch (error) {
-      console.error('OAuth sign-in error:', error)
+      console.error('OAuth sign-in error:', error);
       return {
         success: false,
-        error: 'OAuth sign-in failed'
-      }
+        error: 'OAuth sign-in failed',
+      };
     }
   }
 
   getAvailableOAuthProviders(): OAuthProvider[] {
-    const providers: OAuthProvider[] = []
-    
+    const providers: OAuthProvider[] = [];
+
     // Check if Google OAuth is configured
     if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       providers.push({
         id: 'google',
         name: 'Google',
-        iconUrl: '/icons/google.svg'
-      })
+        iconUrl: '/icons/google.svg',
+      });
     }
-    
+
     // Check if GitHub OAuth is configured
     if (process.env.GITHUB_ID && process.env.GITHUB_SECRET) {
       providers.push({
         id: 'github',
         name: 'GitHub',
-        iconUrl: '/icons/github.svg'
-      })
+        iconUrl: '/icons/github.svg',
+      });
     }
-    
-    return providers
+
+    return providers;
   }
 
   isConfigured(): boolean {
     // Check if database connection is available using centralized config
     try {
       // Use dynamic import without await in sync function
-      return true // For now, assume configured if no error
+      return true; // For now, assume configured if no error
     } catch {
-      return false
+      return false;
     }
   }
 
   getConfiguration(): AuthConfiguration {
     return {
       provider: 'nextauth',
-      oauthProviders: [] // Will be populated in Phase 3
-    }
+      oauthProviders: [], // Will be populated in Phase 3
+    };
   }
 
   // Email verification methods
@@ -953,116 +955,116 @@ export class DatabaseAuthProvider implements AuthProvider {
         .select()
         .from(users)
         .where(eq(users.email, email))
-        .limit(1)
-      
+        .limit(1);
+
       if (!user) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
-      
+
       // Check if email is already verified
       if (user.emailVerified) {
         return {
           success: false,
-          error: 'Email is already verified'
-        }
+          error: 'Email is already verified',
+        };
       }
-      
+
       // Create verification token (expires in 24 hours)
-      const tokenData = await this.tokenService.createToken(email, 'email_verification', 24 * 60)
-      
+      const tokenData = await this.tokenService.createToken(email, 'email_verification', 24 * 60);
+
       // Send verification email
-      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-      const verificationUrl = `${baseUrl}/auth/verify-email?token=${tokenData.token}`
-      
+      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      const verificationUrl = `${baseUrl}/auth/verify-email?token=${tokenData.token}`;
+
       const emailResult = await emailService.sendVerificationEmail(email, {
         verificationToken: tokenData.token,
         verificationUrl,
         user: {
           email: user.email,
-          name: user.name
-        }
-      })
-      
+          name: user.name,
+        },
+      });
+
       if (!emailResult.success) {
         return {
           success: false,
-          error: emailResult.error || 'Failed to send verification email'
-        }
+          error: emailResult.error || 'Failed to send verification email',
+        };
       }
-      
-      return { success: true }
+
+      return { success: true };
     } catch (error) {
-      console.error('Failed to send email verification:', error)
+      console.error('Failed to send email verification:', error);
       return {
         success: false,
-        error: 'Failed to send verification email'
-      }
+        error: 'Failed to send verification email',
+      };
     }
   }
 
   async verifyEmailWithToken(token: string): Promise<{ success: boolean; error?: string }> {
     try {
       // Extract email from token (tokens are stored as "type:token" format)
-      const [, actualToken] = token.split(':')
+      const [, actualToken] = token.split(':');
       if (!actualToken) {
         return {
           success: false,
-          error: 'Invalid token format'
-        }
+          error: 'Invalid token format',
+        };
       }
-      
+
       // Efficient token verification - single query to find the token and user
-      const verification = await this.tokenService.verifyTokenById(token)
-      
+      const verification = await this.tokenService.verifyTokenById(token);
+
       if (verification.valid && verification.type === 'email_verification' && verification.identifier) {
         // Find the user by email (identifier)
         const [user] = await this.database
           .select()
           .from(users)
           .where(eq(users.email, verification.identifier))
-          .limit(1)
-        
+          .limit(1);
+
         if (!user) {
-          return { success: false, error: 'User not found' }
+          return { success: false, error: 'User not found' };
         }
-        
+
         // Mark email as verified
         await this.database
           .update(users)
-          .set({ 
+          .set({
             emailVerified: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
           })
-          .where(eq(users.id, user.id))
-        
+          .where(eq(users.id, user.id));
+
         // Send welcome email
-        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-        const dashboardUrl = `${baseUrl}/dashboard`
-        
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        const dashboardUrl = `${baseUrl}/dashboard`;
+
         await emailService.sendWelcomeEmail(user.email, {
           user: {
             email: user.email,
-            name: user.name
+            name: user.name,
           },
-          dashboardUrl
-        })
-        
-        return { success: true }
+          dashboardUrl,
+        });
+
+        return { success: true };
       }
-      
+
       return {
         success: false,
-        error: 'Invalid or expired token'
-      }
+        error: 'Invalid or expired token',
+      };
     } catch (error) {
-      console.error('Failed to verify email token:', error)
+      console.error('Failed to verify email token:', error);
       return {
         success: false,
-        error: 'Failed to verify email'
-      }
+        error: 'Failed to verify email',
+      };
     }
   }
 
@@ -1074,129 +1076,129 @@ export class DatabaseAuthProvider implements AuthProvider {
         .select()
         .from(users)
         .where(eq(users.email, email))
-        .limit(1)
-      
+        .limit(1);
+
       if (!user) {
         // For security, don't reveal whether user exists
-        return { success: true }
+        return { success: true };
       }
-      
+
       // Create password reset token (expires in 1 hour)
-      const tokenData = await this.tokenService.createToken(email, 'password_reset', 60)
-      
+      const tokenData = await this.tokenService.createToken(email, 'password_reset', 60);
+
       // Send password reset email
-      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-      const resetUrl = `${baseUrl}/auth/reset-password?token=${tokenData.token}`
-      
+      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      const resetUrl = `${baseUrl}/auth/reset-password?token=${tokenData.token}`;
+
       const emailResult = await emailService.sendPasswordResetEmail(email, {
         resetToken: tokenData.token,
         resetUrl,
         user: {
           email: user.email,
-          name: user.name
-        }
-      })
-      
+          name: user.name,
+        },
+      });
+
       if (!emailResult.success) {
-        console.error('Failed to send password reset email:', emailResult.error)
+        console.error('Failed to send password reset email:', emailResult.error);
         // For security, don't reveal email sending failures
-        return { success: true }
+        return { success: true };
       }
-      
-      return { success: true }
+
+      return { success: true };
     } catch (error) {
-      console.error('Failed to send password reset:', error)
+      console.error('Failed to send password reset:', error);
       return {
         success: false,
-        error: 'Failed to send password reset email'
-      }
+        error: 'Failed to send password reset email',
+      };
     }
   }
 
   async resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
     try {
       // Use efficient token verification - single query to find the token and user
-      const verification = await this.tokenService.verifyTokenById(token)
-      
+      const verification = await this.tokenService.verifyTokenById(token);
+
       if (!verification.valid || verification.type !== 'password_reset' || !verification.identifier) {
         return {
           success: false,
-          error: 'Invalid or expired token'
-        }
+          error: 'Invalid or expired token',
+        };
       }
-      
+
       // Find the user by email (identifier)
       const [user] = await this.database
         .select()
         .from(users)
         .where(eq(users.email, verification.identifier))
-        .limit(1)
-      
+        .limit(1);
+
       if (!user) {
         return {
           success: false,
-          error: 'User not found'
-        }
+          error: 'User not found',
+        };
       }
-      
+
       // Validate new password
-      const passwordValidation = this.passwordValidator.validate(newPassword, { 
-        email: user.email, 
-        name: user.name 
-      })
+      const passwordValidation = this.passwordValidator.validate(newPassword, {
+        email: user.email,
+        name: user.name,
+      });
       if (!passwordValidation.isValid) {
         return {
           success: false,
-          error: passwordValidation.errors.join('. ')
-        }
+          error: passwordValidation.errors.join('. '),
+        };
       }
-      
+
       // Check password history
       const recentPasswords = await this.database
         .select()
         .from(passwordHistory)
         .where(eq(passwordHistory.userId, user.id))
         .orderBy(desc(passwordHistory.createdAt))
-        .limit(this.passwordHistoryLimit)
+        .limit(this.passwordHistoryLimit);
 
       for (const oldPassword of recentPasswords) {
-        const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash)
+        const isReusedPassword = await bcrypt.verify(newPassword, oldPassword.passwordHash);
         if (isReusedPassword) {
           return {
             success: false,
-            error: `Cannot reuse any of your last ${this.passwordHistoryLimit} passwords`
-          }
+            error: `Cannot reuse any of your last ${this.passwordHistoryLimit} passwords`,
+          };
         }
       }
-      
+
       // Hash new password
-      const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds)
-      
+      const hashedPassword = await bcrypt.hash(newPassword, this.bcryptRounds);
+
       // Update password
       await this.database
         .update(users)
-        .set({ 
+        .set({
           password: hashedPassword,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(users.id, user.id))
-      
+        .where(eq(users.id, user.id));
+
       // Store password in history
       await this.database.insert(passwordHistory).values({
         userId: user.id,
-        passwordHash: hashedPassword
-      })
-      
+        passwordHash: hashedPassword,
+      });
+
       // Mark password as updated for expiration tracking
-      await this.passwordExpiration.markPasswordUpdated(user.id)
-      
-      return { success: true }
+      await this.passwordExpiration.markPasswordUpdated(user.id);
+
+      return { success: true };
     } catch (error) {
-      console.error('Failed to reset password with token:', error)
+      console.error('Failed to reset password with token:', error);
       return {
         success: false,
-        error: 'Failed to reset password'
-      }
+        error: 'Failed to reset password',
+      };
     }
   }
 }

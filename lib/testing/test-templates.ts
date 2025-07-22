@@ -1,5 +1,6 @@
-import { ReactElement } from 'react'
-import { componentTestUtils, formTestUtils, mockUtils } from './component-utils'
+import { type ReactElement } from 'react';
+
+import { componentTestUtils, formTestUtils, mockUtils } from './component-utils';
 
 // Base component test template
 export const createComponentTest = (
@@ -20,7 +21,7 @@ export const createComponentTest = (
     }[]
     loadingProps?: Record<string, boolean>
     errorProps?: Record<string, string | null>
-  } = {}
+  } = {},
 ) => {
   const {
     testRendering = true,
@@ -32,8 +33,8 @@ export const createComponentTest = (
     propVariations = [],
     interactions = [],
     loadingProps = {},
-    errorProps = {}
-  } = options
+    errorProps = {},
+  } = options;
 
   return {
     describe: `${componentName} Component Tests`,
@@ -41,65 +42,65 @@ export const createComponentTest = (
       ...(testRendering ? [{
         name: 'should render without crashing',
         test: async () => {
-          await componentTestUtils.shouldRender(component)
-        }
+          await componentTestUtils.shouldRender(component);
+        },
       }] : []),
-      
+
       ...(testProps && propVariations.length > 0 ? [{
         name: 'should render with different props',
         test: async () => {
-          const Component = component.type as React.ComponentType<any>
-          const results = await componentTestUtils.testWithProps(Component, propVariations)
+          const Component = component.type as React.ComponentType<any>;
+          const results = await componentTestUtils.testWithProps(Component, propVariations);
           results.forEach(result => {
-            expect(result.success).toBe(true)
-          })
-        }
+            expect(result.success).toBe(true);
+          });
+        },
       }] : []),
-      
+
       ...(testAccessibility ? [{
         name: 'should meet accessibility standards',
         test: async () => {
-          const result = await componentTestUtils.testAccessibility(component)
-          expect(result.passed).toBe(true)
-        }
+          const result = await componentTestUtils.testAccessibility(component);
+          expect(result.passed).toBe(true);
+        },
       }] : []),
-      
+
       ...(testInteractions && interactions.length > 0 ? [{
         name: 'should handle user interactions',
         test: async () => {
-          const results = await componentTestUtils.testInteractions(component, interactions)
+          const results = await componentTestUtils.testInteractions(component, interactions);
           results.forEach(result => {
-            expect(result.passed).toBe(true)
-          })
-        }
+            expect(result.passed).toBe(true);
+          });
+        },
       }] : []),
-      
+
       ...(testLoadingStates && Object.keys(loadingProps).length > 0 ? [{
         name: 'should display loading states correctly',
         test: async () => {
-          const results = await componentTestUtils.testLoadingStates(component, loadingProps)
+          const results = await componentTestUtils.testLoadingStates(component, loadingProps);
           results.forEach(result => {
             if (result.isLoading) {
-              expect(result.hasLoadingIndicator).toBe(true)
+              expect(result.hasLoadingIndicator).toBe(true);
             }
-          })
-        }
+          });
+        },
       }] : []),
-      
+
       ...(testErrorStates && Object.keys(errorProps).length > 0 ? [{
         name: 'should display error states correctly',
         test: async () => {
-          const results = await componentTestUtils.testErrorStates(component, errorProps)
+          const results = await componentTestUtils.testErrorStates(component, errorProps);
           results.forEach(result => {
             if (result.errorMessage) {
-              expect(result.hasErrorDisplay || result.hasErrorText).toBe(true)
+              expect(result.hasErrorDisplay || result.hasErrorText).toBe(true);
             }
-          })
-        }
-      }] : [])
-    ]
-  }
-}
+          });
+        },
+      }] : []),
+    ],
+  };
+};
 
 // Form component test template
 export const createFormTest = (
@@ -118,7 +119,7 @@ export const createFormTest = (
     submitButtonText?: string
     expectedSuccessMessage?: string
     expectedErrorMessage?: string
-  } = {}
+  } = {},
 ) => {
   const {
     testRendering = true,
@@ -128,8 +129,8 @@ export const createFormTest = (
     validationTests = [],
     submitButtonText = 'Submit',
     expectedSuccessMessage = 'Success',
-    expectedErrorMessage = 'Error'
-  } = options
+    expectedErrorMessage = 'Error',
+  } = options;
 
   return {
     describe: `${formName} Form Tests`,
@@ -137,38 +138,38 @@ export const createFormTest = (
       ...(testRendering ? [{
         name: 'should render form fields',
         test: async () => {
-          await componentTestUtils.shouldRender(component)
-        }
+          await componentTestUtils.shouldRender(component);
+        },
       }] : []),
-      
+
       ...(testValidation && validationTests.length > 0 ? [{
         name: 'should validate form fields',
         test: async () => {
-          const results = await formTestUtils.testValidation(component, validationTests)
+          const results = await formTestUtils.testValidation(component, validationTests);
           results.forEach(result => {
-            expect(result.errorFound).toBe(true)
-          })
-        }
+            expect(result.errorFound).toBe(true);
+          });
+        },
       }] : []),
-      
+
       ...(testSubmission && Object.keys(formData).length > 0 ? [{
         name: 'should submit form successfully',
         test: async () => {
-          const { user } = renderWithProviders(component)
-          
+          const { user } = renderWithProviders(component);
+
           // Fill form
-          await formTestUtils.fillForm(formData, user)
-          
+          await formTestUtils.fillForm(formData, user);
+
           // Submit form
-          await formTestUtils.submitForm(new RegExp(submitButtonText, 'i'), user)
-          
+          await formTestUtils.submitForm(new RegExp(submitButtonText, 'i'), user);
+
           // Check for success message (this would need to be customized per form)
           // expect(screen.getByText(expectedSuccessMessage)).toBeInTheDocument()
-        }
-      }] : [])
-    ]
-  }
-}
+        },
+      }] : []),
+    ],
+  };
+};
 
 // Hook test template
 export const createHookTest = (
@@ -184,7 +185,7 @@ export const createHookTest = (
       action: string
       expectedValue: any
     }[]
-  } = {}
+  } = {},
 ) => {
   const {
     testInitialState = true,
@@ -192,8 +193,8 @@ export const createHookTest = (
     testEffects = false,
     testErrors = false,
     initialValue,
-    stateChanges = []
-  } = options
+    stateChanges = [],
+  } = options;
 
   return {
     describe: `${hookName} Hook Tests`,
@@ -201,34 +202,34 @@ export const createHookTest = (
       ...(testInitialState ? [{
         name: 'should return initial state',
         test: async () => {
-          const { renderHook } = await import('@testing-library/react')
-          const { result } = renderHook(() => hookFunction())
-          
+          const { renderHook } = await import('@testing-library/react');
+          const { result } = renderHook(() => hookFunction());
+
           if (initialValue !== undefined) {
-            expect(result.current).toEqual(initialValue)
+            expect(result.current).toEqual(initialValue);
           } else {
-            expect(result.current).toBeDefined()
+            expect(result.current).toBeDefined();
           }
-        }
+        },
       }] : []),
-      
+
       ...(testStateChanges && stateChanges.length > 0 ? stateChanges.map(change => ({
         name: `should handle ${change.action}`,
         test: async () => {
-          const { renderHook, act } = await import('@testing-library/react')
-          const { result } = renderHook(() => hookFunction())
-          
+          const { renderHook, act } = await import('@testing-library/react');
+          const { result } = renderHook(() => hookFunction());
+
           // This would need to be customized based on the hook's API
           // act(() => {
           //   result.current.someAction()
           // })
-          
+
           // expect(result.current.someValue).toBe(change.expectedValue)
-        }
-      })) : [])
-    ]
-  }
-}
+        },
+      })) : []),
+    ],
+  };
+};
 
 // API test template
 export const createApiTest = (
@@ -242,7 +243,7 @@ export const createApiTest = (
     errorArgs?: any[]
     expectedSuccessResponse?: any
     expectedErrorResponse?: any
-  } = {}
+  } = {},
 ) => {
   const {
     testSuccess = true,
@@ -251,8 +252,8 @@ export const createApiTest = (
     successArgs = [],
     errorArgs = [],
     expectedSuccessResponse,
-    expectedErrorResponse
-  } = options
+    expectedErrorResponse,
+  } = options;
 
   return {
     describe: `${apiName} API Tests`,
@@ -260,46 +261,46 @@ export const createApiTest = (
       ...(testSuccess ? [{
         name: 'should return successful response',
         test: async () => {
-          const result = await apiFunction(...successArgs)
-          
-          expect(result).toBeDefined()
+          const result = await apiFunction(...successArgs);
+
+          expect(result).toBeDefined();
           if (expectedSuccessResponse) {
-            expect(result).toEqual(expectedSuccessResponse)
+            expect(result).toEqual(expectedSuccessResponse);
           }
-        }
+        },
       }] : []),
-      
+
       ...(testError ? [{
         name: 'should handle error response',
         test: async () => {
           try {
-            await apiFunction(...errorArgs)
+            await apiFunction(...errorArgs);
             // If we get here, the function didn't throw - this might be unexpected
             // expect(false).toBe(true) // Force failure
           } catch (error) {
-            expect(error).toBeDefined()
+            expect(error).toBeDefined();
             if (expectedErrorResponse) {
-              expect(error).toEqual(expectedErrorResponse)
+              expect(error).toEqual(expectedErrorResponse);
             }
           }
-        }
+        },
       }] : []),
-      
+
       ...(testLoading ? [{
         name: 'should handle loading state',
         test: async () => {
-          const promise = apiFunction(...successArgs)
-          
+          const promise = apiFunction(...successArgs);
+
           // Test that it's a promise
-          expect(promise).toBeInstanceOf(Promise)
-          
+          expect(promise).toBeInstanceOf(Promise);
+
           // Wait for completion
-          await promise
-        }
-      }] : [])
-    ]
-  }
-}
+          await promise;
+        },
+      }] : []),
+    ],
+  };
+};
 
 // Integration test template
 export const createIntegrationTest = (
@@ -314,14 +315,14 @@ export const createIntegrationTest = (
       action: () => Promise<void>
       expectation: () => Promise<void>
     }[]
-  } = {}
+  } = {},
 ) => {
   const {
     testUserFlow = false,
     testDataFlow = false,
     testComponentCommunication = false,
-    userFlowSteps = []
-  } = options
+    userFlowSteps = [],
+  } = options;
 
   return {
     describe: `${testName} Integration Tests`,
@@ -331,32 +332,32 @@ export const createIntegrationTest = (
         test: async () => {
           // This would need to be customized based on the integration being tested
           for (const step of userFlowSteps) {
-            await step.action()
-            await step.expectation()
+            await step.action();
+            await step.expectation();
           }
-        }
+        },
       }] : []),
-      
+
       ...(testDataFlow ? [{
         name: 'should handle data flow between components',
         test: async () => {
           // This would need to be customized based on the components being tested
-          await componentTestUtils.shouldRender(components[0])
-        }
+          await componentTestUtils.shouldRender(components[0]);
+        },
       }] : []),
-      
+
       ...(testComponentCommunication ? [{
         name: 'should facilitate component communication',
         test: async () => {
           // This would need to be customized based on the components being tested
           components.forEach(async component => {
-            await componentTestUtils.shouldRender(component)
-          })
-        }
-      }] : [])
-    ]
-  }
-}
+            await componentTestUtils.shouldRender(component);
+          });
+        },
+      }] : []),
+    ],
+  };
+};
 
 // Performance test template
 export const createPerformanceTest = (
@@ -368,15 +369,15 @@ export const createPerformanceTest = (
     maxRenderTime?: number
     dataGenerator?: (size: number) => any
     dataSizes?: number[]
-  } = {}
+  } = {},
 ) => {
   const {
     testRenderTime = true,
     testLargeData = false,
     maxRenderTime = 100, // milliseconds
     dataGenerator = (size: number) => Array.from({ length: size }, (_, i) => i),
-    dataSizes = [100, 1000, 5000]
-  } = options
+    dataSizes = [100, 1000, 5000],
+  } = options;
 
   return {
     describe: `${componentName} Performance Tests`,
@@ -384,35 +385,35 @@ export const createPerformanceTest = (
       ...(testRenderTime ? [{
         name: 'should render within acceptable time',
         test: async () => {
-          const { performanceUtils } = await import('./component-utils')
-          const result = await performanceUtils.measureRenderTime(component)
-          
-          expect(result.average).toBeLessThan(maxRenderTime)
-        }
+          const { performanceUtils } = await import('./component-utils');
+          const result = await performanceUtils.measureRenderTime(component);
+
+          expect(result.average).toBeLessThan(maxRenderTime);
+        },
       }] : []),
-      
+
       ...(testLargeData ? [{
         name: 'should handle large datasets efficiently',
         test: async () => {
-          const { performanceUtils } = await import('./component-utils')
-          const Component = component.type as React.ComponentType<any>
+          const { performanceUtils } = await import('./component-utils');
+          const Component = component.type as React.ComponentType<any>;
           const results = await performanceUtils.testWithLargeData(
             Component,
             dataGenerator,
-            dataSizes
-          )
-          
+            dataSizes,
+          );
+
           results.forEach(result => {
-            expect(result.success).toBe(true)
+            expect(result.success).toBe(true);
             if (result.renderTime > 0) {
-              expect(result.renderTime).toBeLessThan(maxRenderTime * 10) // Allow more time for large data
+              expect(result.renderTime).toBeLessThan(maxRenderTime * 10); // Allow more time for large data
             }
-          })
-        }
-      }] : [])
-    ]
-  }
-}
+          });
+        },
+      }] : []),
+    ],
+  };
+};
 
 // Export template generators
 export const testTemplates = {
@@ -421,8 +422,8 @@ export const testTemplates = {
   hook: createHookTest,
   api: createApiTest,
   integration: createIntegrationTest,
-  performance: createPerformanceTest
-}
+  performance: createPerformanceTest,
+};
 
 // Helper to generate complete test file content
 export const generateTestFile = (
@@ -430,9 +431,9 @@ export const generateTestFile = (
   testType: keyof typeof testTemplates,
   ...args: any[]
 ) => {
-  const template = testTemplates[testType]
-  const testConfig = template(componentName, ...args)
-  
+  const template = testTemplates[testType];
+  const testConfig = template(componentName, ...args);
+
   return `import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -457,5 +458,5 @@ describe('${testConfig.describe}', () => {
     expect(true).toBe(true)
   })
   `).join('\n')}
-})`
-}
+})`;
+};

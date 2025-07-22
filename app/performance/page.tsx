@@ -1,13 +1,15 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Progress } from '@/components/ui/progress'
-import { RefreshCw, Activity, TrendingUp, AlertTriangle, CheckCircle, Clock, Monitor, Zap } from 'lucide-react'
+import { useState, useEffect } from 'react';
+
+import { RefreshCw, Activity, TrendingUp, AlertTriangle, CheckCircle, Clock, Monitor, Zap } from 'lucide-react';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PerformanceMetrics {
   lcp: number
@@ -61,19 +63,19 @@ interface PerformanceData {
 }
 
 export default function PerformancePage() {
-  const [data, setData] = useState<PerformanceData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedTimeRange, setSelectedTimeRange] = useState<'1h' | '24h' | '7d'>('24h')
-  const [isMonitoring, setIsMonitoring] = useState(false)
+  const [data, setData] = useState<PerformanceData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedTimeRange, setSelectedTimeRange] = useState<'1h' | '24h' | '7d'>('24h');
+  const [isMonitoring, setIsMonitoring] = useState(false);
 
   // Mock data for demonstration
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true)
-      
+      setIsLoading(true);
+
       // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Generate mock performance data
       const mockData: PerformanceData = {
         currentMetrics: {
@@ -88,7 +90,7 @@ export default function PerformancePage() {
           memoryUsage: {
             usedJSHeapSize: 45 * 1024 * 1024,
             totalJSHeapSize: 67 * 1024 * 1024,
-            jsHeapSizeLimit: 2048 * 1024 * 1024
+            jsHeapSizeLimit: 2048 * 1024 * 1024,
           },
           userInteractions: 47,
           scrollDepth: 85,
@@ -98,8 +100,8 @@ export default function PerformancePage() {
           customMetrics: {
             'login_form_render': 45,
             'dashboard_load': 234,
-            'api_users_fetch': 180
-          }
+            'api_users_fetch': 180,
+          },
         },
         historicalData: Array.from({ length: 24 }, (_, i) => ({
           timestamp: Date.now() - (23 - i) * 60 * 60 * 1000,
@@ -108,86 +110,86 @@ export default function PerformancePage() {
             fid: 80 + Math.random() * 40,
             cls: 0.05 + Math.random() * 0.1,
             fcp: 1500 + Math.random() * 300,
-            ttfb: 300 + Math.random() * 200
-          }
+            ttfb: 300 + Math.random() * 200,
+          },
         })),
         scores: {
           lcp: { score: 'good', value: 2180, threshold: { good: 2500, poor: 4000 } },
           fid: { score: 'good', value: 95, threshold: { good: 100, poor: 300 } },
           cls: { score: 'good', value: 0.08, threshold: { good: 0.1, poor: 0.25 } },
           fcp: { score: 'good', value: 1650, threshold: { good: 1800, poor: 3000 } },
-          ttfb: { score: 'good', value: 320, threshold: { good: 800, poor: 1800 } }
+          ttfb: { score: 'good', value: 320, threshold: { good: 800, poor: 1800 } },
         },
         insights: [
           'Core Web Vitals are performing well across all metrics',
           'Memory usage is within acceptable limits',
           'API response times are optimal',
-          'User engagement is high with good scroll depth'
+          'User engagement is high with good scroll depth',
         ],
         recommendations: [
           'Consider lazy loading images to further improve LCP',
           'Implement service worker for better caching',
-          'Optimize component render cycles for better performance'
+          'Optimize component render cycles for better performance',
         ],
         resourceTimings: [
           { name: '/api/users', duration: 180, size: 15420, type: 'api', cached: false },
           { name: '/images/logo.png', duration: 45, size: 8934, type: 'image', cached: true },
           { name: '/styles/main.css', duration: 23, size: 45678, type: 'stylesheet', cached: true },
-          { name: '/scripts/app.js', duration: 67, size: 234567, type: 'javascript', cached: false }
+          { name: '/scripts/app.js', duration: 67, size: 234567, type: 'javascript', cached: false },
         ],
         budgetStatus: {
           passed: true,
           violations: [],
-          warnings: ['JavaScript bundle size is approaching limit']
-        }
-      }
-      
-      setData(mockData)
-      setIsLoading(false)
-    }
-    
-    loadData()
-  }, [selectedTimeRange])
+          warnings: ['JavaScript bundle size is approaching limit'],
+        },
+      };
+
+      setData(mockData);
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, [selectedTimeRange]);
 
   const handleRefresh = () => {
-    setIsLoading(true)
-    setTimeout(() => setIsLoading(false), 500)
-  }
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 500);
+  };
 
   const handleStartMonitoring = () => {
-    setIsMonitoring(true)
+    setIsMonitoring(true);
     // In a real implementation, this would start the performance monitoring
-  }
+  };
 
   const handleStopMonitoring = () => {
-    setIsMonitoring(false)
-  }
+    setIsMonitoring(false);
+  };
 
   const getScoreColor = (score: 'good' | 'needs-improvement' | 'poor') => {
     switch (score) {
-      case 'good': return 'text-green-600 bg-green-100'
-      case 'needs-improvement': return 'text-yellow-600 bg-yellow-100'
-      case 'poor': return 'text-red-600 bg-red-100'
-      default: return 'text-gray-600 bg-gray-100'
+      case 'good': return 'text-green-600 bg-green-100';
+      case 'needs-improvement': return 'text-yellow-600 bg-yellow-100';
+      case 'poor': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
-  }
+  };
 
   const getScoreIcon = (score: 'good' | 'needs-improvement' | 'poor') => {
     switch (score) {
-      case 'good': return <CheckCircle className="h-4 w-4" />
-      case 'needs-improvement': return <AlertTriangle className="h-4 w-4" />
-      case 'poor': return <AlertTriangle className="h-4 w-4" />
-      default: return <Activity className="h-4 w-4" />
+      case 'good': return <CheckCircle className="h-4 w-4" />;
+      case 'needs-improvement': return <AlertTriangle className="h-4 w-4" />;
+      case 'poor': return <AlertTriangle className="h-4 w-4" />;
+      default: return <Activity className="h-4 w-4" />;
     }
-  }
+  };
 
   const formatMetric = (value: number, unit: string) => {
-    if (unit === 'ms') return `${Math.round(value)}ms`
-    if (unit === 'MB') return `${Math.round(value / (1024 * 1024))}MB`
-    if (unit === 'score') return value.toFixed(3)
-    if (unit === '%') return `${Math.round(value)}%`
-    return value.toString()
-  }
+    if (unit === 'ms') return `${Math.round(value)}ms`;
+    if (unit === 'MB') return `${Math.round(value / (1024 * 1024))}MB`;
+    if (unit === 'score') return value.toFixed(3);
+    if (unit === '%') return `${Math.round(value)}%`;
+    return value.toString();
+  };
 
   if (isLoading) {
     return (
@@ -197,11 +199,11 @@ export default function PerformancePage() {
           <span>Loading performance data...</span>
         </div>
       </div>
-    )
+    );
   }
 
   if (!data) {
-    return <div>No performance data available</div>
+    return <div>No performance data available</div>;
   }
 
   return (
@@ -213,7 +215,7 @@ export default function PerformancePage() {
         </div>
         <div className="flex gap-2">
           <Button
-            variant={isMonitoring ? "destructive" : "default"}
+            variant={isMonitoring ? 'destructive' : 'default'}
             onClick={isMonitoring ? handleStopMonitoring : handleStartMonitoring}
           >
             {isMonitoring ? (
@@ -232,8 +234,8 @@ export default function PerformancePage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <select 
-            value={selectedTimeRange} 
+          <select
+            value={selectedTimeRange}
             onChange={(e) => setSelectedTimeRange(e.target.value as '1h' | '24h' | '7d')}
             className="px-3 py-2 border rounded-md"
           >
@@ -254,14 +256,14 @@ export default function PerformancePage() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4 mb-4">
-            <Badge variant={data.budgetStatus.passed ? "secondary" : "destructive"}>
-              {data.budgetStatus.passed ? "PASSED" : "FAILED"}
+            <Badge variant={data.budgetStatus.passed ? 'secondary' : 'destructive'}>
+              {data.budgetStatus.passed ? 'PASSED' : 'FAILED'}
             </Badge>
             <span className="text-sm text-gray-600">
               {data.budgetStatus.violations.length} violations, {data.budgetStatus.warnings.length} warnings
             </span>
           </div>
-          
+
           {data.budgetStatus.violations.length > 0 && (
             <Alert className="mb-4">
               <AlertTriangle className="h-4 w-4" />
@@ -275,7 +277,7 @@ export default function PerformancePage() {
               </AlertDescription>
             </Alert>
           )}
-          
+
           {data.budgetStatus.warnings.length > 0 && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
@@ -322,8 +324,8 @@ export default function PerformancePage() {
                   <div className="text-xs text-muted-foreground mt-1">
                     Good: &lt;{formatMetric(scoreData.threshold.good, key === 'cls' ? 'score' : 'ms')}
                   </div>
-                  <Progress 
-                    value={Math.min(100, (scoreData.value / scoreData.threshold.poor) * 100)} 
+                  <Progress
+                    value={Math.min(100, (scoreData.value / scoreData.threshold.poor) * 100)}
                     className="mt-2"
                   />
                 </CardContent>
@@ -418,8 +420,8 @@ export default function PerformancePage() {
                       <span>Good: &lt;{formatMetric(scoreData.threshold.good, key === 'cls' ? 'score' : 'ms')}</span>
                       <span>Poor: &gt;{formatMetric(scoreData.threshold.poor, key === 'cls' ? 'score' : 'ms')}</span>
                     </div>
-                    <Progress 
-                      value={Math.min(100, (scoreData.value / scoreData.threshold.poor) * 100)} 
+                    <Progress
+                      value={Math.min(100, (scoreData.value / scoreData.threshold.poor) * 100)}
                       className="h-2"
                     />
                   </div>
@@ -452,7 +454,7 @@ export default function PerformancePage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <h4 className="font-semibold">Custom Metrics</h4>
                   <div className="space-y-2">
@@ -544,5 +546,5 @@ export default function PerformancePage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

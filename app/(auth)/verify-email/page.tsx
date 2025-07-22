@@ -1,22 +1,23 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react';
+
+import { useSearchParams } from 'next/navigation';
 
 export default function VerifyEmailPage() {
-  const searchParams = useSearchParams()
-  const token = searchParams.get('token')
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  const [message, setMessage] = useState('')
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (token) {
-      verifyEmail(token)
+      verifyEmail(token);
     } else {
-      setStatus('error')
-      setMessage('Invalid verification link')
+      setStatus('error');
+      setMessage('Invalid verification link');
     }
-  }, [token])
+  }, [token]);
 
   const verifyEmail = async (token: string) => {
     try {
@@ -26,22 +27,22 @@ export default function VerifyEmailPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.success) {
-        setStatus('success')
-        setMessage('Email verified successfully! You can now use all features.')
+        setStatus('success');
+        setMessage('Email verified successfully! You can now use all features.');
       } else {
-        setStatus('error')
-        setMessage(data.error || 'Failed to verify email')
+        setStatus('error');
+        setMessage(data.error || 'Failed to verify email');
       }
     } catch {
-      setStatus('error')
-      setMessage('An error occurred while verifying your email')
+      setStatus('error');
+      setMessage('An error occurred while verifying your email');
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -55,7 +56,7 @@ export default function VerifyEmailPage() {
         <div className="mt-8 space-y-6">
           {status === 'loading' && (
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
               <p className="mt-4 text-sm text-gray-600">
                 Verifying your email...
               </p>
@@ -106,5 +107,5 @@ export default function VerifyEmailPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

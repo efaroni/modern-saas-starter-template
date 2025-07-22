@@ -1,13 +1,15 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Input } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
-import type { AuthUser } from '@/lib/auth/types'
-import { signupAction } from '@/app/actions/auth'
+import { useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { signupAction } from '@/app/actions/auth';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+import type { AuthUser } from '@/lib/auth/types';
 
 const signupSchema = z.object({
   email: z.string()
@@ -16,8 +18,8 @@ const signupSchema = z.object({
   password: z.string()
     .min(8, 'Password must be at least 8 characters'),
   name: z.string()
-    .min(1, 'Name is required')
-})
+    .min(1, 'Name is required'),
+});
 
 type SignupFormData = z.infer<typeof signupSchema>
 
@@ -27,7 +29,7 @@ interface SignupFormProps {
 }
 
 export function SignupForm({ onSuccess, onError }: SignupFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -35,28 +37,28 @@ export function SignupForm({ onSuccess, onError }: SignupFormProps) {
     formState: { errors },
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
-  })
+  });
 
   const onSubmit = async (data: SignupFormData) => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       const result = await signupAction({
         email: data.email,
         password: data.password,
-        name: data.name
-      })
+        name: data.name,
+      });
 
       if (result.success && result.user) {
-        onSuccess(result.user)
+        onSuccess(result.user);
       } else {
-        onError(result.error || 'Signup failed')
+        onError(result.error || 'Signup failed');
       }
     } catch {
-      onError('An unexpected error occurred')
+      onError('An unexpected error occurred');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -71,7 +73,7 @@ export function SignupForm({ onSuccess, onError }: SignupFormProps) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div>
           <label htmlFor="signup-name" className="block text-sm font-medium text-gray-700">
             Name
@@ -147,5 +149,5 @@ export function SignupForm({ onSuccess, onError }: SignupFormProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

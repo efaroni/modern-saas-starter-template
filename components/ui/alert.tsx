@@ -15,14 +15,14 @@ interface AlertTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
 
 export function Alert({ variant = 'default', className = '', children, ...props }: AlertProps) {
   const baseClasses = 'relative w-full rounded-lg border p-4';
-  
+
   const variants = {
     default: 'bg-background text-foreground',
-    destructive: 'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive'
+    destructive: 'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive',
   };
-  
+
   const classes = `${baseClasses} ${variants[variant]} ${className}`;
-  
+
   return (
     <div className={classes} role="alert" {...props}>
       {children}

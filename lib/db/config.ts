@@ -1,14 +1,14 @@
 /**
  * Centralized Database Configuration
- * 
+ *
  * Handles database connection URLs for different environments following
  * best practices with proper validation and environment detection.
  */
 
 // Helper function to parse environment variables with defaults
 function parseEnvInt(envVar: string, defaultValue: number): number {
-  const value = process.env[envVar]
-  return value ? parseInt(value, 10) : defaultValue
+  const value = process.env[envVar];
+  return value ? parseInt(value, 10) : defaultValue;
 }
 
 export interface DatabaseConnectionComponents {
@@ -49,33 +49,33 @@ const DATABASE_ENVIRONMENTS = {
     database: process.env.DB_NAME || '',
     ssl: true,
   },
-} as const
+} as const;
 
 /**
  * Build a PostgreSQL connection URL from components
  */
 function buildDatabaseUrl(components: DatabaseConnectionComponents): string {
-  const { host, port, username, password, database, ssl } = components
-  
+  const { host, port, username, password, database, ssl } = components;
+
   // Validate required components (password can be empty for local development)
   if (!host || !username || !database) {
     throw new Error(
       'Database connection requires host, username, and database name. ' +
-      'Please check your environment variables.'
-    )
+      'Please check your environment variables.',
+    );
   }
-  
+
   // Build the connection string (handle empty password)
-  const baseUrl = password 
+  const baseUrl = password
     ? `postgresql://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${database}`
-    : `postgresql://${encodeURIComponent(username)}@${host}:${port}/${database}`
-  
+    : `postgresql://${encodeURIComponent(username)}@${host}:${port}/${database}`;
+
   // Add SSL parameter if needed
   if (ssl) {
-    return `${baseUrl}?sslmode=require`
+    return `${baseUrl}?sslmode=require`;
   }
-  
-  return baseUrl
+
+  return baseUrl;
 }
 
 export interface DatabaseConfig {
@@ -99,80 +99,80 @@ export interface DatabaseConfig {
 
 /**
  * Get the appropriate database URL based on environment
- * 
+ *
  * This function builds the database URL from environment-specific components
  * or falls back to the traditional DATABASE_URL environment variable.
- * 
+ *
  * Priority:
  * 1. Component-based URL building from environment variables
  * 2. Fallback to DATABASE_URL/TEST_DATABASE_URL for backwards compatibility
- * 
+ *
  * @returns {string} The database connection string
  * @throws {Error} If no valid database configuration is found
- * 
+ *
  * @example
  * ```typescript
  * // Component-based (preferred)
  * process.env.DB_HOST = 'localhost'
  * process.env.DB_USER = 'postgres'
  * const url = getDatabaseUrl() // Builds from components
- * 
+ *
  * // Fallback to full URL
  * process.env.DATABASE_URL = 'postgresql://...'
  * const url = getDatabaseUrl() // Uses DATABASE_URL directly
  * ```
  */
 export function getDatabaseUrl(): string {
-  const env = process.env.NODE_ENV || 'development'
-  
+  const env = process.env.NODE_ENV || 'development';
+
   try {
     // Try component-based URL building first
-    let envConfig: DatabaseConnectionComponents
-    
+    let envConfig: DatabaseConnectionComponents;
+
     if (env === 'test') {
-      envConfig = DATABASE_ENVIRONMENTS.test
+      envConfig = DATABASE_ENVIRONMENTS.test;
     } else if (env === 'production') {
-      envConfig = DATABASE_ENVIRONMENTS.production
+      envConfig = DATABASE_ENVIRONMENTS.production;
     } else {
-      envConfig = DATABASE_ENVIRONMENTS.development
+      envConfig = DATABASE_ENVIRONMENTS.development;
     }
-    
+
     // If we have all required components, build the URL (password can be empty)
     if (envConfig.host && envConfig.username && envConfig.database) {
-      return buildDatabaseUrl(envConfig)
+      return buildDatabaseUrl(envConfig);
     }
   } catch (error) {
     // Fall through to legacy URL method
   }
-  
+
   // Fallback to legacy environment variables for backwards compatibility
   if (env === 'test' && process.env.TEST_DATABASE_URL) {
-    return process.env.TEST_DATABASE_URL
+    return process.env.TEST_DATABASE_URL;
   }
-  
+
   if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL
+    return process.env.DATABASE_URL;
   }
-  
+
   // If we get here, no valid configuration was found
   throw new Error(
     'Database configuration is missing. Please set either:\n' +
     '1. Component variables: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME\n' +
     '2. Or full URL: DATABASE_URL (TEST_DATABASE_URL for tests)\n' +
-    'See documentation for complete setup instructions.'
-  )
+    'See documentation for complete setup instructions.',
+  );
 }
 
 /**
  * Get database configuration with environment-specific settings
  * Consolidates all database configuration from various sources
- * 
+ *
  * @returns {DatabaseConfig} Complete database configuration object
- * 
+ *
  * @example
  * ```typescript
  * const config = getDatabaseConfig()
- * 
+ *
  * // Use in connection pool
  * const client = postgres(config.url, {
  *   max: config.poolSize,
@@ -181,8 +181,8 @@ export function getDatabaseUrl(): string {
  * ```
  */
 export function getDatabaseConfig(): DatabaseConfig {
-  const url = getDatabaseUrl()
-  
+  const url = getDatabaseUrl();
+
   // Base configuration with environment variable overrides
   const baseConfig = {
     url,
@@ -190,24 +190,24 @@ export function getDatabaseConfig(): DatabaseConfig {
     poolSize: parseEnvInt('DB_MAX_CONNECTIONS', 20),
     idleTimeout: parseEnvInt('DB_IDLE_TIMEOUT_MS', 30000) / 1000, // Convert to seconds
     connectTimeout: parseEnvInt('DB_CONNECT_TIMEOUT_MS', 10000) / 1000, // Convert to seconds
-    
+
     // Advanced Pool Settings
     maxLifetime: parseEnvInt('DB_MAX_LIFETIME_SECONDS', 3600), // 1 hour
     maxUses: parseEnvInt('DB_MAX_USES', 7500),
-    
+
     // Query Performance Settings
     slowQueryThreshold: parseEnvInt('DB_SLOW_QUERY_THRESHOLD_MS', 1000),
     queryTimeout: parseEnvInt('DB_QUERY_TIMEOUT_MS', 30000),
-    
+
     // Health Check Settings
     healthCheckInterval: parseEnvInt('DB_HEALTH_CHECK_INTERVAL_MS', 30000),
     healthCheckTimeout: parseEnvInt('DB_HEALTH_CHECK_TIMEOUT_MS', 5000),
-    
+
     // Caching Settings
     cacheTtl: parseEnvInt('DB_CACHE_TTL_SECONDS', 300), // 5 minutes
     cacheMaxSize: parseEnvInt('DB_CACHE_MAX_SIZE', 100),
-  }
-  
+  };
+
   // Environment-specific overrides for optimal performance
   switch (process.env.NODE_ENV) {
     case 'test':
@@ -219,8 +219,8 @@ export function getDatabaseConfig(): DatabaseConfig {
         connectTimeout: 10,
         healthCheckInterval: 5000, // More frequent checks in tests
         cacheTtl: 60, // Shorter cache for tests
-      }
-      
+      };
+
     case 'development':
       // Development: moderate settings for good performance
       return {
@@ -228,8 +228,8 @@ export function getDatabaseConfig(): DatabaseConfig {
         poolSize: parseEnvInt('DB_MAX_CONNECTIONS', 5),
         idleTimeout: 30,
         connectTimeout: 10,
-      }
-      
+      };
+
     case 'production':
       // Production: optimized for scale and reliability
       return {
@@ -239,34 +239,34 @@ export function getDatabaseConfig(): DatabaseConfig {
         connectTimeout: 30,
         maxLifetime: 7200, // 2 hours in production
         slowQueryThreshold: 2000, // Higher threshold in production
-      }
-      
+      };
+
     default:
-      return baseConfig
+      return baseConfig;
   }
 }
 
 /**
  * Validate database URL format
- * 
+ *
  * @param {string} url - The database URL to validate
  * @returns {boolean} True if the URL is a valid PostgreSQL connection string
- * 
+ *
  * @example
  * ```typescript
  * const isValid = validateDatabaseUrl('postgresql://user:pass@localhost:5432/db')
  * // returns: true
- * 
+ *
  * const isInvalid = validateDatabaseUrl('invalid-url')
  * // returns: false
  * ```
  */
 export function validateDatabaseUrl(url: string): boolean {
   try {
-    const parsed = new URL(url)
-    return parsed.protocol === 'postgresql:' || parsed.protocol === 'postgres:'
+    const parsed = new URL(url);
+    return parsed.protocol === 'postgresql:' || parsed.protocol === 'postgres:';
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -274,20 +274,20 @@ export function validateDatabaseUrl(url: string): boolean {
  * Get environment-appropriate database name for naming consistency
  */
 export function getDatabaseName(): string {
-  const url = getDatabaseUrl()
+  const url = getDatabaseUrl();
   try {
-    const parsed = new URL(url)
-    return parsed.pathname.slice(1) // Remove leading slash
+    const parsed = new URL(url);
+    return parsed.pathname.slice(1); // Remove leading slash
   } catch {
-    return 'unknown'
+    return 'unknown';
   }
 }
 
 /**
  * Get database connection components for the current environment
- * 
+ *
  * @returns {DatabaseConnectionComponents} The database connection components
- * 
+ *
  * @example
  * ```typescript
  * const components = getDatabaseConnectionComponents()
@@ -295,25 +295,25 @@ export function getDatabaseName(): string {
  * ```
  */
 export function getDatabaseConnectionComponents(): DatabaseConnectionComponents {
-  const env = process.env.NODE_ENV || 'development'
-  
+  const env = process.env.NODE_ENV || 'development';
+
   if (env === 'test') {
-    return DATABASE_ENVIRONMENTS.test
+    return DATABASE_ENVIRONMENTS.test;
   } else if (env === 'production') {
-    return DATABASE_ENVIRONMENTS.production
+    return DATABASE_ENVIRONMENTS.production;
   } else {
-    return DATABASE_ENVIRONMENTS.development
+    return DATABASE_ENVIRONMENTS.development;
   }
 }
 
 /**
  * Check if we're using a real database connection (not mock)
- * 
+ *
  * This function is useful for services that need to determine whether
  * to use actual database operations or mock data.
- * 
+ *
  * @returns {boolean} True if a valid database connection is configured
- * 
+ *
  * @example
  * ```typescript
  * // In service factory
@@ -328,9 +328,9 @@ export function getDatabaseConnectionComponents(): DatabaseConnectionComponents 
  */
 export function isRealDatabase(): boolean {
   try {
-    const url = getDatabaseUrl()
-    return validateDatabaseUrl(url)
+    const url = getDatabaseUrl();
+    return validateDatabaseUrl(url);
   } catch {
-    return false
+    return false;
   }
 }

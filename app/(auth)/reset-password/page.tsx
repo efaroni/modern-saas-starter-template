@@ -1,39 +1,40 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react';
+
+import { useSearchParams } from 'next/navigation';
 
 export default function ResetPasswordPage() {
-  const searchParams = useSearchParams()
-  const token = searchParams.get('token')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [status, setStatus] = useState<'form' | 'success' | 'error'>('form')
-  const [message, setMessage] = useState('')
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<'form' | 'success' | 'error'>('form');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (!token) {
-      setStatus('error')
-      setMessage('Invalid reset link')
+      setStatus('error');
+      setMessage('Invalid reset link');
     }
-  }, [token])
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (password !== confirmPassword) {
-      setMessage('Passwords do not match')
-      return
+      setMessage('Passwords do not match');
+      return;
     }
 
     if (password.length < 8) {
-      setMessage('Password must be at least 8 characters')
-      return
+      setMessage('Password must be at least 8 characters');
+      return;
     }
 
-    setLoading(true)
-    setMessage('')
+    setLoading(true);
+    setMessage('');
 
     try {
       const response = await fetch('/api/auth/reset-password', {
@@ -42,22 +43,22 @@ export default function ResetPasswordPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token, newPassword: password }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.success) {
-        setStatus('success')
-        setMessage('Password reset successfully! You can now sign in with your new password.')
+        setStatus('success');
+        setMessage('Password reset successfully! You can now sign in with your new password.');
       } else {
-        setMessage(data.error || 'Failed to reset password')
+        setMessage(data.error || 'Failed to reset password');
       }
     } catch {
-      setMessage('An error occurred while resetting your password')
+      setMessage('An error occurred while resetting your password');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (status === 'error') {
     return (
@@ -88,7 +89,7 @@ export default function ResetPasswordPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (status === 'success') {
@@ -120,7 +121,7 @@ export default function ResetPasswordPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -184,5 +185,5 @@ export default function ResetPasswordPage() {
         </form>
       </div>
     </div>
-  )
+  );
 }

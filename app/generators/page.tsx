@@ -1,14 +1,16 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Copy, FileText, Zap } from 'lucide-react'
+import { useState } from 'react';
+
+import { Copy, FileText, Zap } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 const generators = [
   {
@@ -22,7 +24,7 @@ const generators = [
       { name: 'componentType', label: 'Component Type', type: 'select', options: ['Client Component', 'Server Component', 'Both'], required: true },
       { name: 'withProps', label: 'Include Props Interface', type: 'checkbox', default: true },
       { name: 'withStyles', label: 'Include Styling', type: 'checkbox', default: true },
-    ]
+    ],
   },
   {
     id: 'api',
@@ -35,7 +37,7 @@ const generators = [
       { name: 'methods', label: 'HTTP Methods', type: 'multiselect', options: ['GET', 'POST', 'PUT', 'DELETE'], required: true },
       { name: 'withAuth', label: 'Include Authentication', type: 'checkbox', default: true },
       { name: 'withValidation', label: 'Include Validation', type: 'checkbox', default: true },
-    ]
+    ],
   },
   {
     id: 'model',
@@ -48,7 +50,7 @@ const generators = [
       { name: 'fields', label: 'Fields (JSON)', type: 'textarea', required: true, placeholder: '[{"name": "title", "type": "text"}, {"name": "userId", "type": "uuid", "references": "users"}]' },
       { name: 'withTimestamps', label: 'Include Timestamps', type: 'checkbox', default: true },
       { name: 'withRelations', label: 'Include Relations', type: 'checkbox', default: true },
-    ]
+    ],
   },
   {
     id: 'test',
@@ -61,53 +63,53 @@ const generators = [
       { name: 'testType', label: 'Test Type', type: 'select', options: ['Unit Test', 'Integration Test', 'E2E Test'], required: true },
       { name: 'withMocks', label: 'Include Mocks', type: 'checkbox', default: true },
       { name: 'withSetup', label: 'Include Test Setup', type: 'checkbox', default: true },
-    ]
-  }
-]
+    ],
+  },
+];
 
 export default function GeneratorsPage() {
-  const [selectedGenerator, setSelectedGenerator] = useState(generators[0])
-  const [formData, setFormData] = useState<Record<string, any>>({})
-  const [generatedCode, setGeneratedCode] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [selectedGenerator, setSelectedGenerator] = useState(generators[0]);
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [generatedCode, setGeneratedCode] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleFieldChange = (fieldName: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [fieldName]: value
-    }))
-  }
+      [fieldName]: value,
+    }));
+  };
 
   const generateCode = async () => {
-    setIsGenerating(true)
-    
+    setIsGenerating(true);
+
     // Simulate code generation
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     // Generate different code based on selected generator
-    let code = ''
+    let code = '';
     switch (selectedGenerator.id) {
       case 'component':
-        code = generateComponentCode(formData)
-        break
+        code = generateComponentCode(formData);
+        break;
       case 'api':
-        code = generateApiCode(formData)
-        break
+        code = generateApiCode(formData);
+        break;
       case 'model':
-        code = generateModelCode(formData)
-        break
+        code = generateModelCode(formData);
+        break;
       case 'test':
-        code = generateTestCode(formData)
-        break
+        code = generateTestCode(formData);
+        break;
     }
-    
-    setGeneratedCode(code)
-    setIsGenerating(false)
-  }
+
+    setGeneratedCode(code);
+    setIsGenerating(false);
+  };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatedCode)
-  }
+    navigator.clipboard.writeText(generatedCode);
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -180,7 +182,7 @@ export default function GeneratorsPage() {
                       {field.label}
                       {field.required && <span className="text-red-500">*</span>}
                     </Label>
-                    
+
                     {field.type === 'text' && (
                       <Input
                         id={field.name}
@@ -189,7 +191,7 @@ export default function GeneratorsPage() {
                         onChange={(e) => handleFieldChange(field.name, e.target.value)}
                       />
                     )}
-                    
+
                     {field.type === 'textarea' && (
                       <Textarea
                         id={field.name}
@@ -199,7 +201,7 @@ export default function GeneratorsPage() {
                         rows={3}
                       />
                     )}
-                    
+
                     {field.type === 'select' && (
                       <Select
                         value={formData[field.name] || ''}
@@ -217,7 +219,7 @@ export default function GeneratorsPage() {
                         </SelectContent>
                       </Select>
                     )}
-                    
+
                     {field.type === 'checkbox' && (
                       <div className="flex items-center space-x-2">
                         <input
@@ -234,8 +236,8 @@ export default function GeneratorsPage() {
                     )}
                   </div>
                 ))}
-                
-                <Button 
+
+                <Button
                   onClick={generateCode}
                   disabled={isGenerating}
                   className="w-full"
@@ -275,189 +277,189 @@ export default function GeneratorsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // Code generation functions
 function generateComponentCode(data: any) {
-  const { componentName, componentType, withProps, withStyles } = data
-  
-  let code = ''
-  
+  const { componentName, componentType, withProps, withStyles } = data;
+
+  let code = '';
+
   if (componentType === 'Client Component' || componentType === 'Both') {
-    code += `'use client'\n\n`
+    code += `'use client'\n\n`;
   }
-  
+
   if (withProps) {
-    code += `interface ${componentName}Props {\n  // Add your props here\n}\n\n`
+    code += `interface ${componentName}Props {\n  // Add your props here\n}\n\n`;
   }
-  
-  const propsParam = withProps ? `props: ${componentName}Props` : ''
-  
-  code += `export default function ${componentName}(${propsParam}) {\n`
-  code += `  return (\n`
-  code += `    <div${withStyles ? ' className="p-4"' : ''}>\n`
-  code += `      <h1>${componentName}</h1>\n`
-  code += `      {/* Add your content here */}\n`
-  code += `    </div>\n`
-  code += `  )\n`
-  code += `}\n`
-  
-  return code
+
+  const propsParam = withProps ? `props: ${componentName}Props` : '';
+
+  code += `export default function ${componentName}(${propsParam}) {\n`;
+  code += `  return (\n`;
+  code += `    <div${withStyles ? ' className="p-4"' : ''}>\n`;
+  code += `      <h1>${componentName}</h1>\n`;
+  code += `      {/* Add your content here */}\n`;
+  code += `    </div>\n`;
+  code += `  )\n`;
+  code += `}\n`;
+
+  return code;
 }
 
 function generateApiCode(data: any) {
-  const { routeName, methods, withAuth, withValidation } = data
-  
-  let code = ''
-  
+  const { routeName, methods, withAuth, withValidation } = data;
+
+  let code = '';
+
   if (withAuth) {
-    code += `import { auth } from '@/lib/auth'\n`
+    code += `import { auth } from '@/lib/auth'\n`;
   }
-  
+
   if (withValidation) {
-    code += `import { z } from 'zod'\n`
+    code += `import { z } from 'zod'\n`;
   }
-  
-  code += `import { NextRequest, NextResponse } from 'next/server'\n\n`
-  
+
+  code += `import { NextRequest, NextResponse } from 'next/server'\n\n`;
+
   if (withValidation) {
-    code += `const schema = z.object({\n`
-    code += `  // Add your validation schema here\n`
-    code += `})\n\n`
+    code += `const schema = z.object({\n`;
+    code += `  // Add your validation schema here\n`;
+    code += `})\n\n`;
   }
-  
+
   if (methods.includes('GET')) {
-    code += `export async function GET(request: NextRequest) {\n`
+    code += `export async function GET(request: NextRequest) {\n`;
     if (withAuth) {
-      code += `  const session = await auth()\n`
-      code += `  if (!session) {\n`
-      code += `    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })\n`
-      code += `  }\n\n`
+      code += `  const session = await auth()\n`;
+      code += `  if (!session) {\n`;
+      code += `    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })\n`;
+      code += `  }\n\n`;
     }
-    code += `  // Add your GET logic here\n`
-    code += `  return NextResponse.json({ message: 'GET ${routeName}' })\n`
-    code += `}\n\n`
+    code += `  // Add your GET logic here\n`;
+    code += `  return NextResponse.json({ message: 'GET ${routeName}' })\n`;
+    code += `}\n\n`;
   }
-  
+
   if (methods.includes('POST')) {
-    code += `export async function POST(request: NextRequest) {\n`
+    code += `export async function POST(request: NextRequest) {\n`;
     if (withAuth) {
-      code += `  const session = await auth()\n`
-      code += `  if (!session) {\n`
-      code += `    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })\n`
-      code += `  }\n\n`
+      code += `  const session = await auth()\n`;
+      code += `  if (!session) {\n`;
+      code += `    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })\n`;
+      code += `  }\n\n`;
     }
-    code += `  const body = await request.json()\n`
+    code += `  const body = await request.json()\n`;
     if (withValidation) {
-      code += `  const validatedData = schema.parse(body)\n`
+      code += `  const validatedData = schema.parse(body)\n`;
     }
-    code += `  // Add your POST logic here\n`
-    code += `  return NextResponse.json({ message: 'POST ${routeName}' })\n`
-    code += `}\n\n`
+    code += `  // Add your POST logic here\n`;
+    code += `  return NextResponse.json({ message: 'POST ${routeName}' })\n`;
+    code += `}\n\n`;
   }
-  
-  return code
+
+  return code;
 }
 
 function generateModelCode(data: any) {
-  const { modelName, fields, withTimestamps, withRelations } = data
-  
-  let code = `import { pgTable, uuid, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core'\n`
-  
+  const { modelName, fields, withTimestamps, withRelations } = data;
+
+  let code = `import { pgTable, uuid, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core'\n`;
+
   if (withRelations) {
-    code += `import { relations } from 'drizzle-orm'\n`
+    code += `import { relations } from 'drizzle-orm'\n`;
   }
-  
-  code += `\n`
-  code += `export const ${modelName.toLowerCase()} = pgTable('${modelName.toLowerCase()}', {\n`
-  code += `  id: uuid('id').primaryKey().defaultRandom(),\n`
-  
+
+  code += `\n`;
+  code += `export const ${modelName.toLowerCase()} = pgTable('${modelName.toLowerCase()}', {\n`;
+  code += `  id: uuid('id').primaryKey().defaultRandom(),\n`;
+
   try {
-    const parsedFields = JSON.parse(fields || '[]')
+    const parsedFields = JSON.parse(fields || '[]');
     parsedFields.forEach((field: any) => {
-      let fieldDef = `  ${field.name}: `
+      let fieldDef = `  ${field.name}: `;
       switch (field.type) {
         case 'text':
-          fieldDef += `text('${field.name}')`
-          break
+          fieldDef += `text('${field.name}')`;
+          break;
         case 'uuid':
-          fieldDef += `uuid('${field.name}')`
-          break
+          fieldDef += `uuid('${field.name}')`;
+          break;
         case 'integer':
-          fieldDef += `integer('${field.name}')`
-          break
+          fieldDef += `integer('${field.name}')`;
+          break;
         case 'boolean':
-          fieldDef += `boolean('${field.name}')`
-          break
+          fieldDef += `boolean('${field.name}')`;
+          break;
         default:
-          fieldDef += `text('${field.name}')`
+          fieldDef += `text('${field.name}')`;
       }
-      
+
       if (field.required) {
-        fieldDef += '.notNull()'
+        fieldDef += '.notNull()';
       }
-      
+
       if (field.references) {
-        fieldDef += `.references(() => ${field.references}.id)`
+        fieldDef += `.references(() => ${field.references}.id)`;
       }
-      
-      code += fieldDef + ',\n'
-    })
+
+      code += fieldDef + ',\n';
+    });
   } catch (e) {
-    code += `  // Add your fields here\n`
+    code += `  // Add your fields here\n`;
   }
-  
+
   if (withTimestamps) {
-    code += `  createdAt: timestamp('created_at').defaultNow(),\n`
-    code += `  updatedAt: timestamp('updated_at').defaultNow(),\n`
+    code += `  createdAt: timestamp('created_at').defaultNow(),\n`;
+    code += `  updatedAt: timestamp('updated_at').defaultNow(),\n`;
   }
-  
-  code += `})\n\n`
-  
+
+  code += `})\n\n`;
+
   if (withRelations) {
-    code += `export const ${modelName.toLowerCase()}Relations = relations(${modelName.toLowerCase()}, ({ one, many }) => ({\n`
-    code += `  // Add your relations here\n`
-    code += `}))\n\n`
+    code += `export const ${modelName.toLowerCase()}Relations = relations(${modelName.toLowerCase()}, ({ one, many }) => ({\n`;
+    code += `  // Add your relations here\n`;
+    code += `}))\n\n`;
   }
-  
-  code += `export type ${modelName} = typeof ${modelName.toLowerCase()}.$inferSelect\n`
-  code += `export type New${modelName} = typeof ${modelName.toLowerCase()}.$inferInsert\n`
-  
-  return code
+
+  code += `export type ${modelName} = typeof ${modelName.toLowerCase()}.$inferSelect\n`;
+  code += `export type New${modelName} = typeof ${modelName.toLowerCase()}.$inferInsert\n`;
+
+  return code;
 }
 
 function generateTestCode(data: any) {
-  const { testTarget, testType, withMocks, withSetup } = data
-  
-  let code = `import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'\n`
-  
+  const { testTarget, testType, withMocks, withSetup } = data;
+
+  let code = `import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'\n`;
+
   if (testType === 'Unit Test') {
-    code += `import { render, screen } from '@testing-library/react'\n`
-    code += `import '@testing-library/jest-dom'\n`
+    code += `import { render, screen } from '@testing-library/react'\n`;
+    code += `import '@testing-library/jest-dom'\n`;
   }
-  
+
   if (withMocks) {
-    code += `import { jest } from '@jest/globals'\n`
+    code += `import { jest } from '@jest/globals'\n`;
   }
-  
-  code += `\n`
-  code += `describe('${testTarget}', () => {\n`
-  
+
+  code += `\n`;
+  code += `describe('${testTarget}', () => {\n`;
+
   if (withSetup) {
-    code += `  beforeEach(() => {\n`
-    code += `    // Setup before each test\n`
-    code += `  })\n\n`
-    code += `  afterEach(() => {\n`
-    code += `    // Cleanup after each test\n`
-    code += `  })\n\n`
+    code += `  beforeEach(() => {\n`;
+    code += `    // Setup before each test\n`;
+    code += `  })\n\n`;
+    code += `  afterEach(() => {\n`;
+    code += `    // Cleanup after each test\n`;
+    code += `  })\n\n`;
   }
-  
-  code += `  it('should work correctly', () => {\n`
-  code += `    // Add your test logic here\n`
-  code += `    expect(true).toBe(true)\n`
-  code += `  })\n`
-  code += `})\n`
-  
-  return code
+
+  code += `  it('should work correctly', () => {\n`;
+  code += `    // Add your test logic here\n`;
+  code += `    expect(true).toBe(true)\n`;
+  code += `  })\n`;
+  code += `})\n`;
+
+  return code;
 }

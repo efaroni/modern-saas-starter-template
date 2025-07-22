@@ -1,9 +1,10 @@
-import { auth } from '@/lib/auth/auth'
-import { OAuthService } from './oauth-service'
-import { authService } from './factory'
-import { AuthUser } from './types'
+import { auth } from '@/lib/auth/auth';
 
-const oauthService = new OAuthService()
+import { authService } from './factory';
+import { OAuthService } from './oauth-service';
+import { type AuthUser } from './types';
+
+const oauthService = new OAuthService();
 
 /**
  * Integration layer between NextAuth.js and our custom auth system
@@ -14,18 +15,18 @@ export class OAuthIntegration {
    */
   async getCurrentSession(): Promise<AuthUser | null> {
     try {
-      const session = await auth()
-      
+      const session = await auth();
+
       if (!session?.user?.id) {
-        return null
+        return null;
       }
 
       // Get user data from our database
-      const user = await oauthService.getUserFromOAuth(session.user.id)
-      return user
+      const user = await oauthService.getUserFromOAuth(session.user.id);
+      return user;
     } catch (error) {
-      console.error('Failed to get OAuth session:', error)
-      return null
+      console.error('Failed to get OAuth session:', error);
+      return null;
     }
   }
 
@@ -35,12 +36,12 @@ export class OAuthIntegration {
   async syncOAuthUser(oauthUser: any): Promise<AuthUser | null> {
     try {
       // Check if user exists in our system
-      const service = await authService
-      const existingUser = await service.getUserByEmail(oauthUser.email)
-      
+      const service = await authService;
+      const existingUser = await service.getUserByEmail(oauthUser.email);
+
       if (existingUser.success && existingUser.user) {
         // User exists, return existing user
-        return existingUser.user
+        return existingUser.user;
       }
 
       // User doesn't exist, create new user
@@ -48,16 +49,16 @@ export class OAuthIntegration {
         email: oauthUser.email,
         name: oauthUser.name,
         password: '', // OAuth users don't have passwords
-      })
+      });
 
       if (newUser.success && newUser.user) {
-        return newUser.user
+        return newUser.user;
       }
 
-      return null
+      return null;
     } catch (error) {
-      console.error('Failed to sync OAuth user:', error)
-      return null
+      console.error('Failed to sync OAuth user:', error);
+      return null;
     }
   }
 
@@ -67,55 +68,55 @@ export class OAuthIntegration {
   async handleOAuthCallback(
     provider: string,
     oauthUser: any,
-    account: any
+    account: any,
   ): Promise<{ success: boolean; user?: AuthUser; error?: string }> {
     try {
       // Handle account conflicts
       const conflictResult = await oauthService.handleAccountConflict(
         oauthUser.email,
         provider,
-        account.providerAccountId
-      )
+        account.providerAccountId,
+      );
 
       if (!conflictResult.conflictResolved) {
         return {
           success: false,
-          error: 'Account conflict could not be resolved'
-        }
+          error: 'Account conflict could not be resolved',
+        };
       }
 
       // Get or create user
-      let user: AuthUser | null = null
-      
+      let user: AuthUser | null = null;
+
       if (conflictResult.existingUserId) {
         // User exists, get user data
-        const service = await authService
-        const existingUser = await service.getUserById(conflictResult.existingUserId)
+        const service = await authService;
+        const existingUser = await service.getUserById(conflictResult.existingUserId);
         if (existingUser.success && existingUser.user) {
-          user = existingUser.user
+          user = existingUser.user;
         }
       } else {
         // Create new user
-        user = await this.syncOAuthUser(oauthUser)
+        user = await this.syncOAuthUser(oauthUser);
       }
 
       if (!user) {
         return {
           success: false,
-          error: 'Failed to create or retrieve user'
-        }
+          error: 'Failed to create or retrieve user',
+        };
       }
 
       return {
         success: true,
-        user
-      }
+        user,
+      };
     } catch (error) {
-      console.error('OAuth callback error:', error)
+      console.error('OAuth callback error:', error);
       return {
         success: false,
-        error: 'OAuth callback failed'
-      }
+        error: 'OAuth callback failed',
+      };
     }
   }
 
@@ -123,7 +124,7 @@ export class OAuthIntegration {
    * Get linked accounts for a user
    */
   async getLinkedAccounts(userId: string): Promise<any[]> {
-    return await oauthService.getLinkedAccounts(userId)
+    return await oauthService.getLinkedAccounts(userId);
   }
 
   /**
@@ -134,37 +135,37 @@ export class OAuthIntegration {
     provider: string,
     providerAccountId: string,
     accessToken?: string,
-    refreshToken?: string
+    refreshToken?: string,
   ): Promise<boolean> {
     return await oauthService.linkAccount(
       userId,
       provider,
       providerAccountId,
       accessToken,
-      refreshToken
-    )
+      refreshToken,
+    );
   }
 
   /**
    * Unlink OAuth account
    */
   async unlinkAccount(userId: string, provider: string): Promise<boolean> {
-    return await oauthService.unlinkAccount(userId, provider)
+    return await oauthService.unlinkAccount(userId, provider);
   }
 
   /**
    * Check if user has OAuth account linked
    */
   async hasOAuthAccount(userId: string, provider?: string): Promise<boolean> {
-    return await oauthService.hasOAuthAccount(userId, provider)
+    return await oauthService.hasOAuthAccount(userId, provider);
   }
 
   /**
    * Get available OAuth providers
    */
   getAvailableProviders(): Array<{ id: string; name: string; configured: boolean }> {
-    return oauthService.getAvailableProviders()
+    return oauthService.getAvailableProviders();
   }
 }
 
-export const oauthIntegration = new OAuthIntegration()
+export const oauthIntegration = new OAuthIntegration();

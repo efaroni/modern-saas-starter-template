@@ -1,22 +1,24 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Input } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
-import type { AuthUser } from '@/lib/auth/types'
-import { changePasswordAction } from '@/app/actions/auth'
+import { useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { changePasswordAction } from '@/app/actions/auth';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+import type { AuthUser } from '@/lib/auth/types';
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string().min(1, 'Password confirmation is required')
+  confirmPassword: z.string().min(1, 'Password confirmation is required'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
-  path: ["confirmPassword"]
-})
+  path: ['confirmPassword'],
+});
 
 type ChangePasswordFormData = z.infer<typeof changePasswordSchema>
 
@@ -27,43 +29,43 @@ interface ChangePasswordFormProps {
 }
 
 export function ChangePasswordForm({ user: _user, onSuccess, onError }: ChangePasswordFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    reset
+    reset,
   } = useForm<ChangePasswordFormData>({
-    resolver: zodResolver(changePasswordSchema)
-  })
+    resolver: zodResolver(changePasswordSchema),
+  });
 
   const onSubmit = async (data: ChangePasswordFormData) => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       const result = await changePasswordAction({
         currentPassword: data.currentPassword,
-        newPassword: data.newPassword
-      })
+        newPassword: data.newPassword,
+      });
 
       if (result.success) {
-        reset()
-        onSuccess()
+        reset();
+        onSuccess();
       } else {
-        onError(result.error || 'Password change failed')
+        onError(result.error || 'Password change failed');
       }
     } catch {
-      onError('An unexpected error occurred')
+      onError('An unexpected error occurred');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Change Password</h3>
-        
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label htmlFor="current-password" className="block text-sm font-medium text-gray-700">
@@ -135,5 +137,5 @@ export function ChangePasswordForm({ user: _user, onSuccess, onError }: ChangePa
         </form>
       </div>
     </div>
-  )
+  );
 }

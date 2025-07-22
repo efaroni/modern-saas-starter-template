@@ -1,4 +1,4 @@
-import { config } from '@/lib/config'
+import { config } from '@/lib/config';
 
 export default function ConfigTestPage() {
   return (
@@ -10,12 +10,12 @@ export default function ConfigTestPage() {
           {JSON.stringify(config, null, 2)}
         </pre>
       </div>
-      
+
       <div className="mt-4 bg-white p-4 rounded border">
         <h2 className="font-semibold mb-2">Database Connection Test</h2>
         <p>Database enabled: {config.database.enabled ? 'Yes' : 'No'}</p>
         <p>Database URL configured: {config.database.url ? 'Yes' : 'No'}</p>
       </div>
     </div>
-  )
+  );
 }

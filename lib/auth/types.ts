@@ -62,11 +62,11 @@ export interface AuthProvider {
   getAvailableOAuthProviders(): OAuthProvider[]
   isConfigured(): boolean
   getConfiguration(): AuthConfiguration
-  
+
   // Email verification methods
   sendEmailVerification(email: string): Promise<{ success: boolean; error?: string }>
   verifyEmailWithToken(token: string): Promise<{ success: boolean; error?: string }>
-  
+
   // Password reset methods
   sendPasswordReset(email: string): Promise<{ success: boolean; error?: string }>
   resetPasswordWithToken(token: string, newPassword: string): Promise<{ success: boolean; error?: string }>

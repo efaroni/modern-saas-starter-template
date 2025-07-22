@@ -1,8 +1,9 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Spinner } from '@/components/ui/spinner'
-import type { AuthUser } from '@/lib/auth/types'
+import { useState } from 'react';
+
+import { Spinner } from '@/components/ui/spinner';
+import type { AuthUser } from '@/lib/auth/types';
 
 interface OAuthButtonsProps {
   onSuccess: (user: AuthUser) => void
@@ -10,24 +11,24 @@ interface OAuthButtonsProps {
 }
 
 export function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
-  const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
-  const oauthProviders = [] // TODO: Implement OAuth server actions
+  const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+  const oauthProviders = []; // TODO: Implement OAuth server actions
 
   if (oauthProviders.length === 0) {
-    return null
+    return null;
   }
 
   const handleOAuthSignIn = async (providerId: string) => {
-    setLoadingProvider(providerId)
+    setLoadingProvider(providerId);
     try {
       // TODO: Implement OAuth server action
-      onError('OAuth sign-in not yet implemented')
-      setLoadingProvider(null)
+      onError('OAuth sign-in not yet implemented');
+      setLoadingProvider(null);
     } catch {
-      onError('An unexpected error occurred during OAuth sign in')
-      setLoadingProvider(null)
+      onError('An unexpected error occurred during OAuth sign in');
+      setLoadingProvider(null);
     }
-  }
+  };
 
   return (
     <div className="space-y-3">
@@ -39,7 +40,7 @@ export function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
           <span className="px-2 bg-white text-gray-500">Or continue with</span>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 gap-3">
         {oauthProviders.map((provider) => (
           <button
@@ -65,7 +66,7 @@ export function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
                 {provider.id === 'github' && '🐙'}
               </span>
             )}
-            {loadingProvider === provider.id 
+            {loadingProvider === provider.id
               ? `Signing in with ${provider.name}...`
               : `Sign in with ${provider.name}`
             }
@@ -73,5 +74,5 @@ export function OAuthButtons({ onSuccess, onError }: OAuthButtonsProps) {
         ))}
       </div>
     </div>
-  )
+  );
 }

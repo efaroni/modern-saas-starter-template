@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { type ReactNode } from 'react';
 
 export default function AuthLayout({
   children,
@@ -20,5 +20,5 @@ export default function AuthLayout({
         </div>
       </div>
     </div>
-  )
+  );
 }

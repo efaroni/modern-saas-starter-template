@@ -1,5 +1,5 @@
-import { ServiceApiKeyInput } from '@/components/services/service-api-key-input'
-import { config } from '@/lib/config'
+import { ServiceApiKeyInput } from '@/components/services/service-api-key-input';
+import { config } from '@/lib/config';
 
 export default function ConfigurationPage() {
   return (
@@ -7,7 +7,7 @@ export default function ConfigurationPage() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">API Configuration</h1>
         <p className="text-gray-600 mb-8">
-          Configure your service integrations and API keys. 
+          Configure your service integrations and API keys.
           {!config.database.enabled && (
             <span className="text-amber-600 ml-2">
               (Running in mock mode - database not connected)
@@ -21,7 +21,7 @@ export default function ConfigurationPage() {
           <p className="text-gray-600 mb-6">
             Configure your service integrations and API keys
           </p>
-          
+
           <div className="grid gap-6 lg:grid-cols-2">
             <ServiceApiKeyInput
               service="openai"
@@ -37,5 +37,5 @@ export default function ConfigurationPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

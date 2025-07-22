@@ -1,8 +1,10 @@
-import { signIn as nextAuthSignIn } from '@/lib/auth/auth'
-import { db } from '@/lib/db/server'
-import { users, accounts } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { AuthUser, OAuthResult } from './types'
+import { eq } from 'drizzle-orm';
+
+import { signIn as nextAuthSignIn } from '@/lib/auth/auth';
+import { users, accounts } from '@/lib/db/schema';
+import { db } from '@/lib/db/server';
+
+import { type AuthUser, type OAuthResult } from './types';
 
 export class OAuthService {
   /**
@@ -12,18 +14,18 @@ export class OAuthService {
     try {
       const result = await nextAuthSignIn(provider, {
         redirectTo: redirectTo || '/auth',
-      })
-      
+      });
+
       return {
         success: true,
-        redirectUrl: result as string
-      }
+        redirectUrl: result as string,
+      };
     } catch (error) {
-      console.error('OAuth sign-in error:', error)
+      console.error('OAuth sign-in error:', error);
       return {
         success: false,
-        error: 'OAuth sign-in failed'
-      }
+        error: 'OAuth sign-in failed',
+      };
     }
   }
 
@@ -36,10 +38,10 @@ export class OAuthService {
         .select()
         .from(users)
         .where(eq(users.id, userId))
-        .limit(1)
+        .limit(1);
 
       if (!user) {
-        return null
+        return null;
       }
 
       return {
@@ -47,11 +49,11 @@ export class OAuthService {
         email: user.email,
         name: user.name,
         image: user.image,
-        emailVerified: user.emailVerified
-      }
+        emailVerified: user.emailVerified,
+      };
     } catch (error) {
-      console.error('Failed to get OAuth user:', error)
-      return null
+      console.error('Failed to get OAuth user:', error);
+      return null;
     }
   }
 
@@ -63,7 +65,7 @@ export class OAuthService {
     provider: string,
     providerAccountId: string,
     accessToken?: string,
-    refreshToken?: string
+    refreshToken?: string,
   ): Promise<boolean> {
     try {
       // Check if account is already linked
@@ -71,10 +73,10 @@ export class OAuthService {
         .select()
         .from(accounts)
         .where(eq(accounts.providerAccountId, providerAccountId))
-        .limit(1)
+        .limit(1);
 
       if (existingAccount) {
-        return false // Account already linked
+        return false; // Account already linked
       }
 
       // Link the account
@@ -87,12 +89,12 @@ export class OAuthService {
           providerAccountId,
           access_token: accessToken,
           refresh_token: refreshToken,
-        })
+        });
 
-      return true
+      return true;
     } catch (error) {
-      console.error('Failed to link OAuth account:', error)
-      return false
+      console.error('Failed to link OAuth account:', error);
+      return false;
     }
   }
 
@@ -104,12 +106,12 @@ export class OAuthService {
       await db
         .delete(accounts)
         .where(eq(accounts.userId, userId))
-        .where(eq(accounts.provider, provider))
+        .where(eq(accounts.provider, provider));
 
-      return true
+      return true;
     } catch (error) {
-      console.error('Failed to unlink OAuth account:', error)
-      return false
+      console.error('Failed to unlink OAuth account:', error);
+      return false;
     }
   }
 
@@ -121,10 +123,10 @@ export class OAuthService {
       return await db
         .select()
         .from(accounts)
-        .where(eq(accounts.userId, userId))
+        .where(eq(accounts.userId, userId));
     } catch (error) {
-      console.error('Failed to get linked accounts:', error)
-      return []
+      console.error('Failed to get linked accounts:', error);
+      return [];
     }
   }
 
@@ -136,17 +138,17 @@ export class OAuthService {
       const query = db
         .select()
         .from(accounts)
-        .where(eq(accounts.userId, userId))
+        .where(eq(accounts.userId, userId));
 
       if (provider) {
-        query.where(eq(accounts.provider, provider))
+        query.where(eq(accounts.provider, provider));
       }
 
-      const accounts = await query.limit(1)
-      return accounts.length > 0
+      const accounts = await query.limit(1);
+      return accounts.length > 0;
     } catch (error) {
-      console.error('Failed to check OAuth account:', error)
-      return false
+      console.error('Failed to check OAuth account:', error);
+      return false;
     }
   }
 
@@ -156,7 +158,7 @@ export class OAuthService {
   async handleAccountConflict(
     email: string,
     provider: string,
-    providerAccountId: string
+    providerAccountId: string,
   ): Promise<{
     conflictResolved: boolean
     existingUserId?: string
@@ -168,13 +170,13 @@ export class OAuthService {
         .select()
         .from(users)
         .where(eq(users.email, email))
-        .limit(1)
+        .limit(1);
 
       if (!existingUser) {
         return {
           conflictResolved: true,
-          action: 'create'
-        }
+          action: 'create',
+        };
       }
 
       // Check if this OAuth account is already linked
@@ -183,41 +185,41 @@ export class OAuthService {
         .from(accounts)
         .where(eq(accounts.userId, existingUser.id))
         .where(eq(accounts.provider, provider))
-        .limit(1)
+        .limit(1);
 
       if (existingAccount) {
         return {
           conflictResolved: true,
           existingUserId: existingUser.id,
-          action: 'link'
-        }
+          action: 'link',
+        };
       }
 
       // Auto-link accounts with same email (if allowDangerousEmailAccountLinking is enabled)
       const linked = await this.linkAccount(
         existingUser.id,
         provider,
-        providerAccountId
-      )
+        providerAccountId,
+      );
 
       if (linked) {
         return {
           conflictResolved: true,
           existingUserId: existingUser.id,
-          action: 'link'
-        }
+          action: 'link',
+        };
       }
 
       return {
         conflictResolved: false,
-        action: 'error'
-      }
+        action: 'error',
+      };
     } catch (error) {
-      console.error('Failed to handle OAuth account conflict:', error)
+      console.error('Failed to handle OAuth account conflict:', error);
       return {
         conflictResolved: false,
-        action: 'error'
-      }
+        action: 'error',
+      };
     }
   }
 
@@ -229,13 +231,13 @@ export class OAuthService {
       {
         id: 'google',
         name: 'Google',
-        configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+        configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
       },
       {
         id: 'github',
         name: 'GitHub',
-        configured: !!(process.env.GITHUB_ID && process.env.GITHUB_SECRET)
-      }
-    ]
+        configured: !!(process.env.GITHUB_ID && process.env.GITHUB_SECRET),
+      },
+    ];
   }
 }

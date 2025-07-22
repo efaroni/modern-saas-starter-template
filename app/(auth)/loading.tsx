@@ -1,4 +1,4 @@
-import { Spinner } from '@/components/ui/spinner'
+import { Spinner } from '@/components/ui/spinner';
 
 export default function AuthLoading() {
   return (
@@ -8,5 +8,5 @@ export default function AuthLoading() {
         <p className="text-gray-600">Processing authentication...</p>
       </div>
     </div>
-  )
+  );
 }

@@ -1,8 +1,8 @@
-import { randomBytes } from 'crypto'
+import { randomBytes } from 'crypto';
 
 /**
  * Token generation utilities for consistent and secure token creation
- * 
+ *
  * SECURITY GUIDELINES:
  * 1. Always use crypto.randomBytes() for cryptographically secure tokens
  * 2. Use appropriate security levels based on token purpose:
@@ -36,79 +36,79 @@ export enum TokenSecurityLevel {
 const TOKEN_CONFIGS: Record<TokenSecurityLevel, TokenOptions> = {
   [TokenSecurityLevel.LOW]: {
     length: 8,
-    charset: 'alphanumeric'
+    charset: 'alphanumeric',
   },
   [TokenSecurityLevel.MEDIUM]: {
     length: 32,
-    charset: 'hex'
+    charset: 'hex',
   },
   [TokenSecurityLevel.HIGH]: {
     length: 64,
-    charset: 'hex'
+    charset: 'hex',
   },
   [TokenSecurityLevel.CRITICAL]: {
     length: 128,
-    charset: 'hex'
-  }
-}
+    charset: 'hex',
+  },
+};
 
 /**
  * Generates a cryptographically secure random token
  */
 export function generateSecureToken(
   securityLevel: TokenSecurityLevel = TokenSecurityLevel.MEDIUM,
-  options: Partial<TokenOptions> = {}
+  options: Partial<TokenOptions> = {},
 ): string {
-  const config = { ...TOKEN_CONFIGS[securityLevel], ...options }
-  
-  let token: string
-  
+  const config = { ...TOKEN_CONFIGS[securityLevel], ...options };
+
+  let token: string;
+
   switch (config.charset) {
     case 'hex':
-      token = randomBytes(config.length! / 2).toString('hex')
-      break
+      token = randomBytes(config.length! / 2).toString('hex');
+      break;
     case 'base64':
       token = randomBytes(config.length! * 3 / 4).toString('base64')
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
-        .replace(/=/g, '')
-      break
+        .replace(/=/g, '');
+      break;
     case 'base62':
-      token = generateBase62Token(config.length!)
-      break
+      token = generateBase62Token(config.length!);
+      break;
     case 'alphanumeric':
     default:
-      token = generateAlphanumericToken(config.length!)
-      break
+      token = generateAlphanumericToken(config.length!);
+      break;
   }
-  
+
   // Add timestamp if requested
   if (config.includeTimestamp) {
-    const timestamp = Date.now().toString(36)
-    token = `${timestamp}_${token}`
+    const timestamp = Date.now().toString(36);
+    token = `${timestamp}_${token}`;
   }
-  
+
   // Add prefix if requested
   if (config.prefix) {
-    token = `${config.prefix}_${token}`
+    token = `${config.prefix}_${token}`;
   }
-  
-  return token
+
+  return token;
 }
 
 /**
  * Generates a base62 token (alphanumeric without special characters)
  */
 function generateBase62Token(length: number): string {
-  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  let token = ''
-  
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+
   for (let i = 0; i < length; i++) {
-    const randomByte = randomBytes(1)[0]
-    token += charset[randomByte % charset.length]
+    const randomByte = randomBytes(1)[0];
+    token += charset[randomByte % charset.length];
   }
-  
-  return token
+
+  return token;
 }
 
 /**
@@ -116,14 +116,14 @@ function generateBase62Token(length: number): string {
  * ⚠️ SECURITY WARNING: Uses Math.random() - avoid for security-critical operations
  */
 function generateAlphanumericToken(length: number): string {
-  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  let token = ''
-  
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+
   for (let i = 0; i < length; i++) {
-    token += charset.charAt(Math.floor(Math.random() * charset.length))
+    token += charset.charAt(Math.floor(Math.random() * charset.length));
   }
-  
-  return token
+
+  return token;
 }
 
 /**
@@ -133,70 +133,70 @@ export const TokenGenerators = {
   /**
    * For email verification tokens (high security, 64 chars)
    */
-  emailVerification: (): string => 
+  emailVerification: (): string =>
     generateSecureToken(TokenSecurityLevel.HIGH, { prefix: 'email_verification' }),
-  
+
   /**
    * For password reset tokens (high security, 64 chars)
    */
-  passwordReset: (): string => 
+  passwordReset: (): string =>
     generateSecureToken(TokenSecurityLevel.HIGH, { prefix: 'password_reset' }),
-  
+
   /**
    * For session tokens (medium security, 32 chars)
    */
-  session: (): string => 
+  session: (): string =>
     generateSecureToken(TokenSecurityLevel.MEDIUM),
-  
+
   /**
    * For API keys (critical security, 128 chars)
    */
-  apiKey: (): string => 
+  apiKey: (): string =>
     generateSecureToken(TokenSecurityLevel.CRITICAL, { prefix: 'sk' }),
-  
+
   /**
    * For CSRF tokens (medium security, 32 chars)
    */
-  csrf: (): string => 
+  csrf: (): string =>
     generateSecureToken(TokenSecurityLevel.MEDIUM, { prefix: 'csrf' }),
-  
+
   /**
    * For temporary codes (low security, 8 chars, alphanumeric)
    */
-  tempCode: (): string => 
+  tempCode: (): string =>
     generateSecureToken(TokenSecurityLevel.LOW),
-  
+
   /**
    * For test tokens (low security, predictable for testing)
    */
   test: (prefix?: string): string => {
-    const timestamp = Date.now().toString(36)
-    const random = Math.random().toString(36).substring(2, 8)
-    return prefix ? `${prefix}_${timestamp}_${random}` : `${timestamp}_${random}`
-  }
-}
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    return prefix ? `${prefix}_${timestamp}_${random}` : `${timestamp}_${random}`;
+  },
+};
 
 /**
  * Validates token format and structure
  */
 export function validateTokenFormat(token: string, expectedPrefix?: string): boolean {
   if (!token || typeof token !== 'string') {
-    return false
+    return false;
   }
-  
+
   // Check minimum length
   if (token.length < 8) {
-    return false
+    return false;
   }
-  
+
   // Check prefix if expected
   if (expectedPrefix && !token.startsWith(`${expectedPrefix}_`)) {
-    return false
+    return false;
   }
-  
+
   // Check for valid characters (alphanumeric, hyphens, underscores)
-  const validChars = /^[a-zA-Z0-9_-]+$/
-  return validChars.test(token)
+  const validChars = /^[a-zA-Z0-9_-]+$/;
+  return validChars.test(token);
 }
 
 /**
@@ -204,11 +204,11 @@ export function validateTokenFormat(token: string, expectedPrefix?: string): boo
  */
 export function extractTokenPrefix(token: string): string | null {
   if (!token || typeof token !== 'string') {
-    return null
+    return null;
   }
-  
-  const parts = token.split('_')
-  return parts.length > 1 ? parts[0] : null
+
+  const parts = token.split('_');
+  return parts.length > 1 ? parts[0] : null;
 }
 
 /**
@@ -218,10 +218,10 @@ export function generateCustomToken(options: TokenOptions): string {
   const defaultOptions: TokenOptions = {
     length: 32,
     charset: 'hex',
-    includeTimestamp: false
-  }
-  
-  const mergedOptions = { ...defaultOptions, ...options }
-  
-  return generateSecureToken(TokenSecurityLevel.MEDIUM, mergedOptions)
+    includeTimestamp: false,
+  };
+
+  const mergedOptions = { ...defaultOptions, ...options };
+
+  return generateSecureToken(TokenSecurityLevel.MEDIUM, mergedOptions);
 }

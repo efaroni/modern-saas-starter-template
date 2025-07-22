@@ -1,5 +1,6 @@
-import type { SessionData } from './types'
-import { encrypt, decrypt } from '@/lib/encryption'
+import { encrypt, decrypt } from '@/lib/encryption';
+
+import type { SessionData } from './types';
 
 export interface SessionStorage {
   getSession(): Promise<SessionData | null>
@@ -9,60 +10,60 @@ export interface SessionStorage {
 }
 
 export class LocalSessionStorage implements SessionStorage {
-  private readonly key = 'auth_session'
+  private readonly key = 'auth_session';
 
   isAvailable(): boolean {
     try {
-      return typeof window !== 'undefined' && window.localStorage !== undefined
+      return typeof window !== 'undefined' && window.localStorage !== undefined;
     } catch {
-      return false
+      return false;
     }
   }
 
   async getSession(): Promise<SessionData | null> {
     if (!this.isAvailable()) {
-      return null
+      return null;
     }
 
     try {
-      const encryptedSessionData = localStorage.getItem(this.key)
+      const encryptedSessionData = localStorage.getItem(this.key);
       if (!encryptedSessionData) {
-        return null
+        return null;
       }
 
       // Decrypt the session data before parsing
-      const sessionData = decrypt(encryptedSessionData)
-      const session = JSON.parse(sessionData) as SessionData
-      
+      const sessionData = decrypt(encryptedSessionData);
+      const session = JSON.parse(sessionData) as SessionData;
+
       // Restore Date objects from JSON serialization
       if (session.user?.emailVerified && typeof session.user.emailVerified === 'string') {
-        session.user.emailVerified = new Date(session.user.emailVerified)
-      }
-      
-      // Check if session is expired
-      if (session.expires && new Date(session.expires).getTime() < Date.now()) {
-        await this.removeSession()
-        return null
+        session.user.emailVerified = new Date(session.user.emailVerified);
       }
 
-      return session
+      // Check if session is expired
+      if (session.expires && new Date(session.expires).getTime() < Date.now()) {
+        await this.removeSession();
+        return null;
+      }
+
+      return session;
     } catch {
       // If parsing fails, remove the corrupted session
-      await this.removeSession()
-      return null
+      await this.removeSession();
+      return null;
     }
   }
 
   async setSession(session: SessionData): Promise<void> {
     if (!this.isAvailable()) {
-      return
+      return;
     }
 
     try {
       // Encrypt the session data before storing
-      const sessionData = JSON.stringify(session)
-      const encryptedSessionData = encrypt(sessionData)
-      localStorage.setItem(this.key, encryptedSessionData)
+      const sessionData = JSON.stringify(session);
+      const encryptedSessionData = encrypt(sessionData);
+      localStorage.setItem(this.key, encryptedSessionData);
     } catch {
       // Storage might be full or disabled, fail silently
     }
@@ -70,11 +71,11 @@ export class LocalSessionStorage implements SessionStorage {
 
   async removeSession(): Promise<void> {
     if (!this.isAvailable()) {
-      return
+      return;
     }
 
     try {
-      localStorage.removeItem(this.key)
+      localStorage.removeItem(this.key);
     } catch {
       // Fail silently
     }
@@ -82,37 +83,37 @@ export class LocalSessionStorage implements SessionStorage {
 }
 
 export class MemorySessionStorage implements SessionStorage {
-  private session: SessionData | null = null
+  private session: SessionData | null = null;
 
   isAvailable(): boolean {
-    return true
+    return true;
   }
 
   async getSession(): Promise<SessionData | null> {
     // Check if session is expired
     if (this.session?.expires && new Date(this.session.expires).getTime() < Date.now()) {
-      this.session = null
-      return null
+      this.session = null;
+      return null;
     }
 
-    return this.session
+    return this.session;
   }
 
   async setSession(session: SessionData): Promise<void> {
-    this.session = session
+    this.session = session;
   }
 
   async removeSession(): Promise<void> {
-    this.session = null
+    this.session = null;
   }
 }
 
 export function createSessionStorage(): SessionStorage {
   // Use localStorage if available, otherwise fall back to memory
-  const localStorage = new LocalSessionStorage()
+  const localStorage = new LocalSessionStorage();
   if (localStorage.isAvailable()) {
-    return localStorage
+    return localStorage;
   }
-  
-  return new MemorySessionStorage()
+
+  return new MemorySessionStorage();
 }

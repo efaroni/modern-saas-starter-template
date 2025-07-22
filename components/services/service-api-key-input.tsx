@@ -1,21 +1,23 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { createUserApiKey } from '@/app/actions/user-api-keys'
-import { useApiKeyValidation } from '@/lib/hooks/useApiKeyValidation'
-import { Input } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
-import { API_KEY_VALIDATION } from '@/lib/constants/validation'
+import { useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { createUserApiKey } from '@/app/actions/user-api-keys';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+import { API_KEY_VALIDATION } from '@/lib/constants/validation';
+import { useApiKeyValidation } from '@/lib/hooks/useApiKeyValidation';
 
 const apiKeySchema = z.object({
   key: z.string()
     .min(1, 'API key is required')
     .refine(val => val === val.trim(), 'API key cannot have leading or trailing whitespace')
-    .refine(val => val.length >= API_KEY_VALIDATION.MIN_LENGTH, `API key must be at least ${API_KEY_VALIDATION.MIN_LENGTH} characters`)
-})
+    .refine(val => val.length >= API_KEY_VALIDATION.MIN_LENGTH, `API key must be at least ${API_KEY_VALIDATION.MIN_LENGTH} characters`),
+});
 
 type ApiKeyFormData = z.infer<typeof apiKeySchema>
 
@@ -26,8 +28,8 @@ interface ServiceApiKeyInputProps {
 }
 
 export function ServiceApiKeyInput({ service, title, description }: ServiceApiKeyInputProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const {
     isValidating,
     message,
@@ -35,7 +37,7 @@ export function ServiceApiKeyInput({ service, title, description }: ServiceApiKe
     hasValidatedKey,
     validateKey,
     handlePaste,
-  } = useApiKeyValidation({ service, title })
+  } = useApiKeyValidation({ service, title });
 
   const {
     register,
@@ -44,32 +46,30 @@ export function ServiceApiKeyInput({ service, title, description }: ServiceApiKe
     formState: { errors },
   } = useForm<ApiKeyFormData>({
     resolver: zodResolver(apiKeySchema),
-  })
+  });
 
   const onSubmit = async (data: ApiKeyFormData) => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       const result = await createUserApiKey({
         provider: service,
         privateKey: data.key,
-      })
-      
+      });
+
       if (result.success) {
-        reset()
+        reset();
         // Success handled by the validation hook
       } else {
         // Error handling could be improved here
-        console.error('Failed to save API key:', result.error)
+        console.error('Failed to save API key:', result.error);
       }
     } catch (error) {
-      console.error('Unexpected error saving API key:', error)
+      console.error('Unexpected error saving API key:', error);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
-
-
+  };
 
   return (
     <div className="bg-white p-6 rounded-lg border">
@@ -86,7 +86,7 @@ export function ServiceApiKeyInput({ service, title, description }: ServiceApiKe
           <div className="flex gap-2 items-center">
             <Input
               {...register('key', {
-                onChange: (e) => validateKey(e.target.value)
+                onChange: (e) => validateKey(e.target.value),
               })}
               type="password"
               id={`${service}-key`}
@@ -101,14 +101,14 @@ export function ServiceApiKeyInput({ service, title, description }: ServiceApiKe
               placeholder="Enter your API key..."
               onPaste={handlePaste}
             />
-            
+
             {/* Validation spinner */}
             {isValidating && (
               <div className="w-6 h-6 flex items-center justify-center">
                 <Spinner size="sm" />
               </div>
             )}
-            
+
             {hasValidatedKey && (
               <button
                 type="submit"
@@ -141,5 +141,5 @@ export function ServiceApiKeyInput({ service, title, description }: ServiceApiKe
         )}
       </form>
     </div>
-  )
+  );
 }

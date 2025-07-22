@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   variant?: 'default' | 'error' | 'success'
@@ -10,8 +10,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const variantClasses = {
       default: 'border-gray-300 focus:ring-blue-500',
       error: 'border-red-500 focus:ring-red-500',
-      success: 'border-green-500 focus:ring-green-500'
-    }
+      success: 'border-green-500 focus:ring-green-500',
+    };
 
     return (
       <input
@@ -19,8 +19,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         className={`px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${variantClasses[variant]} ${className}`}
         {...props}
       />
-    )
-  }
-)
+    );
+  },
+);
 
-Input.displayName = 'Input'
+Input.displayName = 'Input';

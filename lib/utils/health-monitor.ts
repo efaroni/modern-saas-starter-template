@@ -1,6 +1,6 @@
-import { ErrorHandler } from '@/lib/utils/error-handler'
-import { getDatabasePool } from '@/lib/db/connection-pool'
-import { authLogger } from '@/lib/auth/logger'
+import { authLogger } from '@/lib/auth/logger';
+import { getDatabasePool } from '@/lib/db/connection-pool';
+import { ErrorHandler } from '@/lib/utils/error-handler';
 
 export interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy'
@@ -39,54 +39,54 @@ export interface HealthAlert {
 }
 
 export class HealthMonitor {
-  private static instance: HealthMonitor
-  private alerts: HealthAlert[] = []
-  private readonly maxAlerts = 100
+  private static instance: HealthMonitor;
+  private alerts: HealthAlert[] = [];
+  private readonly maxAlerts = 100;
 
   static getInstance(): HealthMonitor {
     if (!HealthMonitor.instance) {
-      HealthMonitor.instance = new HealthMonitor()
+      HealthMonitor.instance = new HealthMonitor();
     }
-    return HealthMonitor.instance
+    return HealthMonitor.instance;
   }
 
   /**
    * Perform comprehensive health check
    */
   async checkHealth(): Promise<HealthStatus> {
-    const startTime = Date.now()
-    
+    const startTime = Date.now();
+
     // Check all services
     const [database, errorHandler, logger, memory, process] = await Promise.allSettled([
       this.checkDatabaseHealth(),
       this.checkErrorHandlerHealth(),
       this.checkLoggerHealth(),
       this.checkMemoryHealth(),
-      this.checkProcessHealth()
-    ])
+      this.checkProcessHealth(),
+    ]);
 
-    const responseTime = Date.now() - startTime
+    const responseTime = Date.now() - startTime;
 
     const services = {
       database: this.getServiceResult(database, 'database'),
       errorHandler: this.getServiceResult(errorHandler, 'errorHandler'),
       logger: this.getServiceResult(logger, 'logger'),
       memory: this.getServiceResult(memory, 'memory'),
-      process: this.getServiceResult(process, 'process')
-    }
+      process: this.getServiceResult(process, 'process'),
+    };
 
     // Calculate overall status
-    const overallStatus = this.calculateOverallStatus(services)
+    const overallStatus = this.calculateOverallStatus(services);
 
     // Get metrics
     const metrics = {
       errorRates: ErrorHandler.getInstance().getErrorMetrics(),
       responseTime,
-      memoryUsage: process.memoryUsage()
-    }
+      memoryUsage: process.memoryUsage(),
+    };
 
     // Update alerts based on health check results
-    this.updateAlerts(services, metrics)
+    this.updateAlerts(services, metrics);
 
     return {
       status: overallStatus,
@@ -95,20 +95,20 @@ export class HealthMonitor {
       uptime: process.uptime(),
       services,
       metrics,
-      alerts: this.getRecentAlerts()
-    }
+      alerts: this.getRecentAlerts(),
+    };
   }
 
   /**
    * Check database health
    */
   private async checkDatabaseHealth(): Promise<ServiceHealth> {
-    const startTime = Date.now()
-    
+    const startTime = Date.now();
+
     try {
-      const dbPool = getDatabasePool()
-      const health = await dbPool.getHealth()
-      const responseTime = Date.now() - startTime
+      const dbPool = getDatabasePool();
+      const health = await dbPool.getHealth();
+      const responseTime = Date.now() - startTime;
 
       if (!health.healthy) {
         return {
@@ -116,8 +116,8 @@ export class HealthMonitor {
           responseTime,
           lastCheck: new Date().toISOString(),
           error: 'Database connection failed',
-          details: health
-        }
+          details: health,
+        };
       }
 
       // Check for performance issues
@@ -127,23 +127,23 @@ export class HealthMonitor {
           responseTime,
           lastCheck: new Date().toISOString(),
           error: 'Slow database performance',
-          details: health
-        }
+          details: health,
+        };
       }
 
       return {
         status: 'healthy',
         responseTime,
         lastCheck: new Date().toISOString(),
-        details: health
-      }
+        details: health,
+      };
     } catch (error) {
       return {
         status: 'unhealthy',
         responseTime: Date.now() - startTime,
         lastCheck: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown database error'
-      }
+        error: error instanceof Error ? error.message : 'Unknown database error',
+      };
     }
   }
 
@@ -151,16 +151,16 @@ export class HealthMonitor {
    * Check error handler health
    */
   private async checkErrorHandlerHealth(): Promise<ServiceHealth> {
-    const startTime = Date.now()
-    
+    const startTime = Date.now();
+
     try {
-      const errorHandler = ErrorHandler.getInstance()
-      const metrics = errorHandler.getErrorMetrics()
-      const responseTime = Date.now() - startTime
+      const errorHandler = ErrorHandler.getInstance();
+      const metrics = errorHandler.getErrorMetrics();
+      const responseTime = Date.now() - startTime;
 
       // Check error rates
-      const totalErrors = Object.values(metrics).reduce((sum, count) => sum + count, 0)
-      const criticalErrors = metrics['security_critical'] || 0
+      const totalErrors = Object.values(metrics).reduce((sum, count) => sum + count, 0);
+      const criticalErrors = metrics['security_critical'] || 0;
 
       if (criticalErrors > 0) {
         return {
@@ -168,8 +168,8 @@ export class HealthMonitor {
           responseTime,
           lastCheck: new Date().toISOString(),
           error: `${criticalErrors} critical errors detected`,
-          details: metrics
-        }
+          details: metrics,
+        };
       }
 
       if (totalErrors > 50) {
@@ -178,23 +178,23 @@ export class HealthMonitor {
           responseTime,
           lastCheck: new Date().toISOString(),
           error: `High error rate: ${totalErrors} errors`,
-          details: metrics
-        }
+          details: metrics,
+        };
       }
 
       return {
         status: 'healthy',
         responseTime,
         lastCheck: new Date().toISOString(),
-        details: metrics
-      }
+        details: metrics,
+      };
     } catch (error) {
       return {
         status: 'unhealthy',
         responseTime: Date.now() - startTime,
         lastCheck: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Error handler check failed'
-      }
+        error: error instanceof Error ? error.message : 'Error handler check failed',
+      };
     }
   }
 
@@ -202,31 +202,31 @@ export class HealthMonitor {
    * Check logger health
    */
   private async checkLoggerHealth(): Promise<ServiceHealth> {
-    const startTime = Date.now()
-    
+    const startTime = Date.now();
+
     try {
       // Test logger by creating a test log entry
       authLogger.logAuthEvent({
         type: 'health_check',
         success: true,
         timestamp: new Date(),
-        metadata: { test: true }
-      })
+        metadata: { test: true },
+      });
 
-      const responseTime = Date.now() - startTime
+      const responseTime = Date.now() - startTime;
 
       return {
         status: 'healthy',
         responseTime,
-        lastCheck: new Date().toISOString()
-      }
+        lastCheck: new Date().toISOString(),
+      };
     } catch (error) {
       return {
         status: 'unhealthy',
         responseTime: Date.now() - startTime,
         lastCheck: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Logger check failed'
-      }
+        error: error instanceof Error ? error.message : 'Logger check failed',
+      };
     }
   }
 
@@ -234,16 +234,16 @@ export class HealthMonitor {
    * Check memory health
    */
   private async checkMemoryHealth(): Promise<ServiceHealth> {
-    const startTime = Date.now()
-    
+    const startTime = Date.now();
+
     try {
-      const memoryUsage = process.memoryUsage()
-      const responseTime = Date.now() - startTime
+      const memoryUsage = process.memoryUsage();
+      const responseTime = Date.now() - startTime;
 
       // Check memory usage (in MB)
-      const heapUsedMB = memoryUsage.heapUsed / 1024 / 1024
-      const heapTotalMB = memoryUsage.heapTotal / 1024 / 1024
-      const memoryUtilization = heapUsedMB / heapTotalMB
+      const heapUsedMB = memoryUsage.heapUsed / 1024 / 1024;
+      const heapTotalMB = memoryUsage.heapTotal / 1024 / 1024;
+      const memoryUtilization = heapUsedMB / heapTotalMB;
 
       if (memoryUtilization > 0.9) {
         return {
@@ -254,9 +254,9 @@ export class HealthMonitor {
           details: {
             heapUsedMB: Math.round(heapUsedMB),
             heapTotalMB: Math.round(heapTotalMB),
-            utilization: memoryUtilization
-          }
-        }
+            utilization: memoryUtilization,
+          },
+        };
       }
 
       if (memoryUtilization > 0.7) {
@@ -268,9 +268,9 @@ export class HealthMonitor {
           details: {
             heapUsedMB: Math.round(heapUsedMB),
             heapTotalMB: Math.round(heapTotalMB),
-            utilization: memoryUtilization
-          }
-        }
+            utilization: memoryUtilization,
+          },
+        };
       }
 
       return {
@@ -280,16 +280,16 @@ export class HealthMonitor {
         details: {
           heapUsedMB: Math.round(heapUsedMB),
           heapTotalMB: Math.round(heapTotalMB),
-          utilization: memoryUtilization
-        }
-      }
+          utilization: memoryUtilization,
+        },
+      };
     } catch (error) {
       return {
         status: 'unhealthy',
         responseTime: Date.now() - startTime,
         lastCheck: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Memory check failed'
-      }
+        error: error instanceof Error ? error.message : 'Memory check failed',
+      };
     }
   }
 
@@ -297,11 +297,11 @@ export class HealthMonitor {
    * Check process health
    */
   private async checkProcessHealth(): Promise<ServiceHealth> {
-    const startTime = Date.now()
-    
+    const startTime = Date.now();
+
     try {
-      const uptime = process.uptime()
-      const responseTime = Date.now() - startTime
+      const uptime = process.uptime();
+      const responseTime = Date.now() - startTime;
 
       // Check if process has been running for a reasonable time
       if (uptime < 10) {
@@ -310,23 +310,23 @@ export class HealthMonitor {
           responseTime,
           lastCheck: new Date().toISOString(),
           error: 'Process recently started',
-          details: { uptime }
-        }
+          details: { uptime },
+        };
       }
 
       return {
         status: 'healthy',
         responseTime,
         lastCheck: new Date().toISOString(),
-        details: { uptime }
-      }
+        details: { uptime },
+      };
     } catch (error) {
       return {
         status: 'unhealthy',
         responseTime: Date.now() - startTime,
         lastCheck: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Process check failed'
-      }
+        error: error instanceof Error ? error.message : 'Process check failed',
+      };
     }
   }
 
@@ -335,34 +335,34 @@ export class HealthMonitor {
    */
   private getServiceResult(
     result: PromiseSettledResult<ServiceHealth>,
-    serviceName: string
+    serviceName: string,
   ): ServiceHealth {
     if (result.status === 'fulfilled') {
-      return result.value
+      return result.value;
     }
 
     return {
       status: 'unhealthy',
       lastCheck: new Date().toISOString(),
-      error: `Health check failed for ${serviceName}: ${result.reason}`
-    }
+      error: `Health check failed for ${serviceName}: ${result.reason}`,
+    };
   }
 
   /**
    * Calculate overall status from service statuses
    */
   private calculateOverallStatus(services: Record<string, ServiceHealth>): 'healthy' | 'degraded' | 'unhealthy' {
-    const statuses = Object.values(services).map(service => service.status)
-    
+    const statuses = Object.values(services).map(service => service.status);
+
     if (statuses.some(status => status === 'unhealthy')) {
-      return 'unhealthy'
+      return 'unhealthy';
     }
-    
+
     if (statuses.some(status => status === 'degraded')) {
-      return 'degraded'
+      return 'degraded';
     }
-    
-    return 'healthy'
+
+    return 'healthy';
   }
 
   /**
@@ -370,9 +370,9 @@ export class HealthMonitor {
    */
   private updateAlerts(
     services: Record<string, ServiceHealth>,
-    metrics: { errorRates: Record<string, number>; responseTime: number; memoryUsage: NodeJS.MemoryUsage }
+    metrics: { errorRates: Record<string, number>; responseTime: number; memoryUsage: NodeJS.MemoryUsage },
   ): void {
-    const now = new Date().toISOString()
+    const now = new Date().toISOString();
 
     // Check for service alerts
     Object.entries(services).forEach(([serviceName, service]) => {
@@ -382,18 +382,18 @@ export class HealthMonitor {
           message: `Service ${serviceName} is unhealthy: ${service.error}`,
           timestamp: now,
           service: serviceName,
-          details: service.details
-        })
+          details: service.details,
+        });
       } else if (service.status === 'degraded') {
         this.addAlert({
           severity: 'medium',
           message: `Service ${serviceName} is degraded: ${service.error}`,
           timestamp: now,
           service: serviceName,
-          details: service.details
-        })
+          details: service.details,
+        });
       }
-    })
+    });
 
     // Check for performance alerts
     if (metrics.responseTime > 5000) {
@@ -402,20 +402,20 @@ export class HealthMonitor {
         message: `Slow health check response: ${metrics.responseTime}ms`,
         timestamp: now,
         service: 'health_monitor',
-        details: { responseTime: metrics.responseTime }
-      })
+        details: { responseTime: metrics.responseTime },
+      });
     }
 
     // Check for high error rates
-    const totalErrors = Object.values(metrics.errorRates).reduce((sum, count) => sum + count, 0)
+    const totalErrors = Object.values(metrics.errorRates).reduce((sum, count) => sum + count, 0);
     if (totalErrors > 100) {
       this.addAlert({
         severity: 'critical',
         message: `High error rate: ${totalErrors} errors`,
         timestamp: now,
         service: 'error_handler',
-        details: metrics.errorRates
-      })
+        details: metrics.errorRates,
+      });
     }
   }
 
@@ -423,11 +423,11 @@ export class HealthMonitor {
    * Add alert to the alerts list
    */
   private addAlert(alert: HealthAlert): void {
-    this.alerts.unshift(alert)
-    
+    this.alerts.unshift(alert);
+
     // Keep only the most recent alerts
     if (this.alerts.length > this.maxAlerts) {
-      this.alerts = this.alerts.slice(0, this.maxAlerts)
+      this.alerts = this.alerts.slice(0, this.maxAlerts);
     }
   }
 
@@ -435,21 +435,21 @@ export class HealthMonitor {
    * Get recent alerts
    */
   private getRecentAlerts(limit: number = 10): HealthAlert[] {
-    return this.alerts.slice(0, limit)
+    return this.alerts.slice(0, limit);
   }
 
   /**
    * Get alerts by severity
    */
   getAlertsBySeverity(severity: 'low' | 'medium' | 'high' | 'critical'): HealthAlert[] {
-    return this.alerts.filter(alert => alert.severity === severity)
+    return this.alerts.filter(alert => alert.severity === severity);
   }
 
   /**
    * Clear all alerts
    */
   clearAlerts(): void {
-    this.alerts = []
+    this.alerts = [];
   }
 
   /**
@@ -467,15 +467,15 @@ export class HealthMonitor {
       uptime: process.uptime(),
       version: process.env.npm_package_version || '1.0.0',
       platform: process.platform,
-      nodeVersion: process.version
-    }
+      nodeVersion: process.version,
+    };
   }
 }
 
 /**
  * Default health monitor instance
  */
-export const healthMonitor = HealthMonitor.getInstance()
+export const healthMonitor = HealthMonitor.getInstance();
 
 /**
  * Express middleware for health check endpoint
@@ -485,16 +485,16 @@ export async function healthCheckMiddleware(): Promise<{
   body: HealthStatus
 }> {
   try {
-    const healthStatus = await healthMonitor.checkHealth()
-    
+    const healthStatus = await healthMonitor.checkHealth();
+
     // Return appropriate HTTP status code
-    const statusCode = healthStatus.status === 'healthy' ? 200 : 
-                      healthStatus.status === 'degraded' ? 200 : 503
-    
+    const statusCode = healthStatus.status === 'healthy' ? 200 :
+                      healthStatus.status === 'degraded' ? 200 : 503;
+
     return {
       status: statusCode,
-      body: healthStatus
-    }
+      body: healthStatus,
+    };
   } catch (error) {
     return {
       status: 503,
@@ -508,21 +508,21 @@ export async function healthCheckMiddleware(): Promise<{
           errorHandler: { status: 'unhealthy', lastCheck: new Date().toISOString(), error: 'Health check failed' },
           logger: { status: 'unhealthy', lastCheck: new Date().toISOString(), error: 'Health check failed' },
           memory: { status: 'unhealthy', lastCheck: new Date().toISOString(), error: 'Health check failed' },
-          process: { status: 'unhealthy', lastCheck: new Date().toISOString(), error: 'Health check failed' }
+          process: { status: 'unhealthy', lastCheck: new Date().toISOString(), error: 'Health check failed' },
         },
         metrics: {
           errorRates: {},
           responseTime: 0,
-          memoryUsage: process.memoryUsage()
+          memoryUsage: process.memoryUsage(),
         },
         alerts: [{
           severity: 'critical',
           message: 'Health check system failure',
           timestamp: new Date().toISOString(),
           service: 'health_monitor',
-          details: { error: error instanceof Error ? error.message : String(error) }
-        }]
-      }
-    }
+          details: { error: error instanceof Error ? error.message : String(error) },
+        }],
+      },
+    };
   }
 }

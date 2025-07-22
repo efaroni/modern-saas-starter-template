@@ -1,7 +1,8 @@
-'use client'
+'use client';
 
-import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { useEffect } from 'react';
+
+import { Button } from '@/components/ui/button';
 
 export default function AuthError({
   error,
@@ -11,13 +12,13 @@ export default function AuthError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error('Auth error:', error)
-    
+    console.error('Auth error:', error);
+
     // Log authentication errors as they might be security-related
     if (process.env.NODE_ENV === 'production') {
       // Example: Sentry.captureException(error, { tags: { section: 'auth' } })
     }
-  }, [error])
+  }, [error]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -30,7 +31,7 @@ export default function AuthError({
             We encountered an issue with authentication. Please try again.
           </p>
         </div>
-        
+
         <div className="space-y-4">
           <Button
             onClick={reset}
@@ -38,7 +39,7 @@ export default function AuthError({
           >
             Try again
           </Button>
-          
+
           <Button
             variant="outline"
             onClick={() => window.location.href = '/auth'}
@@ -47,7 +48,7 @@ export default function AuthError({
             Back to login
           </Button>
         </div>
-        
+
         {process.env.NODE_ENV === 'development' && (
           <details className="mt-6 text-left">
             <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
@@ -60,5 +61,5 @@ export default function AuthError({
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
+import { useState } from 'react';
 
 interface EmailVerificationProps {
   email: string
@@ -8,13 +8,13 @@ interface EmailVerificationProps {
 }
 
 export function EmailVerification({ email, onVerificationSent }: EmailVerificationProps) {
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-  const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const sendVerificationEmail = async () => {
-    setLoading(true)
-    setMessage('')
+    setLoading(true);
+    setMessage('');
 
     try {
       const response = await fetch('/api/auth/send-verification', {
@@ -23,23 +23,23 @@ export function EmailVerification({ email, onVerificationSent }: EmailVerificati
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.success) {
-        setSuccess(true)
-        setMessage('Verification email sent successfully! Please check your inbox.')
-        onVerificationSent?.()
+        setSuccess(true);
+        setMessage('Verification email sent successfully! Please check your inbox.');
+        onVerificationSent?.();
       } else {
-        setMessage(data.error || 'Failed to send verification email')
+        setMessage(data.error || 'Failed to send verification email');
       }
     } catch {
-      setMessage('An error occurred while sending verification email')
+      setMessage('An error occurred while sending verification email');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
@@ -78,5 +78,5 @@ export function EmailVerification({ email, onVerificationSent }: EmailVerificati
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,10 +1,12 @@
-'use client'
+'use client';
 
-import { useState, useRef } from 'react'
-import Image from 'next/image'
+import { useState, useRef } from 'react';
+
+import Image from 'next/image';
+
 // TODO: Implement avatar upload with server actions
-import { Spinner } from '@/components/ui/spinner'
-import type { AuthUser } from '@/lib/auth/types'
+import { Spinner } from '@/components/ui/spinner';
+import type { AuthUser } from '@/lib/auth/types';
 
 interface AvatarUploadProps {
   user: AuthUser
@@ -13,31 +15,31 @@ interface AvatarUploadProps {
 }
 
 export function AvatarUpload({ user, onError }: AvatarUploadProps) {
-  const [isUploading, _setIsUploading] = useState(false)
-  const [isDeleting, _setIsDeleting] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, _setIsUploading] = useState(false);
+  const [isDeleting, _setIsDeleting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const file = event.target.files?.[0];
+    if (!file) return;
 
     // TODO: Implement avatar upload server action
-    onError('Avatar upload not yet implemented')
-    
+    onError('Avatar upload not yet implemented');
+
     // Reset file input
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+      fileInputRef.current.value = '';
     }
-  }
+  };
 
   const handleDeleteAvatar = async () => {
     // TODO: Implement avatar deletion server action
-    onError('Avatar deletion not yet implemented')
-  }
+    onError('Avatar deletion not yet implemented');
+  };
 
   const handleUploadClick = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   return (
     <div className="space-y-4">
@@ -46,8 +48,8 @@ export function AvatarUpload({ user, onError }: AvatarUploadProps) {
         <div className="relative">
           <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
             {user.image ? (
-              <Image 
-                src={user.image} 
+              <Image
+                src={user.image}
                 alt={`${user.name || 'User'}'s avatar`}
                 width={80}
                 height={80}
@@ -59,7 +61,7 @@ export function AvatarUpload({ user, onError }: AvatarUploadProps) {
               </div>
             )}
           </div>
-          
+
           {/* Loading overlay */}
           {(isUploading || isDeleting) && (
             <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
@@ -79,7 +81,7 @@ export function AvatarUpload({ user, onError }: AvatarUploadProps) {
             >
               {isUploading ? 'Uploading...' : user.image ? 'Change Avatar' : 'Upload Avatar'}
             </button>
-            
+
             {user.image && (
               <button
                 type="button"
@@ -91,7 +93,7 @@ export function AvatarUpload({ user, onError }: AvatarUploadProps) {
               </button>
             )}
           </div>
-          
+
           <p className="text-xs text-gray-500">
             JPG, PNG, GIF or WebP. Max 5MB.
           </p>
@@ -107,5 +109,5 @@ export function AvatarUpload({ user, onError }: AvatarUploadProps) {
         className="hidden"
       />
     </div>
-  )
+  );
 }

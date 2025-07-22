@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { testUserApiKey } from '@/app/actions/user-api-keys'
-import { API_KEY_VALIDATION } from '@/lib/constants/validation'
-import { validateApiKeyFormat } from '@/lib/utils/api-key-validation'
+import { useState } from 'react';
+
+import { testUserApiKey } from '@/app/actions/user-api-keys';
+import { API_KEY_VALIDATION } from '@/lib/constants/validation';
+import { validateApiKeyFormat } from '@/lib/utils/api-key-validation';
 
 export interface UseApiKeyValidationProps {
   service: string
@@ -9,89 +10,89 @@ export interface UseApiKeyValidationProps {
 }
 
 export function useApiKeyValidation({ service, title }: UseApiKeyValidationProps) {
-  const [isValidating, setIsValidating] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
-  const [validationError, setValidationError] = useState<string | null>(null)
-  const [hasValidatedKey, setHasValidatedKey] = useState(false)
-  const [validationTimeout, setValidationTimeout] = useState<NodeJS.Timeout | null>(null)
-  const [isPasteValidating, setIsPasteValidating] = useState(false)
+  const [isValidating, setIsValidating] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [hasValidatedKey, setHasValidatedKey] = useState(false);
+  const [validationTimeout, setValidationTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isPasteValidating, setIsPasteValidating] = useState(false);
 
   const validateApiKey = async (key: string) => {
-    if (!key) return
+    if (!key) return;
 
-    setIsValidating(true)
-    setMessage(null)
+    setIsValidating(true);
+    setMessage(null);
 
     try {
-      const result = await testUserApiKey(service, key)
-      
+      const result = await testUserApiKey(service, key);
+
       if (result.success) {
-        setMessage({ 
-          type: 'success', 
-          text: result.message || `${title} API key is valid!`
-        })
-        setHasValidatedKey(true)
+        setMessage({
+          type: 'success',
+          text: result.message || `${title} API key is valid!`,
+        });
+        setHasValidatedKey(true);
       } else {
-        setMessage({ 
-          type: 'error', 
-          text: result.error || 'API key validation failed'
-        })
-        setHasValidatedKey(false)
+        setMessage({
+          type: 'error',
+          text: result.error || 'API key validation failed',
+        });
+        setHasValidatedKey(false);
       }
     } catch {
-      setMessage({ type: 'error', text: 'An error occurred while testing the API key' })
-      setHasValidatedKey(false)
+      setMessage({ type: 'error', text: 'An error occurred while testing the API key' });
+      setHasValidatedKey(false);
     } finally {
-      setIsValidating(false)
+      setIsValidating(false);
     }
-  }
+  };
 
   const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
     // Set paste flag to prevent timeout validation
-    setIsPasteValidating(true)
-    
+    setIsPasteValidating(true);
+
     // Let the paste happen first, then get the actual new value
     setTimeout(() => {
-      const actualNewValue = (e.target as HTMLInputElement).value
-      const validation = validateApiKeyFormat(actualNewValue)
+      const actualNewValue = (e.target as HTMLInputElement).value;
+      const validation = validateApiKeyFormat(actualNewValue);
       if (validation.isValid) {
-        validateApiKey(actualNewValue)
+        validateApiKey(actualNewValue);
       }
       // Clear paste flag after a short delay
-      setTimeout(() => setIsPasteValidating(false), API_KEY_VALIDATION.PASTE_VALIDATION_CLEAR_DELAY)
-    }, 0)
-  }
+      setTimeout(() => setIsPasteValidating(false), API_KEY_VALIDATION.PASTE_VALIDATION_CLEAR_DELAY);
+    }, 0);
+  };
 
   const validateKey = (key: string, fromTyping = true) => {
     // Reset all states when key changes
-    setHasValidatedKey(false)
-    setMessage(null)
-    
+    setHasValidatedKey(false);
+    setMessage(null);
+
     // Clear existing timeout
     if (validationTimeout) {
-      clearTimeout(validationTimeout)
-      setValidationTimeout(null)
+      clearTimeout(validationTimeout);
+      setValidationTimeout(null);
     }
-    
+
     // Validate format and set error if invalid
-    const validation = validateApiKeyFormat(key)
+    const validation = validateApiKeyFormat(key);
     if (!validation.isValid) {
-      setValidationError(validation.error || null)
-      return false
+      setValidationError(validation.error || null);
+      return false;
     }
-    
-    setValidationError(null)
-    
+
+    setValidationError(null);
+
     // Auto-validate after timeout if key is valid and from typing (not paste)
     if (fromTyping && !isPasteValidating && validation.isValid) {
       const timeout = setTimeout(() => {
-        validateApiKey(key)
-      }, API_KEY_VALIDATION.AUTO_VALIDATION_TIMEOUT)
-      setValidationTimeout(timeout)
+        validateApiKey(key);
+      }, API_KEY_VALIDATION.AUTO_VALIDATION_TIMEOUT);
+      setValidationTimeout(timeout);
     }
-    
-    return true
-  }
+
+    return true;
+  };
 
   return {
     // State
@@ -99,9 +100,9 @@ export function useApiKeyValidation({ service, title }: UseApiKeyValidationProps
     message,
     validationError,
     hasValidatedKey,
-    
+
     // Actions
     validateKey,
     handlePaste,
-  }
+  };
 }

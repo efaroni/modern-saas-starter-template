@@ -1,8 +1,8 @@
 // Export centralized app configuration
-export * from './app-config'
+export * from './app-config';
 
 // Import database utilities
-import { isRealDatabase, getDatabaseUrl } from '../db/config'
+import { isRealDatabase, getDatabaseUrl } from '../db/config';
 
 // Legacy configuration service that works with or without database
 // TODO: Migrate these to app-config.ts
@@ -11,9 +11,9 @@ export const config = {
     enabled: isRealDatabase(),
     get url() {
       try {
-        return getDatabaseUrl()
+        return getDatabaseUrl();
       } catch {
-        return undefined
+        return undefined;
       }
     },
   },
@@ -32,4 +32,4 @@ export const config = {
       enabled: !!process.env.RESEND_API_KEY,
     },
   },
-}
+};

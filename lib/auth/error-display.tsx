@@ -1,7 +1,8 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { AuthErrorMessageProvider } from './error-messages'
+import React from 'react';
+
+import { AuthErrorMessageProvider } from './error-messages';
 
 interface ErrorDisplayProps {
   error: unknown
@@ -10,55 +11,55 @@ interface ErrorDisplayProps {
   onRetry?: () => void
 }
 
-export function AuthErrorDisplay({ 
-  error, 
-  className = '', 
-  showRetry = false, 
-  onRetry 
+export function AuthErrorDisplay({
+  error,
+  className = '',
+  showRetry = false,
+  onRetry,
 }: ErrorDisplayProps) {
   const authError = React.useMemo(() => {
-    if (!error) return null
+    if (!error) return null;
     if (typeof error === 'string') {
-      return AuthErrorMessageProvider.getErrorFromString(error)
+      return AuthErrorMessageProvider.getErrorFromString(error);
     }
-    
+
     if (error instanceof Error) {
-      return AuthErrorMessageProvider.getErrorFromString(error.message)
+      return AuthErrorMessageProvider.getErrorFromString(error.message);
     }
-    
-    return AuthErrorMessageProvider.getErrorMessage('SERVER_ERROR')
-  }, [error])
 
-  if (!error || !authError) return null
+    return AuthErrorMessageProvider.getErrorMessage('SERVER_ERROR');
+  }, [error]);
 
-  const formatted = AuthErrorMessageProvider.formatErrorForUI(authError)
+  if (!error || !authError) return null;
+
+  const formatted = AuthErrorMessageProvider.formatErrorForUI(authError);
 
   const getIconColor = () => {
     switch (formatted.variant) {
-      case 'error': return 'text-red-600'
-      case 'warning': return 'text-yellow-600'
-      case 'info': return 'text-blue-600'
-      default: return 'text-gray-600'
+      case 'error': return 'text-red-600';
+      case 'warning': return 'text-yellow-600';
+      case 'info': return 'text-blue-600';
+      default: return 'text-gray-600';
     }
-  }
+  };
 
   const getBgColor = () => {
     switch (formatted.variant) {
-      case 'error': return 'bg-red-50 border-red-200'
-      case 'warning': return 'bg-yellow-50 border-yellow-200'
-      case 'info': return 'bg-blue-50 border-blue-200'
-      default: return 'bg-gray-50 border-gray-200'
+      case 'error': return 'bg-red-50 border-red-200';
+      case 'warning': return 'bg-yellow-50 border-yellow-200';
+      case 'info': return 'bg-blue-50 border-blue-200';
+      default: return 'bg-gray-50 border-gray-200';
     }
-  }
+  };
 
   const getTextColor = () => {
     switch (formatted.variant) {
-      case 'error': return 'text-red-800'
-      case 'warning': return 'text-yellow-800'
-      case 'info': return 'text-blue-800'
-      default: return 'text-gray-800'
+      case 'error': return 'text-red-800';
+      case 'warning': return 'text-yellow-800';
+      case 'info': return 'text-blue-800';
+      default: return 'text-gray-800';
     }
-  }
+  };
 
   return (
     <div className={`rounded-md border p-4 ${getBgColor()} ${className}`}>
@@ -106,7 +107,7 @@ export function AuthErrorDisplay({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 interface InlineErrorProps {
@@ -116,25 +117,25 @@ interface InlineErrorProps {
 
 export function InlineAuthError({ error, className = '' }: InlineErrorProps) {
   const authError = React.useMemo(() => {
-    if (!error) return null
+    if (!error) return null;
     if (typeof error === 'string') {
-      return AuthErrorMessageProvider.getErrorFromString(error)
+      return AuthErrorMessageProvider.getErrorFromString(error);
     }
-    
-    if (error instanceof Error) {
-      return AuthErrorMessageProvider.getErrorFromString(error.message)
-    }
-    
-    return AuthErrorMessageProvider.getErrorMessage('SERVER_ERROR')
-  }, [error])
 
-  if (!error || !authError) return null
+    if (error instanceof Error) {
+      return AuthErrorMessageProvider.getErrorFromString(error.message);
+    }
+
+    return AuthErrorMessageProvider.getErrorMessage('SERVER_ERROR');
+  }, [error]);
+
+  if (!error || !authError) return null;
 
   return (
     <p className={`text-sm text-red-600 ${className}`}>
       {authError.message}
     </p>
-  )
+  );
 }
 
 // Toast notification version
@@ -145,31 +146,31 @@ export interface ToastErrorProps {
 
 export function AuthErrorToast({ error, onDismiss }: ToastErrorProps) {
   const authError = React.useMemo(() => {
-    if (!error) return null
+    if (!error) return null;
     if (typeof error === 'string') {
-      return AuthErrorMessageProvider.getErrorFromString(error)
+      return AuthErrorMessageProvider.getErrorFromString(error);
     }
-    
+
     if (error instanceof Error) {
-      return AuthErrorMessageProvider.getErrorFromString(error.message)
+      return AuthErrorMessageProvider.getErrorFromString(error.message);
     }
-    
-    return AuthErrorMessageProvider.getErrorMessage('SERVER_ERROR')
-  }, [error])
+
+    return AuthErrorMessageProvider.getErrorMessage('SERVER_ERROR');
+  }, [error]);
 
   const formatted = React.useMemo(() => {
-    if (!error || !authError) return null
-    return AuthErrorMessageProvider.formatErrorForUI(authError)
-  }, [error, authError])
+    if (!error || !authError) return null;
+    return AuthErrorMessageProvider.formatErrorForUI(authError);
+  }, [error, authError]);
 
   React.useEffect(() => {
-    if (!formatted || formatted.variant === 'error') return
+    if (!formatted || formatted.variant === 'error') return;
     // Auto-dismiss after 5 seconds for non-critical errors
-    const timer = setTimeout(onDismiss, 5000)
-    return () => clearTimeout(timer)
-  }, [formatted, onDismiss])
+    const timer = setTimeout(onDismiss, 5000);
+    return () => clearTimeout(timer);
+  }, [formatted, onDismiss]);
 
-  if (!error || !authError || !formatted) return null
+  if (!error || !authError || !formatted) return null;
 
   return (
     <div className="fixed top-4 right-4 z-50 max-w-sm w-full bg-white shadow-lg rounded-lg border border-gray-200">
@@ -202,5 +203,5 @@ export function AuthErrorToast({ error, onDismiss }: ToastErrorProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

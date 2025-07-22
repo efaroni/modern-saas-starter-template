@@ -1,14 +1,16 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { requestPasswordResetAction } from '@/app/actions/auth'
+import { useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { requestPasswordResetAction } from '@/app/actions/auth';
 
 const passwordResetSchema = z.object({
-  email: z.string().email('Please enter a valid email address')
-})
+  email: z.string().email('Please enter a valid email address'),
+});
 
 type PasswordResetFormData = z.infer<typeof passwordResetSchema>
 
@@ -19,33 +21,33 @@ interface PasswordResetRequestFormProps {
 }
 
 export function PasswordResetRequestForm({ onSuccess, onError, onBackToLogin }: PasswordResetRequestFormProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  
+  const [isLoading, setIsLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
   } = useForm<PasswordResetFormData>({
-    resolver: zodResolver(passwordResetSchema)
-  })
+    resolver: zodResolver(passwordResetSchema),
+  });
 
   const onSubmit = async (data: PasswordResetFormData) => {
-    setIsLoading(true)
-    
+    setIsLoading(true);
+
     try {
-      const result = await requestPasswordResetAction(data.email)
-      
+      const result = await requestPasswordResetAction(data.email);
+
       if (result.success) {
-        onSuccess('If an account with that email exists, we have sent you a password reset link.')
+        onSuccess('If an account with that email exists, we have sent you a password reset link.');
       } else {
-        onError(result.error || 'Failed to request password reset')
+        onError(result.error || 'Failed to request password reset');
       }
     } catch {
-      onError('An unexpected error occurred')
+      onError('An unexpected error occurred');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -56,7 +58,7 @@ export function PasswordResetRequestForm({ onSuccess, onError, onBackToLogin }: 
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             Email address
@@ -90,5 +92,5 @@ export function PasswordResetRequestForm({ onSuccess, onError, onBackToLogin }: 
         </button>
       </form>
     </div>
-  )
+  );
 }

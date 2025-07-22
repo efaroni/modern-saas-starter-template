@@ -1,4 +1,4 @@
-import { config } from '@/lib/config'
+import { config } from '@/lib/config';
 
 export default function DebugPage() {
   return (
@@ -6,5 +6,5 @@ export default function DebugPage() {
       <h1>Debug Page</h1>
       <pre>{JSON.stringify(config, null, 2)}</pre>
     </div>
-  )
+  );
 }

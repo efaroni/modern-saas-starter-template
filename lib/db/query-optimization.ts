@@ -1,21 +1,22 @@
-import { db, getDatabasePool } from './connection-pool'
-import { users, authAttempts, passwordHistory, userSessions } from './schema'
-import { eq, and, gte, desc, lte, count, sql } from 'drizzle-orm'
-import { getDatabaseConfig } from './config'
+import { eq, and, gte, desc, lte, count, sql } from 'drizzle-orm';
+
+import { getDatabaseConfig } from './config';
+import { db, getDatabasePool } from './connection-pool';
+import { users, authAttempts, passwordHistory, userSessions } from './schema';
 
 export interface QueryOptimizationConfig {
   // Cache settings
   enableQueryCache: boolean
   cacheTimeout: number // in milliseconds
-  
+
   // Pagination settings
   defaultPageSize: number
   maxPageSize: number
-  
+
   // Performance settings
   enableQueryLogging: boolean
   slowQueryThreshold: number // in milliseconds
-  
+
   // Batch processing
   defaultBatchSize: number
   maxBatchSize: number
@@ -23,8 +24,8 @@ export interface QueryOptimizationConfig {
 
 // Get database configuration dynamically
 const getDefaultQueryConfig = (): QueryOptimizationConfig => {
-  const dbConfig = getDatabaseConfig()
-  
+  const dbConfig = getDatabaseConfig();
+
   return {
     enableQueryCache: process.env.NODE_ENV === 'production',
     cacheTimeout: dbConfig.cacheTtl * 1000, // Convert to milliseconds
@@ -34,74 +35,74 @@ const getDefaultQueryConfig = (): QueryOptimizationConfig => {
     slowQueryThreshold: dbConfig.slowQueryThreshold,
     defaultBatchSize: 100,
     maxBatchSize: dbConfig.cacheMaxSize * 10, // 10x cache size for batch operations
-  }
-}
+  };
+};
 
-export const DEFAULT_QUERY_CONFIG: QueryOptimizationConfig = getDefaultQueryConfig()
+export const DEFAULT_QUERY_CONFIG: QueryOptimizationConfig = getDefaultQueryConfig();
 
 // Query cache for frequently accessed data
 class QueryCache {
-  private cache = new Map<string, { data: unknown; timestamp: number }>()
-  private config: QueryOptimizationConfig
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
+  private config: QueryOptimizationConfig;
 
   constructor(config: QueryOptimizationConfig) {
-    this.config = config
+    this.config = config;
   }
 
   set(key: string, data: unknown): void {
-    if (!this.config.enableQueryCache) return
-    
+    if (!this.config.enableQueryCache) return;
+
     this.cache.set(key, {
       data,
-      timestamp: Date.now()
-    })
+      timestamp: Date.now(),
+    });
   }
 
   get(key: string): unknown | null {
-    if (!this.config.enableQueryCache) return null
-    
-    const cached = this.cache.get(key)
-    if (!cached) return null
-    
-    const age = Date.now() - cached.timestamp
+    if (!this.config.enableQueryCache) return null;
+
+    const cached = this.cache.get(key);
+    if (!cached) return null;
+
+    const age = Date.now() - cached.timestamp;
     if (age > this.config.cacheTimeout) {
-      this.cache.delete(key)
-      return null
+      this.cache.delete(key);
+      return null;
     }
-    
-    return cached.data
+
+    return cached.data;
   }
 
   clear(): void {
-    this.cache.clear()
+    this.cache.clear();
   }
 
   // Cleanup expired entries
   cleanup(): void {
-    const now = Date.now()
+    const now = Date.now();
     for (const [key, value] of this.cache.entries()) {
       if (now - value.timestamp > this.config.cacheTimeout) {
-        this.cache.delete(key)
+        this.cache.delete(key);
       }
     }
   }
 }
 
 export class QueryOptimizer {
-  private cache: QueryCache
-  private config: QueryOptimizationConfig
-  private queryMetrics: Map<string, { count: number; totalTime: number; avgTime: number }>
+  private cache: QueryCache;
+  private config: QueryOptimizationConfig;
+  private queryMetrics: Map<string, { count: number; totalTime: number; avgTime: number }>;
 
   constructor(config?: Partial<QueryOptimizationConfig>) {
-    this.config = { ...DEFAULT_QUERY_CONFIG, ...config }
-    this.cache = new QueryCache(this.config)
-    this.queryMetrics = new Map()
-    
+    this.config = { ...DEFAULT_QUERY_CONFIG, ...config };
+    this.cache = new QueryCache(this.config);
+    this.queryMetrics = new Map();
+
     // Setup periodic cache cleanup
     if (this.config.enableQueryCache) {
       setInterval(() => {
-        this.cache.cleanup()
-      }, this.config.cacheTimeout)
+        this.cache.cleanup();
+      }, this.config.cacheTimeout);
     }
   }
 
@@ -109,62 +110,62 @@ export class QueryOptimizer {
   async executeQuery<T>(
     queryName: string,
     queryFn: () => Promise<T>,
-    cacheKey?: string
+    cacheKey?: string,
   ): Promise<T> {
     // Check cache first
     if (cacheKey) {
-      const cached = this.cache.get(cacheKey)
+      const cached = this.cache.get(cacheKey);
       if (cached) {
-        return cached as T
+        return cached as T;
       }
     }
 
-    const startTime = Date.now()
-    
+    const startTime = Date.now();
+
     try {
-      const result = await queryFn()
-      const queryTime = Date.now() - startTime
-      
+      const result = await queryFn();
+      const queryTime = Date.now() - startTime;
+
       // Update metrics
-      this.updateMetrics(queryName, queryTime)
-      
+      this.updateMetrics(queryName, queryTime);
+
       // Log slow queries
       if (this.config.enableQueryLogging && queryTime > this.config.slowQueryThreshold) {
-        console.warn(`Slow query detected: ${queryName} took ${queryTime}ms`)
+        console.warn(`Slow query detected: ${queryName} took ${queryTime}ms`);
       }
-      
+
       // Cache result if requested
       if (cacheKey) {
-        this.cache.set(cacheKey, result)
+        this.cache.set(cacheKey, result);
       }
-      
-      return result
+
+      return result;
     } catch (error) {
-      const queryTime = Date.now() - startTime
-      this.updateMetrics(queryName, queryTime, true)
-      
+      const queryTime = Date.now() - startTime;
+      this.updateMetrics(queryName, queryTime, true);
+
       if (this.config.enableQueryLogging) {
-        console.error(`Query failed: ${queryName} after ${queryTime}ms`, error)
+        console.error(`Query failed: ${queryName} after ${queryTime}ms`, error);
       }
-      
-      throw error
+
+      throw error;
     }
   }
 
   private updateMetrics(queryName: string, queryTime: number, _failed: boolean = false): void {
-    const existing = this.queryMetrics.get(queryName) || { count: 0, totalTime: 0, avgTime: 0 }
-    
-    existing.count++
-    existing.totalTime += queryTime
-    existing.avgTime = existing.totalTime / existing.count
-    
-    this.queryMetrics.set(queryName, existing)
+    const existing = this.queryMetrics.get(queryName) || { count: 0, totalTime: 0, avgTime: 0 };
+
+    existing.count++;
+    existing.totalTime += queryTime;
+    existing.avgTime = existing.totalTime / existing.count;
+
+    this.queryMetrics.set(queryName, existing);
   }
 
   // Optimized user queries
   async findUserByEmail(email: string, useCache = true): Promise<typeof users.$inferSelect | null> {
-    const cacheKey = useCache ? `user:email:${email}` : undefined
-    
+    const cacheKey = useCache ? `user:email:${email}` : undefined;
+
     return this.executeQuery(
       'findUserByEmail',
       async () => {
@@ -172,17 +173,17 @@ export class QueryOptimizer {
           .select()
           .from(users)
           .where(eq(users.email, email))
-          .limit(1)
-        
-        return user || null
+          .limit(1);
+
+        return user || null;
       },
-      cacheKey
-    )
+      cacheKey,
+    );
   }
 
   async findUserById(id: string, useCache = true): Promise<typeof users.$inferSelect | null> {
-    const cacheKey = useCache ? `user:id:${id}` : undefined
-    
+    const cacheKey = useCache ? `user:id:${id}` : undefined;
+
     return this.executeQuery(
       'findUserById',
       async () => {
@@ -190,12 +191,12 @@ export class QueryOptimizer {
           .select()
           .from(users)
           .where(eq(users.id, id))
-          .limit(1)
-        
-        return user || null
+          .limit(1);
+
+        return user || null;
       },
-      cacheKey
-    )
+      cacheKey,
+    );
   }
 
   // Optimized auth attempt queries with proper indexing
@@ -203,15 +204,15 @@ export class QueryOptimizer {
     identifier: string,
     type: string,
     timeWindowMinutes: number = 15,
-    limit: number = 100
+    limit: number = 100,
   ): Promise<typeof authAttempts.$inferSelect[]> {
-    const cacheKey = `auth_attempts:${identifier}:${type}:${timeWindowMinutes}`
-    
+    const cacheKey = `auth_attempts:${identifier}:${type}:${timeWindowMinutes}`;
+
     return this.executeQuery(
       'getRecentAuthAttempts',
       async () => {
-        const timeWindow = new Date(Date.now() - timeWindowMinutes * 60 * 1000)
-        
+        const timeWindow = new Date(Date.now() - timeWindowMinutes * 60 * 1000);
+
         return await db
           .select()
           .from(authAttempts)
@@ -219,20 +220,20 @@ export class QueryOptimizer {
             and(
               eq(authAttempts.identifier, identifier),
               eq(authAttempts.type, type),
-              gte(authAttempts.createdAt, timeWindow)
-            )
+              gte(authAttempts.createdAt, timeWindow),
+            ),
           )
           .orderBy(desc(authAttempts.createdAt))
-          .limit(limit)
+          .limit(limit);
       },
-      cacheKey
-    )
+      cacheKey,
+    );
   }
 
   // Optimized password history queries
   async getRecentPasswordHistory(
     userId: string,
-    limit: number = 5
+    limit: number = 5,
   ): Promise<typeof passwordHistory.$inferSelect[]> {
     return this.executeQuery(
       'getRecentPasswordHistory',
@@ -242,41 +243,41 @@ export class QueryOptimizer {
           .from(passwordHistory)
           .where(eq(passwordHistory.userId, userId))
           .orderBy(desc(passwordHistory.createdAt))
-          .limit(limit)
-      }
-    )
+          .limit(limit);
+      },
+    );
   }
 
   // Batch operations for better performance
   async batchCreateAuthAttempts(
-    attempts: (typeof authAttempts.$inferInsert)[]
+    attempts: (typeof authAttempts.$inferInsert)[],
   ): Promise<void> {
-    const batchSize = Math.min(attempts.length, this.config.maxBatchSize)
-    
+    const batchSize = Math.min(attempts.length, this.config.maxBatchSize);
+
     return this.executeQuery(
       'batchCreateAuthAttempts',
       async () => {
         // Process in batches to avoid overwhelming the database
         for (let i = 0; i < attempts.length; i += batchSize) {
-          const batch = attempts.slice(i, i + batchSize)
-          await db.insert(authAttempts).values(batch)
+          const batch = attempts.slice(i, i + batchSize);
+          await db.insert(authAttempts).values(batch);
         }
-      }
-    )
+      },
+    );
   }
 
   // Optimized session queries
   async getActiveSessions(
     userId: string,
-    useCache = true
+    useCache = true,
   ): Promise<typeof userSessions.$inferSelect[]> {
-    const cacheKey = useCache ? `active_sessions:${userId}` : undefined
-    
+    const cacheKey = useCache ? `active_sessions:${userId}` : undefined;
+
     return this.executeQuery(
       'getActiveSessions',
       async () => {
-        const now = new Date()
-        
+        const now = new Date();
+
         return await db
           .select()
           .from(userSessions)
@@ -284,18 +285,18 @@ export class QueryOptimizer {
             and(
               eq(userSessions.userId, userId),
               eq(userSessions.isActive, true),
-              gte(userSessions.expiresAt, now)
-            )
+              gte(userSessions.expiresAt, now),
+            ),
           )
-          .orderBy(desc(userSessions.lastActivity))
+          .orderBy(desc(userSessions.lastActivity));
       },
-      cacheKey
-    )
+      cacheKey,
+    );
   }
 
   // Aggregated queries for analytics
   async getAuthAttemptStats(
-    timeWindowHours: number = 24
+    timeWindowHours: number = 24,
   ): Promise<{
     totalAttempts: number
     successfulAttempts: number
@@ -303,41 +304,41 @@ export class QueryOptimizer {
     uniqueUsers: number
     topFailedEmails: Array<{ email: string; count: number }>
   }> {
-    const cacheKey = `auth_stats:${timeWindowHours}h`
-    
+    const cacheKey = `auth_stats:${timeWindowHours}h`;
+
     return this.executeQuery(
       'getAuthAttemptStats',
       async () => {
-        const timeWindow = new Date(Date.now() - timeWindowHours * 60 * 60 * 1000)
-        
+        const timeWindow = new Date(Date.now() - timeWindowHours * 60 * 60 * 1000);
+
         // Get basic stats
         const [stats] = await db
           .select({
             totalAttempts: count(),
             successfulAttempts: count(sql`CASE WHEN success = true THEN 1 END`),
             failedAttempts: count(sql`CASE WHEN success = false THEN 1 END`),
-            uniqueUsers: sql<number>`COUNT(DISTINCT identifier)`
+            uniqueUsers: sql<number>`COUNT(DISTINCT identifier)`,
           })
           .from(authAttempts)
-          .where(gte(authAttempts.createdAt, timeWindow))
-        
+          .where(gte(authAttempts.createdAt, timeWindow));
+
         // Get top failed emails
         const topFailedEmails = await db
           .select({
             email: authAttempts.identifier,
-            count: count()
+            count: count(),
           })
           .from(authAttempts)
           .where(
             and(
               eq(authAttempts.success, false),
-              gte(authAttempts.createdAt, timeWindow)
-            )
+              gte(authAttempts.createdAt, timeWindow),
+            ),
           )
           .groupBy(authAttempts.identifier)
           .orderBy(desc(count()))
-          .limit(10)
-        
+          .limit(10);
+
         return {
           totalAttempts: stats.totalAttempts,
           successfulAttempts: stats.successfulAttempts,
@@ -345,12 +346,12 @@ export class QueryOptimizer {
           uniqueUsers: Number(stats.uniqueUsers),
           topFailedEmails: topFailedEmails.map(item => ({
             email: item.email,
-            count: item.count
-          }))
-        }
+            count: item.count,
+          })),
+        };
       },
-      cacheKey
-    )
+      cacheKey,
+    );
   }
 
   // Cleanup operations
@@ -358,28 +359,28 @@ export class QueryOptimizer {
     return this.executeQuery(
       'cleanupExpiredTokens',
       async () => {
-        const now = new Date()
+        const now = new Date();
         const result = await db
           .delete(authAttempts)
-          .where(lte(authAttempts.createdAt, new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000))) // 90 days ago
-        
-        return result.rowCount || 0
-      }
-    )
+          .where(lte(authAttempts.createdAt, new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000))); // 90 days ago
+
+        return result.rowCount || 0;
+      },
+    );
   }
 
   async cleanupExpiredSessions(): Promise<number> {
     return this.executeQuery(
       'cleanupExpiredSessions',
       async () => {
-        const now = new Date()
+        const now = new Date();
         const result = await db
           .delete(userSessions)
-          .where(lte(userSessions.expiresAt, now))
-        
-        return result.rowCount || 0
-      }
-    )
+          .where(lte(userSessions.expiresAt, now));
+
+        return result.rowCount || 0;
+      },
+    );
   }
 
   // Performance monitoring
@@ -391,8 +392,8 @@ export class QueryOptimizer {
   }> {
     return Array.from(this.queryMetrics.entries()).map(([queryName, metrics]) => ({
       queryName,
-      ...metrics
-    }))
+      ...metrics,
+    }));
   }
 
   // Cache management
@@ -401,24 +402,24 @@ export class QueryOptimizer {
       // If pattern is provided, remove matching cache entries
       for (const key of this.cache['cache'].keys()) {
         if (key.includes(pattern)) {
-          this.cache['cache'].delete(key)
+          this.cache['cache'].delete(key);
         }
       }
     } else {
       // Clear all cache
-      this.cache.clear()
+      this.cache.clear();
     }
   }
 
   // Get database connection health
   async getDatabaseHealth() {
-    const dbPool = getDatabasePool()
-    return await dbPool.getHealth()
+    const dbPool = getDatabasePool();
+    return await dbPool.getHealth();
   }
 }
 
 // Export singleton instance
-export const queryOptimizer = new QueryOptimizer()
+export const queryOptimizer = new QueryOptimizer();
 
 // Export optimized query functions
 export const optimizedQueries = {
@@ -431,4 +432,4 @@ export const optimizedQueries = {
   getAuthAttemptStats: (timeWindowHours = 24) => queryOptimizer.getAuthAttemptStats(timeWindowHours),
   cleanupExpiredTokens: () => queryOptimizer.cleanupExpiredTokens(),
   cleanupExpiredSessions: () => queryOptimizer.cleanupExpiredSessions(),
-}
+};

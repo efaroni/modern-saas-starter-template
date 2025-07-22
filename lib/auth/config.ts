@@ -1,11 +1,12 @@
-import { NextAuthConfig } from 'next-auth'
-import { DrizzleAdapter } from '@auth/drizzle-adapter'
-import Google from 'next-auth/providers/google'
-import GitHub from 'next-auth/providers/github'
-import { db } from '@/lib/db/server'
-import { accounts, sessions, users, verificationTokens } from '@/lib/db/schema'
-import { AUTH_CONFIG } from '@/lib/config/app-config'
-import { authLogger } from '@/lib/auth/logger'
+import { DrizzleAdapter } from '@auth/drizzle-adapter';
+import { type NextAuthConfig } from 'next-auth';
+import GitHub from 'next-auth/providers/github';
+import Google from 'next-auth/providers/google';
+
+import { authLogger } from '@/lib/auth/logger';
+import { AUTH_CONFIG } from '@/lib/config/app-config';
+import { accounts, sessions, users, verificationTokens } from '@/lib/db/schema';
+import { db } from '@/lib/db/server';
 
 export const authConfig = {
   adapter: DrizzleAdapter(db, {
@@ -36,48 +37,48 @@ export const authConfig = {
       if (account?.type === 'oauth') {
         try {
           // Import here to avoid circular dependencies
-          const { oauthIntegration } = await import('./oauth-integration')
-          
+          const { oauthIntegration } = await import('./oauth-integration');
+
           // Handle OAuth callback
           const result = await oauthIntegration.handleOAuthCallback(
             account.provider,
             user,
-            account
-          )
-          
-          return result.success
+            account,
+          );
+
+          return result.success;
         } catch (error) {
-          console.error('OAuth sign-in callback error:', error)
-          return false
+          console.error('OAuth sign-in callback error:', error);
+          return false;
         }
       }
-      
+
       // For email/password sign-ins, we'll handle this through our custom auth
-      return false
+      return false;
     },
     async session({ token, session }) {
       if (token.sub && session.user) {
-        session.user.id = token.sub
+        session.user.id = token.sub;
       }
-      return session
+      return session;
     },
     async jwt({ user, token }) {
       if (user) {
-        token.sub = user.id
+        token.sub = user.id;
       }
-      return token
+      return token;
     },
     async redirect({ url, baseUrl }) {
       // Redirect to our auth page after OAuth success
       if (url.includes('/api/auth/callback/')) {
-        return `${baseUrl}/auth?oauth=success`
+        return `${baseUrl}/auth?oauth=success`;
       }
-      
+
       // Allows relative callback URLs
-      if (url.startsWith('/')) return `${baseUrl}${url}`
+      if (url.startsWith('/')) return `${baseUrl}${url}`;
       // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     },
   },
   events: {
@@ -91,9 +92,9 @@ export const authConfig = {
         timestamp: new Date(),
         metadata: {
           provider: account?.provider,
-          isNewUser
-        }
-      })
+          isNewUser,
+        },
+      });
     },
     async linkAccount({ user, account, profile: _profile }) {
       // Log account linking
@@ -105,9 +106,9 @@ export const authConfig = {
         timestamp: new Date(),
         metadata: {
           provider: account.provider,
-          isAccountLink: true
-        }
-      })
+          isAccountLink: true,
+        },
+      });
     },
   },
   session: {
@@ -117,8 +118,8 @@ export const authConfig = {
   useSecureCookies: process.env.NODE_ENV === 'production',
   cookies: {
     sessionToken: {
-      name: process.env.NODE_ENV === 'production' 
-        ? '__Secure-next-auth.session-token' 
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.session-token'
         : 'next-auth.session-token',
       options: {
         httpOnly: true,
@@ -129,7 +130,7 @@ export const authConfig = {
     },
   },
   debug: process.env.NODE_ENV === 'development',
-} satisfies NextAuthConfig
+} satisfies NextAuthConfig;
 
 // For server-side usage
-export default authConfig
+export default authConfig;

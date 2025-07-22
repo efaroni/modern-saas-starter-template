@@ -1,18 +1,20 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { resetPasswordAction } from '@/app/actions/auth'
+import { useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { resetPasswordAction } from '@/app/actions/auth';
 
 const passwordResetCompletionSchema = z.object({
   newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string().min(8, 'Password must be at least 8 characters')
+  confirmPassword: z.string().min(8, 'Password must be at least 8 characters'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
-  path: ["confirmPassword"]
-})
+  path: ['confirmPassword'],
+});
 
 type PasswordResetCompletionFormData = z.infer<typeof passwordResetCompletionSchema>
 
@@ -24,33 +26,33 @@ interface PasswordResetCompletionFormProps {
 }
 
 export function PasswordResetCompletionForm({ token, onSuccess, onError, onBackToLogin }: PasswordResetCompletionFormProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  
+  const [isLoading, setIsLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
   } = useForm<PasswordResetCompletionFormData>({
-    resolver: zodResolver(passwordResetCompletionSchema)
-  })
+    resolver: zodResolver(passwordResetCompletionSchema),
+  });
 
   const onSubmit = async (data: PasswordResetCompletionFormData) => {
-    setIsLoading(true)
-    
+    setIsLoading(true);
+
     try {
-      const result = await resetPasswordAction({ token, newPassword: data.newPassword })
-      
+      const result = await resetPasswordAction({ token, newPassword: data.newPassword });
+
       if (result.success) {
-        onSuccess('Your password has been reset successfully. You can now log in with your new password.')
+        onSuccess('Your password has been reset successfully. You can now log in with your new password.');
       } else {
-        onError(result.error || 'Failed to reset password')
+        onError(result.error || 'Failed to reset password');
       }
     } catch {
-      onError('An unexpected error occurred')
+      onError('An unexpected error occurred');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -111,5 +113,5 @@ export function PasswordResetCompletionForm({ token, onSuccess, onError, onBackT
         </button>
       </form>
     </div>
-  )
+  );
 }

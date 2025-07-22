@@ -1,9 +1,12 @@
-import { db } from '@/lib/db/server'
-import { userSessions, sessionActivity, users } from '@/lib/db/schema'
-import { eq, and, lt, desc } from 'drizzle-orm'
-import { SessionStorage, SessionData } from './session-storage'
-import { randomBytes } from 'crypto'
-import { AUTH_CONFIG } from '@/lib/config/app-config'
+import { randomBytes } from 'crypto';
+
+import { eq, and, lt, desc } from 'drizzle-orm';
+
+import { AUTH_CONFIG } from '@/lib/config/app-config';
+import { userSessions, sessionActivity, users } from '@/lib/db/schema';
+import { db } from '@/lib/db/server';
+
+import { type SessionStorage, type SessionData } from './session-storage';
 
 export interface SessionConfig {
   maxAge: number // Session max age in seconds
@@ -16,28 +19,28 @@ export const DEFAULT_SESSION_CONFIG: SessionConfig = {
   maxAge: AUTH_CONFIG.SESSION_DURATION_HOURS * 60 * 60, // Convert hours to seconds
   maxConcurrentSessions: 3,
   suspiciousActivityThreshold: 2,
-  inactivityTimeout: 60 * 60 // 1 hour
-}
+  inactivityTimeout: 60 * 60, // 1 hour
+};
 
 export class DatabaseSessionStorage implements SessionStorage {
-  private sessionToken: string | null = null
-  private config: SessionConfig
-  private readonly database: typeof db
+  private sessionToken: string | null = null;
+  private config: SessionConfig;
+  private readonly database: typeof db;
 
   constructor(database: typeof db = db, config: SessionConfig = DEFAULT_SESSION_CONFIG) {
-    this.database = database
-    this.config = config
+    this.database = database;
+    this.config = config;
   }
 
   isAvailable(): boolean {
-    return true
+    return true;
   }
 
   /**
    * Generate a secure session token
    */
   private generateSessionToken(): string {
-    return randomBytes(32).toString('hex')
+    return randomBytes(32).toString('hex');
   }
 
   /**
@@ -46,18 +49,18 @@ export class DatabaseSessionStorage implements SessionStorage {
   async createSession(
     userId: string,
     ipAddress?: string,
-    userAgent?: string
+    userAgent?: string,
   ): Promise<string> {
     try {
       // Clean up expired sessions first
-      await this.cleanupExpiredSessions()
+      await this.cleanupExpiredSessions();
 
       // Check concurrent session limit
-      await this.enforceConcurrentSessionLimit(userId)
+      await this.enforceConcurrentSessionLimit(userId);
 
       // Generate session token
-      const sessionToken = this.generateSessionToken()
-      const expiresAt = new Date(Date.now() + this.config.maxAge * 1000)
+      const sessionToken = this.generateSessionToken();
+      const expiresAt = new Date(Date.now() + this.config.maxAge * 1000);
 
       // Create session record
       const [session] = await this.database
@@ -69,18 +72,18 @@ export class DatabaseSessionStorage implements SessionStorage {
           userAgent,
           expiresAt,
           isActive: true,
-          lastActivity: new Date()
+          lastActivity: new Date(),
         })
-        .returning()
+        .returning();
 
       // Log session creation
-      await this.logSessionActivity(session.id, 'login', ipAddress, userAgent)
+      await this.logSessionActivity(session.id, 'login', ipAddress, userAgent);
 
-      this.sessionToken = sessionToken
-      return sessionToken
+      this.sessionToken = sessionToken;
+      return sessionToken;
     } catch (error) {
-      console.error('Failed to create session:', error)
-      throw new Error('Session creation failed')
+      console.error('Failed to create session:', error);
+      throw new Error('Session creation failed');
     }
   }
 
@@ -89,52 +92,52 @@ export class DatabaseSessionStorage implements SessionStorage {
    */
   async getSession(): Promise<SessionData | null> {
     if (!this.sessionToken) {
-      return null
+      return null;
     }
 
     try {
       const [result] = await this.database
         .select({
           session: userSessions,
-          user: users
+          user: users,
         })
         .from(userSessions)
         .innerJoin(users, eq(userSessions.userId, users.id))
         .where(
           and(
             eq(userSessions.sessionToken, this.sessionToken),
-            eq(userSessions.isActive, true)
-          )
+            eq(userSessions.isActive, true),
+          ),
         )
-        .limit(1)
+        .limit(1);
 
       if (!result) {
-        this.sessionToken = null
-        return null
+        this.sessionToken = null;
+        return null;
       }
 
-      const { session, user } = result
+      const { session, user } = result;
 
       // Check if session is expired
       if (session.expiresAt < new Date()) {
-        await this.invalidateSession(session.id, 'timeout')
-        this.sessionToken = null
-        return null
+        await this.invalidateSession(session.id, 'timeout');
+        this.sessionToken = null;
+        return null;
       }
 
       // Check inactivity timeout
-      const inactivityThreshold = new Date(Date.now() - this.config.inactivityTimeout * 1000)
+      const inactivityThreshold = new Date(Date.now() - this.config.inactivityTimeout * 1000);
       if (session.lastActivity < inactivityThreshold) {
-        await this.invalidateSession(session.id, 'timeout')
-        this.sessionToken = null
-        return null
+        await this.invalidateSession(session.id, 'timeout');
+        this.sessionToken = null;
+        return null;
       }
 
       // Update last activity
       await this.database
         .update(userSessions)
         .set({ lastActivity: new Date() })
-        .where(eq(userSessions.id, session.id))
+        .where(eq(userSessions.id, session.id));
 
       // Return session data with user information
       return {
@@ -143,13 +146,13 @@ export class DatabaseSessionStorage implements SessionStorage {
           email: user.email,
           name: user.name,
           image: user.image,
-          emailVerified: user.emailVerified
+          emailVerified: user.emailVerified,
         },
-        expires: session.expiresAt.toISOString()
-      }
+        expires: session.expiresAt.toISOString(),
+      };
     } catch (error) {
-      console.error('Failed to get session:', error)
-      return null
+      console.error('Failed to get session:', error);
+      return null;
     }
   }
 
@@ -158,7 +161,7 @@ export class DatabaseSessionStorage implements SessionStorage {
    */
   async setSession(sessionData: SessionData): Promise<void> {
     if (!this.sessionToken || !sessionData.user) {
-      return
+      return;
     }
 
     try {
@@ -166,11 +169,11 @@ export class DatabaseSessionStorage implements SessionStorage {
         .update(userSessions)
         .set({
           lastActivity: new Date(),
-          expiresAt: sessionData.expires ? new Date(sessionData.expires) : new Date(Date.now() + this.config.maxAge * 1000)
+          expiresAt: sessionData.expires ? new Date(sessionData.expires) : new Date(Date.now() + this.config.maxAge * 1000),
         })
-        .where(eq(userSessions.sessionToken, this.sessionToken))
+        .where(eq(userSessions.sessionToken, this.sessionToken));
     } catch (error) {
-      console.error('Failed to update session:', error)
+      console.error('Failed to update session:', error);
     }
   }
 
@@ -179,7 +182,7 @@ export class DatabaseSessionStorage implements SessionStorage {
    */
   async removeSession(): Promise<void> {
     if (!this.sessionToken) {
-      return
+      return;
     }
 
     try {
@@ -187,15 +190,15 @@ export class DatabaseSessionStorage implements SessionStorage {
         .select()
         .from(userSessions)
         .where(eq(userSessions.sessionToken, this.sessionToken))
-        .limit(1)
+        .limit(1);
 
       if (session) {
-        await this.invalidateSession(session.id, 'logout')
+        await this.invalidateSession(session.id, 'logout');
       }
 
-      this.sessionToken = null
+      this.sessionToken = null;
     } catch (error) {
-      console.error('Failed to remove session:', error)
+      console.error('Failed to remove session:', error);
     }
   }
 
@@ -203,14 +206,14 @@ export class DatabaseSessionStorage implements SessionStorage {
    * Set the session token for this storage instance
    */
   setSessionToken(token: string): void {
-    this.sessionToken = token
+    this.sessionToken = token;
   }
 
   /**
    * Get the current session token
    */
   getSessionToken(): string | null {
-    return this.sessionToken
+    return this.sessionToken;
   }
 
   /**
@@ -221,11 +224,11 @@ export class DatabaseSessionStorage implements SessionStorage {
       await this.database
         .update(userSessions)
         .set({ isActive: false })
-        .where(eq(userSessions.id, sessionId))
+        .where(eq(userSessions.id, sessionId));
 
-      await this.logSessionActivity(sessionId, reason)
+      await this.logSessionActivity(sessionId, reason);
     } catch (error) {
-      console.error('Failed to invalidate session:', error)
+      console.error('Failed to invalidate session:', error);
     }
   }
 
@@ -237,7 +240,7 @@ export class DatabaseSessionStorage implements SessionStorage {
     action: string,
     ipAddress?: string,
     userAgent?: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
     try {
       await this.database
@@ -247,10 +250,10 @@ export class DatabaseSessionStorage implements SessionStorage {
           action,
           ipAddress,
           userAgent,
-          metadata: metadata || {}
-        })
+          metadata: metadata || {},
+        });
     } catch (error) {
-      console.error('Failed to log session activity:', error)
+      console.error('Failed to log session activity:', error);
     }
   }
 
@@ -262,9 +265,9 @@ export class DatabaseSessionStorage implements SessionStorage {
       await this.database
         .update(userSessions)
         .set({ isActive: false })
-        .where(lt(userSessions.expiresAt, new Date()))
+        .where(lt(userSessions.expiresAt, new Date()));
     } catch (error) {
-      console.error('Failed to cleanup expired sessions:', error)
+      console.error('Failed to cleanup expired sessions:', error);
     }
   }
 
@@ -279,21 +282,21 @@ export class DatabaseSessionStorage implements SessionStorage {
         .where(
           and(
             eq(userSessions.userId, userId),
-            eq(userSessions.isActive, true)
-          )
+            eq(userSessions.isActive, true),
+          ),
         )
-        .orderBy(desc(userSessions.lastActivity))
+        .orderBy(desc(userSessions.lastActivity));
 
       if (activeSessions.length >= this.config.maxConcurrentSessions) {
         // Deactivate oldest sessions
-        const sessionsToDeactivate = activeSessions.slice(this.config.maxConcurrentSessions - 1)
-        
+        const sessionsToDeactivate = activeSessions.slice(this.config.maxConcurrentSessions - 1);
+
         for (const session of sessionsToDeactivate) {
-          await this.invalidateSession(session.id, 'concurrent_limit')
+          await this.invalidateSession(session.id, 'concurrent_limit');
         }
       }
     } catch (error) {
-      console.error('Failed to enforce concurrent session limit:', error)
+      console.error('Failed to enforce concurrent session limit:', error);
     }
   }
 
@@ -303,7 +306,7 @@ export class DatabaseSessionStorage implements SessionStorage {
   async detectSuspiciousActivity(
     sessionId: string,
     currentIpAddress: string,
-    currentUserAgent: string
+    currentUserAgent: string,
   ): Promise<boolean> {
     try {
       // Get recent session activities
@@ -312,14 +315,14 @@ export class DatabaseSessionStorage implements SessionStorage {
         .from(sessionActivity)
         .where(eq(sessionActivity.sessionId, sessionId))
         .orderBy(desc(sessionActivity.createdAt))
-        .limit(10)
+        .limit(10);
 
       // Check for rapid IP changes
       const uniqueIPs = new Set(
         recentActivities
           .filter(activity => activity.ipAddress)
-          .map(activity => activity.ipAddress)
-      )
+          .map(activity => activity.ipAddress),
+      );
 
       if (uniqueIPs.size >= this.config.suspiciousActivityThreshold) {
         await this.logSessionActivity(
@@ -327,17 +330,17 @@ export class DatabaseSessionStorage implements SessionStorage {
           'suspicious',
           currentIpAddress,
           currentUserAgent,
-          { reason: 'rapid_ip_changes', unique_ips: Array.from(uniqueIPs) }
-        )
-        return true
+          { reason: 'rapid_ip_changes', unique_ips: Array.from(uniqueIPs) },
+        );
+        return true;
       }
 
       // Check for unusual user agent changes
       const uniqueUserAgents = new Set(
         recentActivities
           .filter(activity => activity.userAgent)
-          .map(activity => activity.userAgent)
-      )
+          .map(activity => activity.userAgent),
+      );
 
       if (uniqueUserAgents.size >= this.config.suspiciousActivityThreshold) {
         await this.logSessionActivity(
@@ -345,15 +348,15 @@ export class DatabaseSessionStorage implements SessionStorage {
           'suspicious',
           currentIpAddress,
           currentUserAgent,
-          { reason: 'user_agent_changes', unique_user_agents: Array.from(uniqueUserAgents) }
-        )
-        return true
+          { reason: 'user_agent_changes', unique_user_agents: Array.from(uniqueUserAgents) },
+        );
+        return true;
       }
 
-      return false
+      return false;
     } catch (error) {
-      console.error('Failed to detect suspicious activity:', error)
-      return false
+      console.error('Failed to detect suspicious activity:', error);
+      return false;
     }
   }
 
@@ -368,13 +371,13 @@ export class DatabaseSessionStorage implements SessionStorage {
         .where(
           and(
             eq(userSessions.userId, userId),
-            eq(userSessions.isActive, true)
-          )
+            eq(userSessions.isActive, true),
+          ),
         )
-        .orderBy(desc(userSessions.lastActivity))
+        .orderBy(desc(userSessions.lastActivity));
     } catch (error) {
-      console.error('Failed to get user sessions:', error)
-      return []
+      console.error('Failed to get user sessions:', error);
+      return [];
     }
   }
 
@@ -383,13 +386,13 @@ export class DatabaseSessionStorage implements SessionStorage {
    */
   async invalidateUserSessions(userId: string, reason: string = 'security'): Promise<void> {
     try {
-      const sessions = await this.getUserSessions(userId)
-      
+      const sessions = await this.getUserSessions(userId);
+
       for (const session of sessions) {
-        await this.invalidateSession(session.id, reason)
+        await this.invalidateSession(session.id, reason);
       }
     } catch (error) {
-      console.error('Failed to invalidate user sessions:', error)
+      console.error('Failed to invalidate user sessions:', error);
     }
   }
 }

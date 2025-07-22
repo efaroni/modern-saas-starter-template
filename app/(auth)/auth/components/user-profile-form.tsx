@@ -1,20 +1,23 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Input } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
-import type { AuthUser } from '@/lib/auth/types'
-import { updateProfileAction } from '@/app/actions/auth'
-import { AvatarUpload } from './avatar-upload'
+import { useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { updateProfileAction } from '@/app/actions/auth';
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+import type { AuthUser } from '@/lib/auth/types';
+
+import { AvatarUpload } from './avatar-upload';
 
 const profileSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().min(1, 'Email is required').email('Invalid email format'),
-  image: z.string().url('Invalid image URL').optional().or(z.literal(''))
-})
+  image: z.string().url('Invalid image URL').optional().or(z.literal('')),
+});
 
 type ProfileFormData = z.infer<typeof profileSchema>
 
@@ -25,69 +28,69 @@ interface UserProfileFormProps {
 }
 
 export function UserProfileForm({ user, onSuccess, onError }: UserProfileFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [emailVerified, setEmailVerified] = useState(!!user.emailVerified)
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(!!user.emailVerified);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    watch
+    watch,
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: user.name || '',
       email: user.email,
-      image: user.image || ''
-    }
-  })
+      image: user.image || '',
+    },
+  });
 
-  const watchedEmail = watch('email')
-  const hasEmailChanged = watchedEmail !== user.email
+  const watchedEmail = watch('email');
+  const hasEmailChanged = watchedEmail !== user.email;
 
   const onSubmit = async (data: ProfileFormData) => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       const result = await updateProfileAction({
         name: data.name,
         email: data.email,
-        image: data.image || undefined
-      })
+        image: data.image || undefined,
+      });
 
       if (result.success && result.user) {
-        setEmailVerified(!!result.user.emailVerified)
-        onSuccess(result.user)
+        setEmailVerified(!!result.user.emailVerified);
+        onSuccess(result.user);
       } else {
-        onError(result.error || 'Profile update failed')
+        onError(result.error || 'Profile update failed');
       }
     } catch {
-      onError('An unexpected error occurred')
+      onError('An unexpected error occurred');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleVerifyEmail = async () => {
     // TODO: Implement email verification server action
-    onError('Email verification not yet implemented')
-  }
+    onError('Email verification not yet implemented');
+  };
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Profile Information</h3>
-        
+
         {/* Avatar Upload Section */}
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-gray-700">Avatar</h4>
-          <AvatarUpload 
-            user={user} 
-            onSuccess={onSuccess} 
-            onError={onError} 
+          <AvatarUpload
+            user={user}
+            onSuccess={onSuccess}
+            onError={onError}
           />
         </div>
-        
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
             <label htmlFor="profile-name" className="block text-sm font-medium text-gray-700">
               Name
@@ -124,7 +127,7 @@ export function UserProfileForm({ user, onSuccess, onError }: UserProfileFormPro
                 {errors.email.message}
               </p>
             )}
-            
+
             {/* Email verification status */}
             <div className="mt-2 flex items-center gap-2">
               {emailVerified && !hasEmailChanged ? (
@@ -182,5 +185,5 @@ export function UserProfileForm({ user, onSuccess, onError }: UserProfileFormPro
         </form>
       </div>
     </div>
-  )
+  );
 }

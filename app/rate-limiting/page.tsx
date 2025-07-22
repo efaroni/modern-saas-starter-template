@@ -1,12 +1,14 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { RefreshCw, Shield, TrendingUp, AlertTriangle, Activity } from 'lucide-react'
+import { useState, useEffect } from 'react';
+
+import { RefreshCw, Shield, TrendingUp, AlertTriangle, Activity } from 'lucide-react';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface RateLimitStats {
   totalAttempts: number
@@ -37,20 +39,20 @@ interface CurrentLimits {
 }
 
 export default function RateLimitingPage() {
-  const [stats, setStats] = useState<Record<string, RateLimitStats>>({})
-  const [configs, setConfigs] = useState<RateLimitConfig[]>([])
-  const [currentLimits, setCurrentLimits] = useState<CurrentLimits[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedTimeRange, setSelectedTimeRange] = useState<'1h' | '24h' | '7d'>('24h')
+  const [stats, setStats] = useState<Record<string, RateLimitStats>>({});
+  const [configs, setConfigs] = useState<RateLimitConfig[]>([]);
+  const [currentLimits, setCurrentLimits] = useState<CurrentLimits[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedTimeRange, setSelectedTimeRange] = useState<'1h' | '24h' | '7d'>('24h');
 
   // Mock data for demonstration
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true)
-      
+      setIsLoading(true);
+
       // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Mock statistics
       setStats({
         login: {
@@ -60,8 +62,8 @@ export default function RateLimitingPage() {
           uniqueIPs: 487,
           topFailureReasons: [
             { reason: 'Invalid credentials', count: 67 },
-            { reason: 'Rate limit exceeded', count: 24 }
-          ]
+            { reason: 'Rate limit exceeded', count: 24 },
+          ],
         },
         signup: {
           totalAttempts: 342,
@@ -70,8 +72,8 @@ export default function RateLimitingPage() {
           uniqueIPs: 298,
           topFailureReasons: [
             { reason: 'Email already exists', count: 28 },
-            { reason: 'Weak password', count: 16 }
-          ]
+            { reason: 'Weak password', count: 16 },
+          ],
         },
         api: {
           totalAttempts: 15847,
@@ -80,11 +82,11 @@ export default function RateLimitingPage() {
           uniqueIPs: 87,
           topFailureReasons: [
             { reason: 'Rate limit exceeded', count: 489 },
-            { reason: 'Invalid API key', count: 124 }
-          ]
-        }
-      })
-      
+            { reason: 'Invalid API key', count: 124 },
+          ],
+        },
+      });
+
       // Mock configurations
       setConfigs([
         {
@@ -93,7 +95,7 @@ export default function RateLimitingPage() {
           maxAttempts: 5,
           windowMinutes: 15,
           lockoutMinutes: 15,
-          adaptiveScaling: true
+          adaptiveScaling: true,
         },
         {
           type: 'signup',
@@ -101,7 +103,7 @@ export default function RateLimitingPage() {
           maxAttempts: 3,
           windowMinutes: 60,
           lockoutMinutes: 60,
-          adaptiveScaling: false
+          adaptiveScaling: false,
         },
         {
           type: 'api',
@@ -111,10 +113,10 @@ export default function RateLimitingPage() {
           lockoutMinutes: 5,
           burstLimit: 20,
           refillRate: 100,
-          adaptiveScaling: true
-        }
-      ])
-      
+          adaptiveScaling: true,
+        },
+      ]);
+
       // Mock current limits
       setCurrentLimits([
         {
@@ -123,7 +125,7 @@ export default function RateLimitingPage() {
           remaining: 3,
           resetTime: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
           locked: false,
-          algorithm: 'sliding-window'
+          algorithm: 'sliding-window',
         },
         {
           identifier: '192.168.1.100',
@@ -131,7 +133,7 @@ export default function RateLimitingPage() {
           remaining: 87,
           resetTime: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
           locked: false,
-          algorithm: 'token-bucket'
+          algorithm: 'token-bucket',
         },
         {
           identifier: 'attacker@spam.com',
@@ -139,42 +141,42 @@ export default function RateLimitingPage() {
           remaining: 0,
           resetTime: new Date(Date.now() + 8 * 60 * 1000).toISOString(),
           locked: true,
-          algorithm: 'sliding-window'
-        }
-      ])
-      
-      setIsLoading(false)
-    }
-    
-    loadData()
-  }, [selectedTimeRange])
+          algorithm: 'sliding-window',
+        },
+      ]);
+
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, [selectedTimeRange]);
 
   const handleRefresh = () => {
-    setIsLoading(true)
+    setIsLoading(true);
     // Simulate refresh
-    setTimeout(() => setIsLoading(false), 500)
-  }
+    setTimeout(() => setIsLoading(false), 500);
+  };
 
   const getSuccessRate = (stats: RateLimitStats) => {
-    if (stats.totalAttempts === 0) return 0
-    return Math.round((stats.successfulAttempts / stats.totalAttempts) * 100)
-  }
+    if (stats.totalAttempts === 0) return 0;
+    return Math.round((stats.successfulAttempts / stats.totalAttempts) * 100);
+  };
 
   const getAlgorithmBadgeColor = (algorithm: string) => {
     switch (algorithm) {
-      case 'token-bucket': return 'bg-blue-100 text-blue-800'
-      case 'sliding-window': return 'bg-green-100 text-green-800'
-      case 'fixed-window': return 'bg-purple-100 text-purple-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'token-bucket': return 'bg-blue-100 text-blue-800';
+      case 'sliding-window': return 'bg-green-100 text-green-800';
+      case 'fixed-window': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
-  }
+  };
 
   const getStatusBadge = (locked: boolean, remaining: number) => {
-    if (locked) return <Badge variant="destructive">Locked</Badge>
-    if (remaining <= 1) return <Badge variant="destructive">Critical</Badge>
-    if (remaining <= 3) return <Badge variant="default">Warning</Badge>
-    return <Badge variant="secondary">Normal</Badge>
-  }
+    if (locked) return <Badge variant="destructive">Locked</Badge>;
+    if (remaining <= 1) return <Badge variant="destructive">Critical</Badge>;
+    if (remaining <= 3) return <Badge variant="default">Warning</Badge>;
+    return <Badge variant="secondary">Normal</Badge>;
+  };
 
   if (isLoading) {
     return (
@@ -184,7 +186,7 @@ export default function RateLimitingPage() {
           <span>Loading rate limiting data...</span>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -199,8 +201,8 @@ export default function RateLimitingPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <select 
-            value={selectedTimeRange} 
+          <select
+            value={selectedTimeRange}
             onChange={(e) => setSelectedTimeRange(e.target.value as '1h' | '24h' | '7d')}
             className="px-3 py-2 border rounded-md"
           >
@@ -292,7 +294,7 @@ export default function RateLimitingPage() {
                         {config.algorithm}
                       </Badge>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className="font-medium">Max Attempts</span>
@@ -311,7 +313,7 @@ export default function RateLimitingPage() {
                         <p className="text-gray-600">{config.adaptiveScaling ? 'Yes' : 'No'}</p>
                       </div>
                     </div>
-                    
+
                     {config.algorithm === 'token-bucket' && (
                       <div className="mt-3 pt-3 border-t">
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -352,7 +354,7 @@ export default function RateLimitingPage() {
                       </div>
                       {getStatusBadge(limit.locked, limit.remaining)}
                     </div>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className="font-medium">Remaining</span>
@@ -387,19 +389,19 @@ export default function RateLimitingPage() {
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>High failure rate detected:</strong> Login endpoint has a 7.3% failure rate in the last hour. 
+                <strong>High failure rate detected:</strong> Login endpoint has a 7.3% failure rate in the last hour.
                 Consider reviewing authentication logs.
               </AlertDescription>
             </Alert>
-            
+
             <Alert>
               <TrendingUp className="h-4 w-4" />
               <AlertDescription>
-                <strong>Traffic spike:</strong> API endpoint requests increased by 45% compared to yesterday. 
+                <strong>Traffic spike:</strong> API endpoint requests increased by 45% compared to yesterday.
                 Monitor for potential abuse.
               </AlertDescription>
             </Alert>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Alert Configuration</CardTitle>
@@ -435,5 +437,5 @@ export default function RateLimitingPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

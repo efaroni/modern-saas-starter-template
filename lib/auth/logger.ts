@@ -42,12 +42,12 @@ export interface Logger {
 }
 
 export class AuthLogger implements Logger {
-  private logLevel: LogLevel
-  private isDevelopment: boolean
+  private logLevel: LogLevel;
+  private isDevelopment: boolean;
 
   constructor(logLevel: LogLevel = 'info') {
-    this.logLevel = logLevel
-    this.isDevelopment = process.env.NODE_ENV === 'development'
+    this.logLevel = logLevel;
+    this.isDevelopment = process.env.NODE_ENV === 'development';
   }
 
   logAuthEvent(event: AuthEvent): void {
@@ -63,18 +63,18 @@ export class AuthLogger implements Logger {
       duration: event.duration,
       sessionId: event.sessionId,
       metadata: event.metadata,
-      timestamp: event.timestamp.toISOString()
-    }
+      timestamp: event.timestamp.toISOString(),
+    };
 
     if (event.success) {
-      this.log('info', `Auth ${event.type} successful`, logData)
+      this.log('info', `Auth ${event.type} successful`, logData);
     } else {
-      this.log('warn', `Auth ${event.type} failed: ${event.error}`, logData)
+      this.log('warn', `Auth ${event.type} failed: ${event.error}`, logData);
     }
 
     // Log to external monitoring service in production
     if (!this.isDevelopment) {
-      this.sendToMonitoring('auth_event', logData)
+      this.sendToMonitoring('auth_event', logData);
     }
   }
 
@@ -89,18 +89,18 @@ export class AuthLogger implements Logger {
       severity: event.severity,
       details: event.details,
       actionTaken: event.actionTaken,
-      timestamp: event.timestamp.toISOString()
-    }
+      timestamp: event.timestamp.toISOString(),
+    };
 
-    const logLevel = this.getLogLevelForSeverity(event.severity)
-    this.log(logLevel, `Security event: ${event.type}`, logData)
+    const logLevel = this.getLogLevelForSeverity(event.severity);
+    this.log(logLevel, `Security event: ${event.type}`, logData);
 
     // Always send security events to monitoring
-    this.sendToMonitoring('security_event', logData)
+    this.sendToMonitoring('security_event', logData);
 
     // Send high/critical security events to alerts
     if (event.severity === 'high' || event.severity === 'critical') {
-      this.sendAlert('security', logData)
+      this.sendAlert('security', logData);
     }
   }
 
@@ -111,49 +111,49 @@ export class AuthLogger implements Logger {
       duration: metric.duration,
       success: metric.success,
       metadata: metric.metadata,
-      timestamp: metric.timestamp.toISOString()
-    }
+      timestamp: metric.timestamp.toISOString(),
+    };
 
     // Log slow operations
-    const slowThreshold = 1000 // 1 second
+    const slowThreshold = 1000; // 1 second
     if (metric.duration > slowThreshold) {
-      this.log('warn', `Slow operation: ${metric.operation} took ${metric.duration}ms`, logData)
+      this.log('warn', `Slow operation: ${metric.operation} took ${metric.duration}ms`, logData);
     } else {
-      this.log('debug', `Operation: ${metric.operation} completed in ${metric.duration}ms`, logData)
+      this.log('debug', `Operation: ${metric.operation} completed in ${metric.duration}ms`, logData);
     }
 
     // Send metrics to monitoring
     if (!this.isDevelopment) {
-      this.sendToMonitoring('performance_metric', logData)
+      this.sendToMonitoring('performance_metric', logData);
     }
   }
 
   log(level: LogLevel, message: string, metadata?: Record<string, any>): void {
     if (!this.shouldLog(level)) {
-      return
+      return;
     }
 
     const logEntry = {
       level,
       message,
       timestamp: new Date().toISOString(),
-      ...metadata
-    }
+      ...metadata,
+    };
 
     // Console output with colors in development
     if (this.isDevelopment) {
-      this.logToConsole(level, message, logEntry)
+      this.logToConsole(level, message, logEntry);
     } else {
       // Structured JSON logging in production
-      console.log(JSON.stringify(logEntry))
+      console.log(JSON.stringify(logEntry));
     }
   }
 
   private shouldLog(level: LogLevel): boolean {
-    const levels = ['debug', 'info', 'warn', 'error']
-    const currentLevelIndex = levels.indexOf(this.logLevel)
-    const messageLevelIndex = levels.indexOf(level)
-    return messageLevelIndex >= currentLevelIndex
+    const levels = ['debug', 'info', 'warn', 'error'];
+    const currentLevelIndex = levels.indexOf(this.logLevel);
+    const messageLevelIndex = levels.indexOf(level);
+    return messageLevelIndex >= currentLevelIndex;
   }
 
   private logToConsole(level: LogLevel, message: string, data: any): void {
@@ -161,43 +161,43 @@ export class AuthLogger implements Logger {
       debug: '\x1b[36m', // cyan
       info: '\x1b[32m',  // green
       warn: '\x1b[33m',  // yellow
-      error: '\x1b[31m'  // red
-    }
-    const reset = '\x1b[0m'
-    
-    const color = colors[level] || ''
-    const timestamp = new Date().toISOString()
-    
-    console.log(`${color}[${timestamp}] ${level.toUpperCase()}: ${message}${reset}`)
+      error: '\x1b[31m',  // red
+    };
+    const reset = '\x1b[0m';
+
+    const color = colors[level] || '';
+    const timestamp = new Date().toISOString();
+
+    console.log(`${color}[${timestamp}] ${level.toUpperCase()}: ${message}${reset}`);
     if (data && Object.keys(data).length > 3) { // Only log extra data if it's substantial
-      console.log(`${color}${JSON.stringify(data, null, 2)}${reset}`)
+      console.log(`${color}${JSON.stringify(data, null, 2)}${reset}`);
     }
   }
 
   private getLogLevelForSeverity(severity: SecurityEvent['severity']): LogLevel {
     switch (severity) {
-      case 'low': return 'info'
-      case 'medium': return 'warn'
-      case 'high': return 'error'
-      case 'critical': return 'error'
-      default: return 'info'
+      case 'low': return 'info';
+      case 'medium': return 'warn';
+      case 'high': return 'error';
+      case 'critical': return 'error';
+      default: return 'info';
     }
   }
 
   private maskEmail(email?: string): string | undefined {
-    if (!email) return undefined
-    const [username, domain] = email.split('@')
-    if (username.length <= 2) return email
-    return `${username[0]}***${username[username.length - 1]}@${domain}`
+    if (!email) return undefined;
+    const [username, domain] = email.split('@');
+    if (username.length <= 2) return email;
+    return `${username[0]}***${username[username.length - 1]}@${domain}`;
   }
 
   private maskIp(ip?: string): string | undefined {
-    if (!ip) return undefined
-    const parts = ip.split('.')
+    if (!ip) return undefined;
+    const parts = ip.split('.');
     if (parts.length === 4) {
-      return `${parts[0]}.${parts[1]}.xxx.xxx`
+      return `${parts[0]}.${parts[1]}.xxx.xxx`;
     }
-    return ip
+    return ip;
   }
 
   private sendToMonitoring(eventType: string, data: any): void {
@@ -208,7 +208,7 @@ export class AuthLogger implements Logger {
     // - Grafana
     // For now, we'll just log it
     if (process.env.NODE_ENV !== 'test') {
-      console.log(`[MONITORING] ${eventType}:`, JSON.stringify(data))
+      console.log(`[MONITORING] ${eventType}:`, JSON.stringify(data));
     }
   }
 
@@ -218,45 +218,45 @@ export class AuthLogger implements Logger {
     // - PagerDuty
     // - Email alerts
     // - SMS alerts
-    console.error(`[ALERT] ${alertType}:`, JSON.stringify(data))
+    console.error(`[ALERT] ${alertType}:`, JSON.stringify(data));
   }
 }
 
 // Create default logger instance
 export const authLogger = new AuthLogger(
-  (process.env.LOG_LEVEL as LogLevel) || 'info'
-)
+  (process.env.LOG_LEVEL as LogLevel) || 'info',
+);
 
 // Utility function to time operations
 export function timeOperation<T>(
   operation: string,
   fn: () => Promise<T>,
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
 ): Promise<T> {
-  const start = Date.now()
-  
+  const start = Date.now();
+
   return fn().then(
     (result) => {
-      const duration = Date.now() - start
+      const duration = Date.now() - start;
       authLogger.logPerformanceMetric({
         operation,
         duration,
         success: true,
         metadata,
-        timestamp: new Date()
-      })
-      return result
+        timestamp: new Date(),
+      });
+      return result;
     },
     (error) => {
-      const duration = Date.now() - start
+      const duration = Date.now() - start;
       authLogger.logPerformanceMetric({
         operation,
         duration,
         success: false,
         metadata: { ...metadata, error: error.message },
-        timestamp: new Date()
-      })
-      throw error
-    }
-  )
+        timestamp: new Date(),
+      });
+      throw error;
+    },
+  );
 }

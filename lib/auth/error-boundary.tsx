@@ -1,7 +1,8 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { authLogger } from './logger'
+import React from 'react';
+
+import { authLogger } from './logger';
 
 interface ErrorBoundaryState {
   hasError: boolean
@@ -23,19 +24,19 @@ interface ErrorBoundaryFallbackProps {
 
 export class AuthErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
-    super(props)
+    super(props);
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null
-    }
+      errorInfo: null,
+    };
   }
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return {
       hasError: true,
-      error
-    }
+      error,
+    };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -44,8 +45,8 @@ export class AuthErrorBoundary extends React.Component<ErrorBoundaryProps, Error
       error: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
-      timestamp: new Date().toISOString()
-    })
+      timestamp: new Date().toISOString(),
+    });
 
     // Log as a security event if it might be malicious
     if (this.isPotentialSecurityError(error)) {
@@ -56,19 +57,19 @@ export class AuthErrorBoundary extends React.Component<ErrorBoundaryProps, Error
           errorMessage: error.message,
           errorStack: error.stack,
           componentStack: errorInfo.componentStack,
-          userAgent: navigator.userAgent
+          userAgent: navigator.userAgent,
         },
         timestamp: new Date(),
-        actionTaken: 'error_boundary_triggered'
-      })
+        actionTaken: 'error_boundary_triggered',
+      });
     }
 
     this.setState({
-      errorInfo
-    })
+      errorInfo,
+    });
 
     // Call custom error handler if provided
-    this.props.onError?.(error, errorInfo)
+    this.props.onError?.(error, errorInfo);
   }
 
   private isPotentialSecurityError(error: Error): boolean {
@@ -82,39 +83,39 @@ export class AuthErrorBoundary extends React.Component<ErrorBoundaryProps, Error
       'vbscript:',
       'onload',
       'onerror',
-      'onclick'
-    ]
+      'onclick',
+    ];
 
-    const errorMessage = error.message.toLowerCase()
-    return suspiciousPatterns.some(pattern => errorMessage.includes(pattern))
+    const errorMessage = error.message.toLowerCase();
+    return suspiciousPatterns.some(pattern => errorMessage.includes(pattern));
   }
 
   private resetError = () => {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null
-    })
-  }
+      errorInfo: null,
+    });
+  };
 
   render() {
     if (this.state.hasError) {
-      const FallbackComponent = this.props.fallback || DefaultAuthErrorFallback
+      const FallbackComponent = this.props.fallback || DefaultAuthErrorFallback;
       return (
         <FallbackComponent
           error={this.state.error!}
           errorInfo={this.state.errorInfo!}
           resetError={this.resetError}
         />
-      )
+      );
     }
 
-    return this.props.children
+    return this.props.children;
   }
 }
 
 const DefaultAuthErrorFallback: React.FC<ErrorBoundaryFallbackProps> = ({ error, resetError }) => {
-  const isDevelopment = process.env.NODE_ENV === 'development'
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -160,24 +161,24 @@ const DefaultAuthErrorFallback: React.FC<ErrorBoundaryFallbackProps> = ({ error,
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 // Higher-order component for wrapping auth components
 export function withAuthErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
-  fallback?: React.ComponentType<ErrorBoundaryFallbackProps>
+  fallback?: React.ComponentType<ErrorBoundaryFallbackProps>,
 ) {
   const WrappedComponent: React.FC<P> = (props) => {
     return (
       <AuthErrorBoundary fallback={fallback}>
         <Component {...props} />
       </AuthErrorBoundary>
-    )
-  }
+    );
+  };
 
-  WrappedComponent.displayName = `withAuthErrorBoundary(${Component.displayName || Component.name})`
-  return WrappedComponent
+  WrappedComponent.displayName = `withAuthErrorBoundary(${Component.displayName || Component.name})`;
+  return WrappedComponent;
 }
 
 // Hook for handling errors in functional components
@@ -186,14 +187,14 @@ export function useAuthErrorHandler() {
     authLogger.log('error', `Auth error in ${context || 'component'}`, {
       error: error.message,
       stack: error.stack,
-      timestamp: new Date().toISOString()
-    })
+      timestamp: new Date().toISOString(),
+    });
 
     // In development, re-throw for debugging
     if (process.env.NODE_ENV === 'development') {
-      throw error
+      throw error;
     }
-  }, [])
+  }, []);
 
-  return handleError
+  return handleError;
 }

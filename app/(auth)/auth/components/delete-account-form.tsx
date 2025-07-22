@@ -1,19 +1,21 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Input } from '@/components/ui/input'
-import { Spinner } from '@/components/ui/spinner'
-import type { AuthUser } from '@/lib/auth/types'
+import { useState } from 'react';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
+import type { AuthUser } from '@/lib/auth/types';
 // import { deleteAccountAction } from '@/app/actions/auth' // TODO: Implement when ready
 
 const deleteAccountSchema = z.object({
   confirmText: z.string().refine((val) => val === 'DELETE', {
-    message: 'Please type "DELETE" to confirm'
-  })
-})
+    message: 'Please type "DELETE" to confirm',
+  }),
+});
 
 type DeleteAccountFormData = z.infer<typeof deleteAccountSchema>
 
@@ -24,37 +26,37 @@ interface DeleteAccountFormProps {
 }
 
 export function DeleteAccountForm({ user: _user, onSuccess: _onSuccess, onError }: DeleteAccountFormProps) {
-  const [isSubmitting, _setIsSubmitting] = useState(false)
-  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [isSubmitting, _setIsSubmitting] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    reset
+    reset,
   } = useForm<DeleteAccountFormData>({
-    resolver: zodResolver(deleteAccountSchema)
-  })
+    resolver: zodResolver(deleteAccountSchema),
+  });
 
   const onSubmit = async () => {
     // TODO: Implement account deletion with server action
-    onError('Account deletion not yet implemented')
-  }
+    onError('Account deletion not yet implemented');
+  };
 
   const handleDeleteClick = () => {
-    setShowConfirmation(true)
-  }
+    setShowConfirmation(true);
+  };
 
   const handleCancelClick = () => {
-    setShowConfirmation(false)
-    reset()
-  }
+    setShowConfirmation(false);
+    reset();
+  };
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-red-600">Danger Zone</h3>
-        
+
         <div className="p-4 border border-red-200 rounded-md bg-red-50">
           <div className="space-y-4">
             <div>
@@ -102,7 +104,7 @@ export function DeleteAccountForm({ user: _user, onSuccess: _onSuccess, onError 
                     {isSubmitting && <Spinner size="sm" />}
                     {isSubmitting ? 'Deleting...' : 'Delete Account'}
                   </button>
-                  
+
                   <button
                     type="button"
                     onClick={handleCancelClick}
@@ -117,5 +119,5 @@ export function DeleteAccountForm({ user: _user, onSuccess: _onSuccess, onError 
         </div>
       </div>
     </div>
-  )
+  );
 }
