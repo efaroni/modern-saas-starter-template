@@ -73,8 +73,8 @@ env:
   # Redis configuration
   REDIS_URL: redis://localhost:6379
 
-  # Auth configuration
-  AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'test-secret-key-for-e2e-testing-only-not-for-production' }}
+  # Auth configuration (generated unique secret per run)
+  AUTH_SECRET: ${{ secrets.AUTH_SECRET || format('e2e-test-{0}-{1}', github.run_id, github.sha) }}
   NEXTAUTH_URL: http://localhost:3000
 
   # Email service (mock for E2E)
@@ -155,7 +155,6 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: saas_template_e2e
-          POSTGRES_HOST_AUTH_METHOD: trust
         options: >-
           --health-cmd pg_isready
           --health-interval 10s

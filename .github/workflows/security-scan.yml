@@ -86,8 +86,8 @@ jobs:
           # Build the application for better CodeQL analysis
           npm run build --if-present
         env:
-          # Provide minimal env vars for build
-          NEXTAUTH_SECRET: 'dummy-secret-for-build'
+          # Provide minimal env vars for build (generated unique secret per run)
+          NEXTAUTH_SECRET: ${{ format('security-scan-{0}-{1}', github.run_id, github.sha) }}
           NEXTAUTH_URL: 'http://localhost:3000'
 
       - name: Perform CodeQL Analysis
