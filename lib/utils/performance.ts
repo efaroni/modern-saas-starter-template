@@ -241,7 +241,7 @@ export function measurePerformance<T extends(...args: unknown[]) => unknown>(
         }) as ReturnType<T>;
       } else {
         const end = performance.now();
-        console.log(`${functionName} executed in ${end - start}ms`);
+        console.warn(`${functionName} executed in ${end - start}ms`);
         return result;
       }
     } catch (error) {
@@ -427,7 +427,7 @@ export function setupPerformanceMonitoring(config: {
 
       entries.forEach(entry => {
         if (reportToConsole) {
-          console.log(`Performance: ${entry.name} - ${entry.duration}ms`);
+          console.warn(`Performance: ${entry.name} - ${entry.duration}ms`);
         }
 
         if (reportToAPI) {

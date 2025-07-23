@@ -1,7 +1,7 @@
 import bcrypt from '@node-rs/bcrypt';
-import { eq, desc, and, gte } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 
-import { users, passwordHistory, authAttempts } from '@/lib/db/schema';
+import { users, passwordHistory } from '@/lib/db/schema';
 import { testDb } from '@/lib/db/test';
 import { emailService } from '@/lib/email/service';
 
@@ -19,7 +19,6 @@ import { TokenService } from '../token-service';
 import {
   type AuthProvider,
   type AuthResult,
-  AuthUser,
   type SignUpRequest,
   type AuthConfiguration,
   type OAuthProvider,

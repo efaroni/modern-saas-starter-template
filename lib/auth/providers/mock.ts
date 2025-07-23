@@ -232,6 +232,7 @@ export class MockAuthProvider implements AuthProvider {
     id: string,
     data: UpdateProfileRequest,
   ): Promise<AuthResult> {
+    await Promise.resolve(); // Ensure async compliance
     const user = this.mockUsers.get(id);
 
     if (!user) {

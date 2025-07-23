@@ -664,8 +664,8 @@ export default function PerformancePage() {
               </CardHeader>
               <CardContent>
                 <div className='space-y-2'>
-                  {data.insights.map((insight, index) => (
-                    <div key={index} className='flex items-start gap-2'>
+                  {data.insights.map((insight) => (
+                    <div key={insight} className='flex items-start gap-2'>
                       <CheckCircle className='mt-0.5 h-4 w-4 flex-shrink-0 text-green-500' />
                       <span className='text-sm'>{insight}</span>
                     </div>
@@ -683,8 +683,8 @@ export default function PerformancePage() {
               </CardHeader>
               <CardContent>
                 <div className='space-y-2'>
-                  {data.recommendations.map((recommendation, index) => (
-                    <div key={index} className='flex items-start gap-2'>
+                  {data.recommendations.map((recommendation) => (
+                    <div key={recommendation} className='flex items-start gap-2'>
                       <TrendingUp className='mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500' />
                       <span className='text-sm'>{recommendation}</span>
                     </div>
