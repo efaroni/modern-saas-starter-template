@@ -301,12 +301,13 @@ export default function GeneratorsPage() {
                       >
                         <SelectContent>
                           <option value=''>Select {field.label}</option>
-                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                          {(field as any).options.map((option: string) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
+                          {(field as { options?: string[] }).options?.map(
+                            (option: string) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     )}
@@ -317,9 +318,8 @@ export default function GeneratorsPage() {
                           id={field.name}
                           type='checkbox'
                           checked={
-                            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                             (formData[field.name] as boolean) ??
-                            (field as any).default
+                            (field as { default?: boolean }).default
                           }
                           onChange={e =>
                             handleFieldChange(field.name, e.target.checked)
