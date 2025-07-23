@@ -177,7 +177,7 @@ export class EnhancedRateLimiter {
     const remaining = Math.max(0, config.maxAttempts - recentAttempts.length);
     const resetTime = new Date(
       Math.max(...recentAttempts.map(a => a.createdAt.getTime())) +
-        (config.windowMinutes * 60 * 1000),
+        config.windowMinutes * 60 * 1000,
     );
 
     return {
@@ -249,7 +249,7 @@ export class EnhancedRateLimiter {
       config.maxAttempts - Math.ceil(weightedCount),
     );
     const resetTime = new Date(
-      now.getTime() + (config.windowMinutes * 60 * 1000),
+      now.getTime() + config.windowMinutes * 60 * 1000,
     );
 
     return {
@@ -304,7 +304,7 @@ export class EnhancedRateLimiter {
         ? Math.ceil(((1 - bucket.tokens) * 60) / bucket.refillRate)
         : 0;
 
-    const resetTime = new Date(now.getTime() + (secondsUntilNextToken * 1000));
+    const resetTime = new Date(now.getTime() + secondsUntilNextToken * 1000);
 
     return {
       allowed,
@@ -435,7 +435,7 @@ export class EnhancedRateLimiter {
     topFailureReasons: Array<{ reason: string; count: number }>;
   }> {
     try {
-      const windowStart = new Date(Date.now() - (hours * 60 * 60 * 1000));
+      const windowStart = new Date(Date.now() - hours * 60 * 60 * 1000);
 
       const conditions = [gte(authAttempts.createdAt, windowStart)];
 
@@ -521,7 +521,7 @@ export class EnhancedRateLimiter {
     return {
       allowed: true,
       remaining: 999,
-      resetTime: new Date(Date.now() + (60 * 60 * 1000)),
+      resetTime: new Date(Date.now() + 60 * 60 * 1000),
       locked: false,
       algorithm: 'default',
     };

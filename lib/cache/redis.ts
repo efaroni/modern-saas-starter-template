@@ -33,7 +33,7 @@ export interface CacheStats {
 }
 
 export class RedisCache {
-  private redis: Redis;
+  private redis!: Redis;
   private fallbackMap: Map<string, CacheItem>;
   private config: CacheConfig;
   private stats: CacheStats;
@@ -62,22 +62,14 @@ export class RedisCache {
         keyPrefix: config.keyPrefix || 'saas:',
         connectTimeout: config.connectTimeout || 10000,
         commandTimeout: config.commandTimeout || 5000,
-        retryDelayOnFailover: config.retryDelayOnFailover || 100,
         maxRetriesPerRequest: config.maxRetriesPerRequest || 3,
         lazyConnect: config.lazyConnect || true,
         keepAlive: config.keepAlive || 30000,
-        enableReadyCheck: config.enableReadyCheck || true,
-        maxLoadingTimeout: config.maxLoadingTimeout || 5000,
 
         // Retry strategy
         retryStrategy: times => {
           const delay = Math.min(times * 50, 2000);
           return delay;
-        },
-
-        // Connection events
-        onFailover: () => {
-          console.warn('Redis failover detected');
         },
       });
 
@@ -115,7 +107,7 @@ export class RedisCache {
       });
 
       this.redis.on('reconnecting', () => {
-        console.log('Reconnecting to Redis...');
+        console.warn('Reconnecting to Redis...');
       });
     } catch (error) {
       console.error('Failed to initialize Redis:', error);
@@ -209,7 +201,7 @@ export class RedisCache {
         }
 
         this.stats.hits++;
-        return item.data;
+        return item.data as T;
       }
 
       this.stats.misses++;
@@ -437,14 +429,14 @@ export class RedisCache {
 
       return {
         mode: 'in-memory',
-        memory: {
-          used: this.fallbackMap.size,
-          keys: this.fallbackMap.size,
-        },
+        memory_used: this.fallbackMap.size,
+        memory_keys: this.fallbackMap.size,
       };
     } catch (error) {
       console.error('Redis info error:', error);
-      return { error: error.message };
+      return {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
@@ -488,15 +480,10 @@ export class RedisCache {
     for (const line of lines) {
       if (line.startsWith('#')) {
         currentSection = line.substring(2).toLowerCase();
-        result[currentSection] = {};
       } else if (line.includes(':')) {
         const [key, value] = line.split(':');
-        if (!result[currentSection]) {
-          result[currentSection] = {};
-        }
-        result[currentSection][key] = isNaN(Number(value))
-          ? value
-          : Number(value);
+        const prefixedKey = `${currentSection}_${key}`;
+        result[prefixedKey] = isNaN(Number(value)) ? value : Number(value);
       }
     }
 

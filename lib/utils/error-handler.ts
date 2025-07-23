@@ -357,10 +357,10 @@ export class ErrorHandler {
 
     // Use the existing auth logger for consistency
     authLogger.logSecurityEvent({
-      type: 'error',
+      type: 'multiple_failed_attempts',
       email: context.userId,
-      ipAddress: logData.request.ip,
-      userAgent: logData.request.userAgent,
+      ipAddress: logData.request.ip ?? undefined,
+      userAgent: logData.request.userAgent ?? undefined,
       severity: error.severity,
       details: logData,
       timestamp: new Date(),
@@ -423,6 +423,7 @@ export class ErrorHandler {
       userId: context.userId,
       timestamp: new Date().toISOString(),
     });
+    return Promise.resolve();
   }
 
   /**
@@ -529,7 +530,15 @@ export function withErrorContext<T extends unknown[], R>(
       return await fn(...args);
     } catch (error) {
       if (error instanceof AppError) {
-        error.context = { ...error.context, ...context };
+        const enhancedError = new AppError(
+          error.message,
+          error.category,
+          error.severity,
+          error.statusCode,
+          { ...error.context, ...context },
+        );
+        enhancedError.stack = error.stack;
+        throw enhancedError;
       }
       throw error;
     }

@@ -1,3 +1,9 @@
+// Import for internal use
+import { cacheInvalidationUtils } from './cache-invalidator';
+import { oauthTokenCacheUtils } from './oauth-token-cache';
+import { sessionCacheUtils } from './session-cache';
+import { userProfileCacheUtils } from './user-profile-cache';
+
 // Export Redis cache
 export { RedisCache, createRedisCache, redisCache } from './redis';
 export type { CacheConfig, CacheItem, CacheStats } from './redis';

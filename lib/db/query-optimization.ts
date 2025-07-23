@@ -232,7 +232,7 @@ export class QueryOptimizer {
     return this.executeQuery(
       'getRecentAuthAttempts',
       () => {
-        const timeWindow = new Date(Date.now() - (timeWindowMinutes * 60 * 1000));
+        const timeWindow = new Date(Date.now() - timeWindowMinutes * 60 * 1000);
 
         return db
           .select()
@@ -323,7 +323,7 @@ export class QueryOptimizer {
       'getAuthAttemptStats',
       async () => {
         const timeWindow = new Date(
-          Date.now() - (timeWindowHours * 60 * 60 * 1000),
+          Date.now() - timeWindowHours * 60 * 60 * 1000,
         );
 
         // Get basic stats
@@ -378,11 +378,11 @@ export class QueryOptimizer {
         .where(
           lte(
             authAttempts.createdAt,
-            new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000)),
+            new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
           ),
         ); // 90 days ago
 
-      return result.rowCount || 0;
+      return result.length;
     });
   }
 
@@ -393,7 +393,7 @@ export class QueryOptimizer {
         .delete(userSessions)
         .where(lte(userSessions.expiresAt, now));
 
-      return result.rowCount || 0;
+      return result.length;
     });
   }
 

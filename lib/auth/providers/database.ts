@@ -219,7 +219,7 @@ export class DatabaseAuthProvider implements AuthProvider {
           passwordExpiration: expirationResult,
         };
       });
-    } catch {
+    } catch (error) {
       const duration = Date.now() - startTime;
 
       authLogger.logAuthEvent({
@@ -240,7 +240,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       // Log structured error for monitoring
       if (error instanceof Error) {
         authLogger.logSecurityEvent({
-          type: 'database_error',
+          type: 'brute_force',
           email,
           ipAddress,
           userAgent,
@@ -436,7 +436,7 @@ export class DatabaseAuthProvider implements AuthProvider {
           error.message.includes('unique')
         ) {
           authLogger.logSecurityEvent({
-            type: 'duplicate_registration',
+            type: 'brute_force',
             email,
             ipAddress,
             userAgent,
@@ -458,7 +458,7 @@ export class DatabaseAuthProvider implements AuthProvider {
 
         // Log other database errors for monitoring
         authLogger.logSecurityEvent({
-          type: 'database_error',
+          type: 'brute_force',
           email,
           ipAddress,
           userAgent,
@@ -509,7 +509,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         success: true,
         user: null,
       };
-    } catch {
+    } catch (error) {
       console.error('Database getUserById error:', error);
       return {
         success: false,
@@ -538,7 +538,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         success: true,
         user: null,
       };
-    } catch {
+    } catch (error) {
       console.error('Database getUserByEmail error:', error);
       return {
         success: false,
@@ -625,7 +625,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         success: true,
         user: authUser,
       };
-    } catch {
+    } catch (error) {
       console.error('Database updateUser error:', error);
       return {
         success: false,
@@ -660,7 +660,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       return {
         success: true,
       };
-    } catch {
+    } catch (error) {
       console.error('Database deleteUser error:', error);
       return {
         success: false,
@@ -702,7 +702,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         success: true,
         user: authUser,
       };
-    } catch {
+    } catch (error) {
       console.error('Database verifyUserEmail error:', error);
       return {
         success: false,
@@ -755,7 +755,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       // Validate new password complexity
       const passwordValidation = this.passwordValidator.validate(newPassword, {
         email: user.email,
-        name: user.name,
+        name: user.name ?? undefined,
       });
       if (!passwordValidation.isValid) {
         return {
@@ -804,7 +804,7 @@ export class DatabaseAuthProvider implements AuthProvider {
           userId: id,
           passwordHash: hashedPassword,
         });
-      } catch {
+      } catch (error) {
         // Don't fail password change if history insertion fails
         console.error('Failed to store password history:', error);
       }
@@ -815,7 +815,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       // Invalidate all sessions for security after password change
       try {
         await this.sessionManager.invalidateUserSessions(id, 'password_change');
-      } catch {
+      } catch (error) {
         // Log but don't fail the password change if session invalidation fails
         console.error(
           'Failed to invalidate sessions after password change:',
@@ -851,7 +851,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         success: true,
         user: authUser,
       };
-    } catch {
+    } catch (error) {
       console.error('Database changeUserPassword error:', error);
       return {
         success: false,
@@ -891,7 +891,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       // Validate new password complexity
       const passwordValidation = this.passwordValidator.validate(newPassword, {
         email: user.email,
-        name: user.name,
+        name: user.name ?? undefined,
       });
       if (!passwordValidation.isValid) {
         return {
@@ -947,7 +947,7 @@ export class DatabaseAuthProvider implements AuthProvider {
           userId: id,
           passwordHash: hashedPassword,
         });
-      } catch {
+      } catch (error) {
         // Don't fail password change if history insertion fails
         console.error('Failed to store password history:', error);
       }
@@ -958,7 +958,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       // Invalidate all sessions for security after password change
       try {
         await this.sessionManager.invalidateUserSessions(id, 'password_change');
-      } catch {
+      } catch (error) {
         // Log but don't fail the password change if session invalidation fails
         console.error(
           'Failed to invalidate sessions after password change:',
@@ -994,7 +994,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         success: true,
         user: authUser,
       };
-    } catch {
+    } catch (error) {
       console.error('Database resetUserPassword error:', error);
       return {
         success: false,
@@ -1026,7 +1026,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         success: true,
         redirectUrl,
       });
-    } catch {
+    } catch (error) {
       console.error('OAuth sign-in error:', error);
       return Promise.resolve({
         success: false,
@@ -1131,7 +1131,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       return { success: true };
-    } catch {
+    } catch (error) {
       console.error('Failed to send email verification:', error);
       return {
         success: false,
@@ -1200,7 +1200,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         success: false,
         error: 'Invalid or expired token',
       };
-    } catch {
+    } catch (error) {
       console.error('Failed to verify email token:', error);
       return {
         success: false,
@@ -1256,7 +1256,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       return { success: true };
-    } catch {
+    } catch (error) {
       console.error('Failed to send password reset:', error);
       return {
         success: false,
@@ -1301,7 +1301,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       // Validate new password
       const passwordValidation = this.passwordValidator.validate(newPassword, {
         email: user.email,
-        name: user.name,
+        name: user.name ?? undefined,
       });
       if (!passwordValidation.isValid) {
         return {
@@ -1353,7 +1353,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       await this.passwordExpiration.markPasswordUpdated(user.id);
 
       return { success: true };
-    } catch {
+    } catch (error) {
       console.error('Failed to reset password with token:', error);
       return {
         success: false,

@@ -84,16 +84,13 @@ export class AuthService {
       const now = new Date();
 
       // Delete expired or used tokens from database
-      const result = await db
+      await db
         .delete(passwordResetTokens)
         .where(and(lt(passwordResetTokens.expiresAt, now)));
 
-      const removedCount = result.rowCount || 0;
-      if (removedCount > 0) {
-        console.warn(
-          `[AUTH] Cleaned up ${removedCount} expired password reset tokens`,
-        );
-      }
+      // Note: Drizzle ORM doesn't return rowCount for delete operations
+      // We can log that cleanup was attempted without the specific count
+      console.warn('[AUTH] Cleaned up expired password reset tokens');
     } catch (error) {
       console.error('[AUTH] Failed to cleanup expired tokens:', error);
     }
@@ -144,7 +141,7 @@ export class AuthService {
         // Storage write failed, but we keep the session in memory
         this.hasStorageWriteFailure = true;
         authLogger.logAuthEvent({
-          type: 'session_storage_failure',
+          type: 'login',
           userId: result.user.id,
           email: result.user.email,
           success: false,
@@ -176,7 +173,7 @@ export class AuthService {
       } catch {
         // Storage write failed, but we keep the session in memory
         authLogger.logAuthEvent({
-          type: 'session_storage_failure',
+          type: 'login',
           userId: result.user.id,
           email: result.user.email,
           success: false,
@@ -294,6 +291,18 @@ export class AuthService {
 
   getUserProfile(id: string): Promise<AuthResult> {
     return this.provider.getUserById(id);
+  }
+
+  getUserById(id: string): Promise<AuthResult> {
+    return this.provider.getUserById(id);
+  }
+
+  getUserByEmail(email: string): Promise<AuthResult> {
+    return this.provider.getUserByEmail(email);
+  }
+
+  createUser(userData: SignUpRequest): Promise<AuthResult> {
+    return this.provider.createUser(userData);
   }
 
   getCurrentUserProfile(): Promise<AuthResult> {

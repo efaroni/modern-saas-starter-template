@@ -17,14 +17,14 @@ export const authConfig = {
   }),
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
       allowDangerousEmailAccountLinking:
         AUTH_CONFIG.ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING,
     }),
     GitHub({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
+      clientId: process.env.GITHUB_ID ?? '',
+      clientSecret: process.env.GITHUB_SECRET ?? '',
       allowDangerousEmailAccountLinking:
         AUTH_CONFIG.ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING,
     }),
@@ -41,10 +41,25 @@ export const authConfig = {
           // Import here to avoid circular dependencies
           const { oauthIntegration } = await import('./oauth-integration');
 
+          // Validate and map user data to our OAuthUser interface
+          if (!user.id || !user.email || !user.name) {
+            console.error('OAuth sign-in: Missing required user data', {
+              user,
+            });
+            return false;
+          }
+
+          const oauthUser = {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image || undefined,
+          };
+
           // Handle OAuth callback
           const result = await oauthIntegration.handleOAuthCallback(
             account.provider,
-            user,
+            oauthUser,
             account,
           );
 
@@ -89,7 +104,7 @@ export const authConfig = {
       authLogger.logAuthEvent({
         type: 'oauth_login',
         userId: user.id,
-        email: user.email,
+        email: user.email || undefined,
         success: true,
         timestamp: new Date(),
         metadata: {
@@ -103,7 +118,7 @@ export const authConfig = {
       authLogger.logAuthEvent({
         type: 'oauth_login',
         userId: user.id,
-        email: user.email,
+        email: user.email || undefined,
         success: true,
         timestamp: new Date(),
         metadata: {

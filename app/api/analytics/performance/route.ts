@@ -33,7 +33,7 @@ interface PerformanceMetricsPayload {
 }
 
 // Apply rate limiting to prevent abuse
-const withRateLimit = rateLimitPresets.api('performance-analytics');
+const withRateLimit = rateLimitPresets.api('api');
 
 async function handler(request: NextRequest) {
   try {

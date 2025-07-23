@@ -106,7 +106,7 @@ export class OAuthTokenCache {
         providerAccountId: account.providerAccountId,
         accessToken: this.config.encryptTokens
           ? this.encryptToken(account.access_token)
-          : account.access_token,
+          : (account.access_token ?? undefined),
         tokenType: account.token_type || undefined,
         scope: account.scope || undefined,
         expiresAt: account.expires_at || undefined,
@@ -119,14 +119,14 @@ export class OAuthTokenCache {
       if (this.config.includeRefreshToken && account.refresh_token) {
         cachedToken.refreshToken = this.config.encryptTokens
           ? this.encryptToken(account.refresh_token)
-          : account.refresh_token;
+          : (account.refresh_token ?? undefined);
       }
 
       // Include ID token if enabled
       if (this.config.includeIdToken && account.id_token) {
         cachedToken.idToken = this.config.encryptTokens
           ? this.encryptToken(account.id_token)
-          : account.id_token;
+          : (account.id_token ?? undefined);
       }
 
       // Determine cache TTL based on token expiration
@@ -211,7 +211,7 @@ export class OAuthTokenCache {
           providerAccountId: account.providerAccountId,
           accessToken: this.config.encryptTokens
             ? this.encryptToken(account.access_token)
-            : account.access_token,
+            : (account.access_token ?? undefined),
           tokenType: account.token_type || undefined,
           scope: account.scope || undefined,
           expiresAt: account.expires_at || undefined,
@@ -224,14 +224,14 @@ export class OAuthTokenCache {
         if (this.config.includeRefreshToken && account.refresh_token) {
           cachedToken.refreshToken = this.config.encryptTokens
             ? this.encryptToken(account.refresh_token)
-            : account.refresh_token;
+            : (account.refresh_token ?? undefined);
         }
 
         // Include ID token if enabled
         if (this.config.includeIdToken && account.id_token) {
           cachedToken.idToken = this.config.encryptTokens
             ? this.encryptToken(account.id_token)
-            : account.id_token;
+            : (account.id_token ?? undefined);
         }
 
         cachedTokens.push(cachedToken);
@@ -500,9 +500,11 @@ export const oauthTokenCacheUtils = {
     userId: string,
     provider: string,
     newTokenData: {
-      access_token: string;
-      refresh_token?: string;
-      expires_in?: number;
+      accessToken: string;
+      refreshToken?: string;
+      expiresAt?: number;
+      tokenType?: string;
+      scope?: string;
     },
   ) => oauthTokenCache.refreshOAuthToken(userId, provider, newTokenData),
   getDecryptedToken: (userId: string, provider: string) =>

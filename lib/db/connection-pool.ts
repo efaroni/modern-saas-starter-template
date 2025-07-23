@@ -12,14 +12,9 @@ export interface ConnectionPoolConfig {
 
   // Query settings
   prepare: boolean; // Use prepared statements
-  transform: object; // Transform settings
 
   // SSL settings
   ssl?: boolean | 'require' | 'prefer';
-
-  // Connection retry settings
-  max_lifetime: number; // Maximum lifetime of a connection in seconds
-  max_uses: number; // Maximum uses of a connection before recycling
 }
 
 // Create default pool config using centralized database configuration
@@ -31,12 +26,7 @@ function createDefaultPoolConfig(): ConnectionPoolConfig {
     idle_timeout: dbConfig.idleTimeout * 1000, // Convert seconds to ms
     connect_timeout: dbConfig.connectTimeout * 1000, // Convert seconds to ms
     prepare: true, // Use prepared statements for performance
-    transform: {
-      undefined: null, // Transform undefined to null for PostgreSQL
-    },
     ssl: process.env.NODE_ENV === 'production' ? 'require' : false,
-    max_lifetime: dbConfig.maxLifetime,
-    max_uses: dbConfig.maxUses,
   };
 }
 
@@ -48,7 +38,6 @@ export interface DatabaseHealth {
   connections: {
     active: number;
     idle: number;
-    waiting: number;
     max: number;
   };
   performance: {
@@ -67,7 +56,7 @@ export class DatabaseConnectionPool {
   private sql: postgres.Sql;
   private db: ReturnType<typeof drizzle>;
   private config: ConnectionPoolConfig;
-  private healthStats: DatabaseHealth;
+  private healthStats!: DatabaseHealth;
   private dbConfig = getDatabaseConfig();
   private queryMetrics: {
     totalQueries: number;
@@ -99,10 +88,7 @@ export class DatabaseConnectionPool {
       idle_timeout: this.config.idle_timeout,
       connect_timeout: this.config.connect_timeout,
       prepare: this.config.prepare,
-      transform: this.config.transform,
       ssl: this.config.ssl,
-      max_lifetime: this.config.max_lifetime,
-      max_uses: this.config.max_uses,
 
       // Connection event handlers
       onnotice: notice => {
@@ -112,16 +98,6 @@ export class DatabaseConnectionPool {
       // Error handling
       onclose: connectionId => {
         console.warn(`PostgreSQL connection ${connectionId} closed`);
-      },
-
-      // Query transformation for metrics
-      transform: {
-        ...this.config.transform,
-        // Add query timing
-        column: {
-          to: (column: unknown) => column,
-          from: (column: unknown) => column,
-        },
       },
     });
 
@@ -135,7 +111,6 @@ export class DatabaseConnectionPool {
       connections: {
         active: 0,
         idle: 0,
-        waiting: 0,
         max: this.config.max,
       },
       performance: {
@@ -267,7 +242,6 @@ export class DatabaseConnectionPool {
       this.healthStats.connections = {
         active: poolStats?.active || 0,
         idle: poolStats?.idle || 0,
-        waiting: poolStats?.waiting || 0,
         max: this.config.max,
       };
 
@@ -285,7 +259,6 @@ export class DatabaseConnectionPool {
   private checkConnectionPoolAlerts(connections: {
     active: number;
     idle: number;
-    waiting: number;
     max: number;
   }): void {
     // Alert on high connection pool utilization
@@ -294,13 +267,6 @@ export class DatabaseConnectionPool {
       // 80% utilization
       console.warn(
         `[DB ALERT] Connection pool near saturation: ${(utilization * 100).toFixed(1)}% (${connections.active}/${connections.max})`,
-      );
-    }
-
-    // Alert on waiting connections
-    if (connections.waiting > 0) {
-      console.warn(
-        `[DB ALERT] Connections waiting in queue: ${connections.waiting}`,
       );
     }
 
@@ -379,18 +345,6 @@ export class DatabaseConnectionPool {
     }
   }
 
-  // Performance monitoring
-  getPerformanceMetrics() {
-    return {
-      ...this.queryMetrics,
-      avgQueryTime:
-        this.queryMetrics.totalTime / this.queryMetrics.totalQueries,
-      errorRate: this.queryMetrics.errors / this.queryMetrics.totalQueries,
-      slowQueryRate:
-        this.queryMetrics.slowQueries / this.queryMetrics.totalQueries,
-    };
-  }
-
   // Reset metrics (useful for testing)
   resetMetrics(): void {
     this.queryMetrics = {
@@ -398,6 +352,7 @@ export class DatabaseConnectionPool {
       totalTime: 0,
       slowQueries: 0,
       errors: 0,
+      slowQueryDetails: [],
     };
     this.initializeHealthStats();
   }

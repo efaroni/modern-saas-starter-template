@@ -33,6 +33,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
   );
   private readonly rateLimiter = new RateLimiter(testDb);
   private readonly passwordExpiration = new PasswordExpirationService(
+    testDb,
     DEFAULT_PASSWORD_EXPIRATION_CONFIG,
   );
   private readonly passwordHistoryLimit = 5;
@@ -166,10 +167,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
 
         // Check password expiration
         const expirationResult =
-          await this.passwordExpiration.checkPasswordExpiration(
-            user.id,
-            user.passwordCreatedAt,
-          );
+          await this.passwordExpiration.checkPasswordExpiration(user.id);
 
         // Record successful login
         await this.rateLimiter.recordAttempt(
@@ -192,8 +190,8 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           duration: Date.now() - startTime,
           metadata: {
             emailVerified: !!user.emailVerified,
-            passwordExpired: expirationResult.expired,
-            passwordNearExpiration: expirationResult.nearExpiration,
+            passwordExpired: expirationResult.isExpired,
+            passwordNearExpiration: expirationResult.isNearExpiration,
           },
         });
 
@@ -208,7 +206,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           },
         };
       });
-    } catch {
+    } catch (error) {
       authLogger.logAuthEvent({
         type: 'login',
         email,
@@ -318,7 +316,6 @@ export class DatabaseTestAuthProvider implements AuthProvider {
             email,
             name,
             password: hashedPassword,
-            passwordCreatedAt: new Date(),
             emailVerified: null,
             image: null,
           })
@@ -360,7 +357,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           },
         };
       });
-    } catch {
+    } catch (error) {
       authLogger.logAuthEvent({
         type: 'signup',
         email,
@@ -628,7 +625,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       // Validate new password
       const passwordValidation = this.passwordValidator.validate(newPassword, {
         email: user.email,
-        name: user.name,
+        name: user.name ?? undefined,
       });
       if (!passwordValidation.isValid) {
         return {
@@ -667,7 +664,6 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         .update(users)
         .set({
           password: hashedPassword,
-          passwordCreatedAt: new Date(),
         })
         .where(eq(users.id, id));
 
@@ -733,7 +729,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       // Validate new password
       const passwordValidation = this.passwordValidator.validate(newPassword, {
         email: user.email,
-        name: user.name,
+        name: user.name ?? undefined,
       });
       if (!passwordValidation.isValid) {
         return {
@@ -750,7 +746,6 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         .update(users)
         .set({
           password: hashedPassword,
-          passwordCreatedAt: new Date(),
         })
         .where(eq(users.id, id));
 
@@ -850,11 +845,13 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         };
       }
 
-      // Get user by email from token
+      // For the test implementation, extract email from token
+      // This is a simplified approach - in production, the token would contain user ID or email
+      const email = token.split('_')[0]; // Assuming token format is email_randompart// Get user by email
       const [user] = await testDb
         .select()
         .from(users)
-        .where(eq(users.email, verifyResult.identifier))
+        .where(eq(users.email, email))
         .limit(1);
 
       if (!user) {
@@ -928,11 +925,13 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         return { success: false, error: 'Invalid or expired reset token' };
       }
 
-      // Get user by email from token
+      // For the test implementation, extract email from token
+      const email = token.split('_')[0]; // Assuming token format is email_randompart
+      // Get user by email
       const [user] = await testDb
         .select()
         .from(users)
-        .where(eq(users.email, verifyResult.identifier))
+        .where(eq(users.email, email))
         .limit(1);
 
       if (!user) {

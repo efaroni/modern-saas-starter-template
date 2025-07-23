@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 import { signIn as nextAuthSignIn } from '@/lib/auth/auth';
 import { users, accounts } from '@/lib/db/schema';
@@ -103,8 +103,9 @@ export class OAuthService {
     try {
       await db
         .delete(accounts)
-        .where(eq(accounts.userId, userId))
-        .where(eq(accounts.provider, provider));
+        .where(
+          and(eq(accounts.userId, userId), eq(accounts.provider, provider)),
+        );
 
       return true;
     } catch (error) {
@@ -135,17 +136,16 @@ export class OAuthService {
    */
   async hasOAuthAccount(userId: string, provider?: string): Promise<boolean> {
     try {
-      const query = db
+      const whereConditions = provider
+        ? and(eq(accounts.userId, userId), eq(accounts.provider, provider))
+        : eq(accounts.userId, userId);
+
+      const results = await db
         .select()
         .from(accounts)
-        .where(eq(accounts.userId, userId));
-
-      if (provider) {
-        query.where(eq(accounts.provider, provider));
-      }
-
-      const accounts = await query.limit(1);
-      return accounts.length > 0;
+        .where(whereConditions)
+        .limit(1);
+      return results.length > 0;
     } catch (error) {
       console.error('Failed to check OAuth account:', error);
       return false;
@@ -183,8 +183,12 @@ export class OAuthService {
       const [existingAccount] = await db
         .select()
         .from(accounts)
-        .where(eq(accounts.userId, existingUser.id))
-        .where(eq(accounts.provider, provider))
+        .where(
+          and(
+            eq(accounts.userId, existingUser.id),
+            eq(accounts.provider, provider),
+          ),
+        )
         .limit(1);
 
       if (existingAccount) {

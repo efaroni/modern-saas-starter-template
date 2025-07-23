@@ -10,9 +10,10 @@ export interface RateLimitMiddlewareOptions {
     req: NextRequest,
     result: {
       allowed: boolean;
-      remainingAttempts: number;
+      remaining: number;
       resetTime: Date;
       locked: boolean;
+      retryAfter?: number;
     },
   ) => NextResponse;
 }
@@ -41,11 +42,11 @@ export function withRateLimit(options: RateLimitMiddlewareOptions) {
       const result = await globalRateLimiter.checkRateLimit(
         identifier,
         options.type,
-        getClientIP(req),
+        getClientIP(req) ?? undefined,
       );
 
       // Add rate limit headers
-      let response: Response;
+      let response: NextResponse;
       if (result.allowed) {
         response = await handler(req);
       } else if (options.onRateLimited) {
@@ -72,7 +73,7 @@ export function withRateLimit(options: RateLimitMiddlewareOptions) {
         identifier,
         options.type,
         result.allowed,
-        getClientIP(req),
+        getClientIP(req) ?? undefined,
         req.headers.get('user-agent') || undefined,
       );
 
@@ -86,9 +87,10 @@ export function withRateLimit(options: RateLimitMiddlewareOptions) {
  */
 function createRateLimitResponse(result: {
   allowed: boolean;
-  remainingAttempts: number;
+  remaining: number;
   resetTime: Date;
   locked: boolean;
+  retryAfter?: number;
 }): NextResponse {
   const message = result.locked
     ? 'Account temporarily locked due to too many failed attempts'
@@ -195,7 +197,7 @@ export async function applyRateLimit(
   const result = await globalRateLimiter.checkRateLimit(
     key,
     type,
-    getClientIP(req),
+    getClientIP(req) ?? undefined,
   );
 
   if (!result.allowed) {
@@ -210,7 +212,7 @@ export async function applyRateLimit(
     key,
     type,
     true,
-    getClientIP(req),
+    getClientIP(req) ?? undefined,
     req.headers.get('user-agent') || undefined,
   );
 

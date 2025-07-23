@@ -12,9 +12,7 @@ import type { AuthUser } from '@/lib/auth/types';
 // import { deleteAccountAction } from '@/app/actions/auth' // TODO: Implement when ready
 
 const deleteAccountSchema = z.object({
-  confirmText: z.string().refine(val => val === 'DELETE', {
-    message: 'Please type "DELETE" to confirm',
-  }),
+  confirmText: z.literal('DELETE'),
 });
 
 type DeleteAccountFormData = z.infer<typeof deleteAccountSchema>;

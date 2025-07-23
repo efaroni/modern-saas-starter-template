@@ -214,7 +214,7 @@ export function useAuth(): AuthState & AuthActions {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const result = await requestPasswordResetAction({ email });
+      const result = await requestPasswordResetAction(email);
       setState(prev => ({ ...prev, isLoading: false }));
       return { success: result.success, error: result.error };
     } catch (error) {

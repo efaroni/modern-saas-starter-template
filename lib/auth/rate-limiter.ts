@@ -111,7 +111,7 @@ export class RateLimiter {
       const remaining = Math.max(0, config.maxAttempts - recentAttempts.length);
       const resetTime = new Date(
         Math.max(...recentAttempts.map(a => a.createdAt.getTime())) +
-          (config.windowMinutes * 60 * 1000),
+          config.windowMinutes * 60 * 1000,
       );
 
       return {
@@ -126,7 +126,7 @@ export class RateLimiter {
       return {
         allowed: true,
         remaining: 999,
-        resetTime: new Date(Date.now() + (60 * 60 * 1000)),
+        resetTime: new Date(Date.now() + 60 * 60 * 1000),
         locked: false,
       };
     }
@@ -197,7 +197,7 @@ export class RateLimiter {
     hours: number = 24,
   ): Promise<unknown[]> {
     try {
-      const windowStart = new Date(Date.now() - (hours * 60 * 60 * 1000));
+      const windowStart = new Date(Date.now() - hours * 60 * 60 * 1000);
 
       // Add filters for the query
       const conditions = [
@@ -227,15 +227,12 @@ export class RateLimiter {
   /**
    * Check if IP should be blocked (multiple failed attempts from same IP)
    */
-  checkIPRateLimit(
-    ipAddress: string,
-    type: string,
-  ): Promise<RateLimitResult> {
+  checkIPRateLimit(ipAddress: string, type: string): Promise<RateLimitResult> {
     if (!ipAddress) {
       return Promise.resolve({
         allowed: true,
         remaining: 999,
-        resetTime: new Date(Date.now() + (60 * 60 * 1000)),
+        resetTime: new Date(Date.now() + 60 * 60 * 1000),
         locked: false,
       });
     }

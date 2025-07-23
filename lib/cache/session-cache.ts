@@ -172,7 +172,7 @@ export class SessionCache {
         .orderBy(userSessions.lastActivity);
 
       // Get user profile if enabled
-      let userProfile;
+      let userProfile: CachedSession['user'] | undefined;
       if (this.config.enableUserCaching && sessions.length > 0) {
         userProfile = await this.getUserProfile(userId);
       }

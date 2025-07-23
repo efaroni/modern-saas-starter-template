@@ -359,10 +359,7 @@ export class MockAuthProvider implements AuthProvider {
     });
   }
 
-  resetUserPassword(
-    id: string,
-    newPassword: string,
-  ): Promise<AuthResult> {
+  resetUserPassword(id: string, newPassword: string): Promise<AuthResult> {
     const user = this.mockUsers.get(id);
 
     if (!user) {

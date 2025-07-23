@@ -65,21 +65,21 @@ export function generateSecureToken(
 
   switch (config.charset) {
     case 'hex':
-      token = randomBytes(config.length! / 2).toString('hex');
+      token = randomBytes((config.length || 32) / 2).toString('hex');
       break;
     case 'base64':
-      token = randomBytes((config.length! * 3) / 4)
+      token = randomBytes(((config.length || 32) * 3) / 4)
         .toString('base64')
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=/g, '');
       break;
     case 'base62':
-      token = generateBase62Token(config.length!);
+      token = generateBase62Token(config.length || 32);
       break;
     case 'alphanumeric':
     default:
-      token = generateAlphanumericToken(config.length!);
+      token = generateAlphanumericToken(config.length || 32);
       break;
   }
 

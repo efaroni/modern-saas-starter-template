@@ -154,7 +154,7 @@ export class PerformanceAggregator {
         .filter(v => typeof v === 'number');
 
       if (values.length > 0) {
-        aggregated[field as keyof PerformanceMetrics] =
+        (aggregated as Record<string, number | undefined>)[field] =
           values.reduce((sum, val) => sum + val, 0) / values.length;
       }
     });

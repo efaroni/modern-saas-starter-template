@@ -3,7 +3,6 @@
 
 // Export only types and schemas
 export * from './schema';
-export type { Database } from './types';
 
 // Re-export commonly used Drizzle types
 export type { InferSelectModel, InferInsertModel } from 'drizzle-orm';

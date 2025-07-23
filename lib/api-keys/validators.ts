@@ -109,10 +109,11 @@ export function validateStripeKey(apiKey: string): ValidationResult {
   }
 }
 
-export function validateApiKey(
+// eslint-disable-next-line require-await
+export async function validateApiKey(
   serviceType: string,
   apiKey: string,
-): ValidationResult {
+): Promise<ValidationResult> {
   const isMockKey = apiKey.includes('mock');
   const isProductionEnvironment =
     process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test';

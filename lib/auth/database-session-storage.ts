@@ -6,7 +6,8 @@ import { AUTH_CONFIG } from '@/lib/config/app-config';
 import { userSessions, sessionActivity, users } from '@/lib/db/schema';
 import { db } from '@/lib/db/server';
 
-import { type SessionStorage, type SessionData } from './session-storage';
+import { type SessionStorage } from './session-storage';
+import { type SessionData } from './types';
 
 export interface SessionConfig {
   maxAge: number; // Session max age in seconds
@@ -63,7 +64,7 @@ export class DatabaseSessionStorage implements SessionStorage {
 
       // Generate session token
       const sessionToken = this.generateSessionToken();
-      const expiresAt = new Date(Date.now() + (this.config.maxAge * 1000));
+      const expiresAt = new Date(Date.now() + this.config.maxAge * 1000);
 
       // Create session record
       const [session] = await this.database
@@ -130,7 +131,7 @@ export class DatabaseSessionStorage implements SessionStorage {
 
       // Check inactivity timeout
       const inactivityThreshold = new Date(
-        Date.now() - (this.config.inactivityTimeout * 1000),
+        Date.now() - this.config.inactivityTimeout * 1000,
       );
       if (session.lastActivity < inactivityThreshold) {
         await this.invalidateSession(session.id, 'timeout');
@@ -176,7 +177,7 @@ export class DatabaseSessionStorage implements SessionStorage {
           lastActivity: new Date(),
           expiresAt: sessionData.expires
             ? new Date(sessionData.expires)
-            : new Date(Date.now() + (this.config.maxAge * 1000)),
+            : new Date(Date.now() + this.config.maxAge * 1000),
         })
         .where(eq(userSessions.sessionToken, this.sessionToken));
     } catch (error) {
@@ -268,7 +269,7 @@ export class DatabaseSessionStorage implements SessionStorage {
   /**
    * Clean up expired sessions
    */
-  private async cleanupExpiredSessions(): Promise<void> {
+  async cleanupExpiredSessions(): Promise<void> {
     try {
       await this.database
         .update(userSessions)
@@ -373,7 +374,8 @@ export class DatabaseSessionStorage implements SessionStorage {
   /**
    * Get all active sessions for a user
    */
-  async getUserSessions(userId: string): Promise<unknown[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getUserSessions(userId: string): Promise<any[]> {
     try {
       return await this.database
         .select()

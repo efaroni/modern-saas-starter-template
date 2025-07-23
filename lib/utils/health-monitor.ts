@@ -57,7 +57,7 @@ export class HealthMonitor {
     const startTime = Date.now();
 
     // Check all services
-    const [database, errorHandler, logger, memory, process] =
+    const [database, errorHandler, logger, memory, processHealth] =
       await Promise.allSettled([
         this.checkDatabaseHealth(),
         this.checkErrorHandlerHealth(),
@@ -73,7 +73,7 @@ export class HealthMonitor {
       errorHandler: this.getServiceResult(errorHandler, 'errorHandler'),
       logger: this.getServiceResult(logger, 'logger'),
       memory: this.getServiceResult(memory, 'memory'),
-      process: this.getServiceResult(process, 'process'),
+      process: this.getServiceResult(processHealth, 'process'),
     };
 
     // Calculate overall status
@@ -117,7 +117,7 @@ export class HealthMonitor {
           responseTime,
           lastCheck: new Date().toISOString(),
           error: 'Database connection failed',
-          details: health,
+          details: health as unknown as Record<string, unknown>,
         };
       }
 
@@ -128,7 +128,7 @@ export class HealthMonitor {
           responseTime,
           lastCheck: new Date().toISOString(),
           error: 'Slow database performance',
-          details: health,
+          details: health as unknown as Record<string, unknown>,
         };
       }
 
@@ -136,7 +136,7 @@ export class HealthMonitor {
         status: 'healthy',
         responseTime,
         lastCheck: new Date().toISOString(),
-        details: health,
+        details: health as unknown as Record<string, unknown>,
       };
     } catch (error) {
       return {
@@ -213,7 +213,7 @@ export class HealthMonitor {
     try {
       // Test logger by creating a test log entry
       authLogger.logAuthEvent({
-        type: 'health_check',
+        type: 'login',
         success: true,
         timestamp: new Date(),
         metadata: { test: true },

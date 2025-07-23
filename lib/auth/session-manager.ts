@@ -21,6 +21,7 @@ export interface SessionSecurityConfig {
     sameSite: 'strict' | 'lax' | 'none';
     path: string;
     domain?: string;
+    maxAge?: number;
   };
 }
 
@@ -75,7 +76,7 @@ export class SessionManager {
         userAgent,
       );
 
-      const expires = new Date(Date.now() + (this.config.maxAge * 1000));
+      const expires = new Date(Date.now() + this.config.maxAge * 1000);
 
       return {
         sessionToken,
@@ -135,7 +136,7 @@ export class SessionManager {
       }
 
       // Session is valid, refresh it
-      const refreshedExpires = new Date(Date.now() + (this.config.maxAge * 1000));
+      const refreshedExpires = new Date(Date.now() + this.config.maxAge * 1000);
       await this.storage.setSession({
         ...sessionData,
         expires: refreshedExpires.toISOString(),

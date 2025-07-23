@@ -318,6 +318,7 @@ export const testHelpers = {
     expect((createResult as { success: boolean }).success).toBe(true);
     const id = (createResult as { data?: { id: string } }).data?.id;
     expect(id).toBeDefined();
+    if (!id) return; // Should not happen due to expect above
 
     // READ
     const readResult = await readFn(id);
@@ -372,15 +373,12 @@ export const authTestHelpers = {
       );
     }
 
-    const users = await Promise.all(userPromises);
-    return testDb.insert(users).values(users).returning();
+    const userData = await Promise.all(userPromises);
+    return testDb.insert(users).values(userData).returning();
   },
 
   // Verify password hashing
-  verifyPasswordHash(
-    plainPassword: string,
-    hashedPassword: string,
-  ): boolean {
+  verifyPasswordHash(plainPassword: string, hashedPassword: string): boolean {
     return bcrypt.verifySync(plainPassword, hashedPassword);
   },
 
@@ -462,7 +460,7 @@ export const authTestHelpers = {
   // Clean up test data created by specific test suite (more isolated)
   async cleanupTestSuiteData(testSuitePattern: string): Promise<void> {
     try {
-      const { like, eq } = await import('drizzle-orm');
+      const { like, eq, inArray } = await import('drizzle-orm');
 
       // Delete users whose email contains the test suite pattern
       const testUsers = await testDb
@@ -475,9 +473,20 @@ export const authTestHelpers = {
 
         // Delete in correct order due to foreign key constraints
         for (const userId of userIds) {
-          await testDb
-            .delete(sessionActivity)
-            .where(eq(sessionActivity.userId, userId));
+          // Delete session activity (via sessions)
+          const userSessionIds = await testDb
+            .select({ id: userSessions.id })
+            .from(userSessions)
+            .where(eq(userSessions.userId, userId));
+
+          if (userSessionIds.length > 0) {
+            await testDb.delete(sessionActivity).where(
+              inArray(
+                sessionActivity.sessionId,
+                userSessionIds.map(s => s.id),
+              ),
+            );
+          }
           await testDb
             .delete(userSessions)
             .where(eq(userSessions.userId, userId));
@@ -545,22 +554,6 @@ export const authTestHelpers = {
     const counter = Math.floor(Math.random() * 10000);
     // Add worker ID for parallel test isolation
     return `test-worker${workerId}-${prefix}-${timestamp}-${processId}-${counter}-${random}@example.com`;
-  },
-
-  // Create test user with unique email
-  async createTestUser(overrides: Partial<InsertUser> = {}): Promise<unknown> {
-    const uniqueEmail = this.generateUniqueEmail();
-    const hashedPassword = await bcrypt.hash('password123', 10);
-
-    const userData = {
-      email: uniqueEmail,
-      name: 'Test User',
-      password: hashedPassword,
-      ...overrides,
-    };
-
-    const [user] = await testDb.insert(users).values(userData).returning();
-    return user;
   },
 
   // Assert user structure (without password)

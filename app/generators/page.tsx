@@ -15,13 +15,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
 const generators = [
@@ -278,8 +272,8 @@ export default function GeneratorsPage() {
                     {field.type === 'text' && (
                       <Input
                         id={field.name}
-                        placeholder={field.placeholder}
-                        value={formData[field.name] || ''}
+                        placeholder={field.label}
+                        value={(formData[field.name] as string) || ''}
                         onChange={e =>
                           handleFieldChange(field.name, e.target.value)
                         }
@@ -289,8 +283,8 @@ export default function GeneratorsPage() {
                     {field.type === 'textarea' && (
                       <Textarea
                         id={field.name}
-                        placeholder={field.placeholder}
-                        value={formData[field.name] || ''}
+                        placeholder={field.label}
+                        value={(formData[field.name] as string) || ''}
                         onChange={e =>
                           handleFieldChange(field.name, e.target.value)
                         }
@@ -298,18 +292,17 @@ export default function GeneratorsPage() {
                       />
                     )}
 
-                    {field.type === 'select' && (
+                    {field.type === 'select' && 'options' in field && (
                       <Select
-                        value={formData[field.name] || ''}
-                        onValueChange={value =>
-                          handleFieldChange(field.name, value)
+                        value={(formData[field.name] as string) || ''}
+                        onChange={e =>
+                          handleFieldChange(field.name, e.target.value)
                         }
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder={`Select ${field.label}`} />
-                        </SelectTrigger>
                         <SelectContent>
-                          {field.options?.map(option => (
+                          <option value=''>Select {field.label}</option>
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          {(field as any).options.map((option: string) => (
                             <SelectItem key={option} value={option}>
                               {option}
                             </SelectItem>
@@ -323,7 +316,11 @@ export default function GeneratorsPage() {
                         <input
                           id={field.name}
                           type='checkbox'
-                          checked={formData[field.name] ?? field.default}
+                          checked={
+                            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                            (formData[field.name] as boolean) ??
+                            (field as any).default
+                          }
                           onChange={e =>
                             handleFieldChange(field.name, e.target.checked)
                           }
@@ -425,7 +422,7 @@ function generateApiCode(data: Record<string, unknown>) {
     code += `})\n\n`;
   }
 
-  if (methods.includes('GET')) {
+  if ((methods as string[])?.includes('GET')) {
     code += `export async function GET(request: NextRequest) {\n`;
     if (withAuth) {
       code += `  const session = await auth()\n`;
@@ -438,7 +435,7 @@ function generateApiCode(data: Record<string, unknown>) {
     code += `}\n\n`;
   }
 
-  if (methods.includes('POST')) {
+  if ((methods as string[])?.includes('POST')) {
     code += `export async function POST(request: NextRequest) {\n`;
     if (withAuth) {
       code += `  const session = await auth()\n`;
@@ -468,11 +465,11 @@ function generateModelCode(data: Record<string, unknown>) {
   }
 
   code += `\n`;
-  code += `export const ${modelName.toLowerCase()} = pgTable('${modelName.toLowerCase()}', {\n`;
+  code += `export const ${(modelName as string).toLowerCase()} = pgTable('${(modelName as string).toLowerCase()}', {\n`;
   code += `  id: uuid('id').primaryKey().defaultRandom(),\n`;
 
   try {
-    const parsedFields = JSON.parse(fields || '[]');
+    const parsedFields = JSON.parse((fields as string) || '[]');
     parsedFields.forEach((field: Record<string, unknown>) => {
       let fieldDef = `  ${field.name}: `;
       switch (field.type) {
@@ -514,13 +511,13 @@ function generateModelCode(data: Record<string, unknown>) {
   code += `})\n\n`;
 
   if (withRelations) {
-    code += `export const ${modelName.toLowerCase()}Relations = relations(${modelName.toLowerCase()}, ({ one, many }) => ({\n`;
+    code += `export const ${(modelName as string).toLowerCase()}Relations = relations(${(modelName as string).toLowerCase()}, ({ one, many }) => ({\n`;
     code += `  // Add your relations here\n`;
     code += `}))\n\n`;
   }
 
-  code += `export type ${modelName} = typeof ${modelName.toLowerCase()}.$inferSelect\n`;
-  code += `export type New${modelName} = typeof ${modelName.toLowerCase()}.$inferInsert\n`;
+  code += `export type ${modelName as string} = typeof ${(modelName as string).toLowerCase()}.$inferSelect\n`;
+  code += `export type New${modelName as string} = typeof ${(modelName as string).toLowerCase()}.$inferInsert\n`;
 
   return code;
 }

@@ -5,6 +5,12 @@ import { useState } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import type { AuthUser } from '@/lib/auth/types';
 
+interface OAuthProvider {
+  id: string;
+  name: string;
+  icon?: string;
+}
+
 interface OAuthButtonsProps {
   onSuccess: (user: AuthUser) => void;
   onError: (error: string) => void;
@@ -15,7 +21,7 @@ export function OAuthButtons({
   onError,
 }: OAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
-  const oauthProviders = []; // TODO: Implement OAuth server actions
+  const oauthProviders: OAuthProvider[] = []; // TODO: Implement OAuth server actions
 
   if (oauthProviders.length === 0) {
     return null;

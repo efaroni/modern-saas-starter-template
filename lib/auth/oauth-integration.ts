@@ -140,8 +140,17 @@ export class OAuthIntegration {
   /**
    * Get linked accounts for a user
    */
-  getLinkedAccounts(userId: string): Promise<OAuthAccount[]> {
-    return oauthService.getLinkedAccounts(userId);
+  async getLinkedAccounts(userId: string): Promise<OAuthAccount[]> {
+    const accounts = await oauthService.getLinkedAccounts(userId);
+
+    // Transform null values to undefined to match TypeScript interface
+    return accounts.map(account => ({
+      provider: account.provider,
+      providerAccountId: account.providerAccountId,
+      type: account.type,
+      access_token: account.access_token ?? undefined,
+      refresh_token: account.refresh_token ?? undefined,
+    }));
   }
 
   /**

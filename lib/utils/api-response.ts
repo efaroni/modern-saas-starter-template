@@ -60,7 +60,9 @@ export function createErrorResponse(
       success: false,
       error,
       timestamp: new Date().toISOString(),
-      ...(details && { details }),
+      ...(details && typeof details === 'object' && details !== null
+        ? { details }
+        : {}),
     },
     { status },
   );

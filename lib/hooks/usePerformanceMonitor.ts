@@ -17,7 +17,11 @@ export interface PerformanceMetrics {
   apiResponseTime?: number;
 
   // Resource metrics
-  memoryUsage?: MemoryInfo;
+  memoryUsage?: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
   connectionType?: string;
 
   // User interaction metrics
@@ -67,14 +71,14 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
   const interactionCount = useRef<number>(0);
   const maxScrollDepth = useRef<number>(0);
   const customMetricsRef = useRef<Record<string, number>>({});
-  const reportingInterval = useRef<NodeJS.Timeout>();
-  const observerRef = useRef<PerformanceObserver>();
+  const reportingInterval = useRef<NodeJS.Timeout | null>(null);
+  const observerRef = useRef<PerformanceObserver | null>(null);
 
   // Check if monitoring should be enabled
   const shouldMonitor = useCallback(() => {
     if (!finalConfig.enabled) return false;
     if (typeof window === 'undefined') return false;
-    if (Math.random() > finalConfig.sampleRate) return false;
+    if (Math.random() > (finalConfig.sampleRate ?? 1)) return false;
     return true;
   }, [finalConfig.enabled, finalConfig.sampleRate]);
 
@@ -97,14 +101,20 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
               case 'first-input':
                 setMetrics(prev => ({
                   ...prev,
-                  fid: entry.processingStart - entry.startTime,
+                  fid:
+                    (entry as PerformanceEventTiming).processingStart -
+                    entry.startTime,
                 }));
                 break;
               case 'layout-shift':
-                if (!(entry as LayoutShiftEntry).hadRecentInput) {
+                const layoutShiftEntry = entry as PerformanceEntry & {
+                  hadRecentInput?: boolean;
+                  value?: number;
+                };
+                if (!layoutShiftEntry.hadRecentInput) {
                   setMetrics(prev => ({
                     ...prev,
-                    cls: (prev.cls || 0) + (entry as LayoutShiftEntry).value,
+                    cls: (prev.cls || 0) + (layoutShiftEntry.value || 0),
                   }));
                 }
                 break;

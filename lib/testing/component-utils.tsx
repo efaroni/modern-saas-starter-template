@@ -87,7 +87,7 @@ export const renderWithProviders = (
 
     if (withAuth) {
       component = (
-        <MockAuthProvider mockAuth={mockAuth}>{component}</MockAuthProvider>
+        <MockAuthProvider mockAuth={_mockAuth}>{component}</MockAuthProvider>
       );
     }
 
@@ -140,7 +140,7 @@ export const componentTestUtils = {
 
     // Check for basic accessibility attributes
     const elements = container.querySelectorAll('*');
-    const issues = [];
+    const issues: string[] = [];
 
     elements.forEach(el => {
       // Check for missing alt text on images
@@ -201,13 +201,18 @@ export const componentTestUtils = {
     component: ReactElement,
     loadingProps: Record<string, boolean>,
   ) {
-    const results = [];
+    const results: Array<{
+      propName: string;
+      isLoading: boolean;
+      hasLoadingIndicator: boolean;
+      loadingElements?: number;
+    }> = [];
 
     for (const [propName, isLoading] of Object.entries(loadingProps)) {
       const Component = component.type as React.ComponentType<
         Record<string, unknown>
       >;
-      const props = { ...component.props, [propName]: isLoading };
+      const props = { ...(component.props || {}), [propName]: isLoading };
 
       const { container } = renderWithProviders(<Component {...props} />);
 
@@ -242,13 +247,19 @@ export const componentTestUtils = {
     component: ReactElement,
     errorProps: Record<string, string | null>,
   ) {
-    const results = [];
+    const results: Array<{
+      propName: string;
+      errorMessage: string | null;
+      hasErrorDisplay: boolean;
+      hasErrorText: boolean;
+      errorElements?: number;
+    }> = [];
 
     for (const [propName, errorMessage] of Object.entries(errorProps)) {
       const Component = component.type as React.ComponentType<
         Record<string, unknown>
       >;
-      const props = { ...component.props, [propName]: errorMessage };
+      const props = { ...(component.props || {}), [propName]: errorMessage };
 
       const { container } = renderWithProviders(<Component {...props} />);
 
@@ -330,9 +341,15 @@ export const formTestUtils = {
       invalidValue: string;
       expectedError: string;
     }[],
+    user: ReturnType<typeof userEvent.setup>,
   ) {
     renderWithProviders(component);
-    const results = [];
+    const results: Array<{
+      field: string;
+      invalidValue: string;
+      expectedError: string;
+      errorFound: boolean;
+    }> = [];
 
     for (const test of validationTests) {
       // Clear any existing values
@@ -368,12 +385,12 @@ export const mockUtils = {
   /**
    * Create mock function with tracking
    */
-  createMockFunction<T extends(...args: unknown[]) => unknown>(
+  createMockFunction<T extends (...args: unknown[]) => unknown>(
     name: string,
     implementation?: T,
   ): jest.MockedFunction<T> {
-    const mockFn = jest.fn(implementation) as jest.MockedFunction<T>;
-    mockFn.mockName = name;
+    const mockFn = jest.fn(implementation) as unknown as jest.MockedFunction<T>;
+    mockFn.mockName(name);
     return mockFn;
   },
 

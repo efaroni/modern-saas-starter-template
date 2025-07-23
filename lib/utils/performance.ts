@@ -221,7 +221,7 @@ export function getPerformanceInsights(
 /**
  * Performance monitoring decorators
  */
-export function measurePerformance<T extends(...args: unknown[]) => unknown>(
+export function measurePerformance<T extends (...args: unknown[]) => unknown>(
   target: T,
   name?: string,
 ): T {
@@ -242,7 +242,7 @@ export function measurePerformance<T extends(...args: unknown[]) => unknown>(
       } else {
         const end = performance.now();
         console.warn(`${functionName} executed in ${end - start}ms`);
-        return result;
+        return result as ReturnType<T>;
       }
     } catch (error) {
       const end = performance.now();
@@ -463,7 +463,7 @@ export function setupPerformanceMonitoring(config: {
   };
 }
 
-export default {
+const performanceUtils = {
   calculateScore,
   calculateOverallScore,
   formatMetric,
@@ -473,3 +473,5 @@ export default {
   checkPerformanceBudget,
   setupPerformanceMonitoring,
 };
+
+export default performanceUtils;

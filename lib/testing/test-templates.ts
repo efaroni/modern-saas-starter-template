@@ -1,8 +1,11 @@
 import { type ReactElement } from 'react';
 
+import userEvent from '@testing-library/user-event';
+
 import {
   componentTestUtils,
   formTestUtils,
+  renderWithProviders,
 } from './component-utils';
 
 // Base component test template
@@ -195,9 +198,11 @@ export const createFormTest = (
             {
               name: 'should validate form fields',
               test: async () => {
+                const user = userEvent.setup();
                 const results = await formTestUtils.testValidation(
                   component,
                   validationTests,
+                  user,
                 );
                 results.forEach(result => {
                   expect(result.errorFound).toBe(true);
@@ -267,7 +272,7 @@ export const createHookTest = (
               name: 'should return initial state',
               test: async () => {
                 const { renderHook } = await import('@testing-library/react');
-                renderHook(() => hookFunction());
+                const { result } = renderHook(() => hookFunction());
 
                 if (initialValue !== undefined) {
                   expect(result.current).toEqual(initialValue);
@@ -534,10 +539,12 @@ export const testTemplates = {
 export const generateTestFile = (
   componentName: string,
   testType: keyof typeof testTemplates,
-  ...args: unknown[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ...args: any[]
 ) => {
   const template = testTemplates[testType];
-  const testConfig = template(componentName, ...args);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const testConfig = (template as any)(componentName, ...args);
 
   return `import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -558,7 +565,7 @@ describe('${testConfig.describe}', () => {
 
   ${testConfig.tests
     .map(
-      test => `
+      (test: { name: string }) => `
   it('${test.name}', async () => {
     // Test implementation would go here
     // This is a template - customize for your specific component

@@ -54,7 +54,7 @@ export class AuthErrorBoundary extends React.Component<
     // Log as a security event if it might be malicious
     if (this.isPotentialSecurityError(error)) {
       authLogger.logSecurityEvent({
-        type: 'suspicious_activity',
+        type: 'brute_force',
         severity: 'medium',
         details: {
           errorMessage: error.message,
@@ -106,8 +106,8 @@ export class AuthErrorBoundary extends React.Component<
       const FallbackComponent = this.props.fallback || DefaultAuthErrorFallback;
       return (
         <FallbackComponent
-          error={this.state.error!}
-          errorInfo={this.state.errorInfo!}
+          error={this.state.error || new Error('Unknown error')}
+          errorInfo={this.state.errorInfo || { componentStack: '' }}
           resetError={this.resetError}
         />
       );

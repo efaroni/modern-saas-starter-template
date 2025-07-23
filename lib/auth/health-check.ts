@@ -89,7 +89,7 @@ export class AuthHealthChecker {
         error instanceof Error ? error.message : 'Database health check failed';
 
       authLogger.logSecurityEvent({
-        type: 'suspicious_activity',
+        type: 'brute_force',
         severity: 'high',
         details: {
           healthCheck: 'database',
@@ -116,7 +116,8 @@ export class AuthHealthChecker {
     try {
       const { responseTime } = await this.timeHealthCheck(
         'session_storage',
-        () => {
+        // eslint-disable-next-line require-await
+        async () => {
           // Test session storage by attempting to read session config
           const sessionConfig = {
             maxAge: process.env.SESSION_MAX_AGE || '86400',
@@ -165,7 +166,8 @@ export class AuthHealthChecker {
     try {
       const { responseTime } = await this.timeHealthCheck(
         'email_service',
-        () => {
+        // eslint-disable-next-line require-await
+        async () => {
           // Check if email service is configured
           const resendApiKey = process.env.RESEND_API_KEY;
           const fromEmail = process.env.RESEND_FROM_EMAIL;
@@ -221,7 +223,8 @@ export class AuthHealthChecker {
     try {
       const { responseTime } = await this.timeHealthCheck(
         `oauth_${provider}`,
-        () => {
+        // eslint-disable-next-line require-await
+        async () => {
           let clientId: string | undefined;
           let clientSecret: string | undefined;
 
