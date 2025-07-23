@@ -90,7 +90,7 @@ export class AuthService {
 
       const removedCount = result.rowCount || 0;
       if (removedCount > 0) {
-        console.log(
+        console.warn(
           `[AUTH] Cleaned up ${removedCount} expired password reset tokens`,
         );
       }

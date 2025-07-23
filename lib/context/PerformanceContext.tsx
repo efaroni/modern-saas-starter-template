@@ -195,7 +195,7 @@ export const useAggregatedPerformance = () => {
     useState<PerformanceMetrics>({});
 
   useEffect(() => {
-    const unsubscribe = globalPerformanceAggregator.subscribe(metrics => {
+    const unsubscribe = globalPerformanceAggregator.subscribe(() => {
       setAggregatedMetrics(globalPerformanceAggregator.getAggregatedMetrics());
     });
 

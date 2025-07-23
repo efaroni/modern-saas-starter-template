@@ -130,7 +130,7 @@ export class DatabaseSessionStorage implements SessionStorage {
 
       // Check inactivity timeout
       const inactivityThreshold = new Date(
-        Date.now() - this.config.inactivityTimeout * 1000,
+        Date.now() - (this.config.inactivityTimeout * 1000),
       );
       if (session.lastActivity < inactivityThreshold) {
         await this.invalidateSession(session.id, 'timeout');
@@ -176,7 +176,7 @@ export class DatabaseSessionStorage implements SessionStorage {
           lastActivity: new Date(),
           expiresAt: sessionData.expires
             ? new Date(sessionData.expires)
-            : new Date(Date.now() + this.config.maxAge * 1000),
+            : new Date(Date.now() + (this.config.maxAge * 1000)),
         })
         .where(eq(userSessions.sessionToken, this.sessionToken));
     } catch (error) {

@@ -77,17 +77,17 @@ export class RedisCache {
 
         // Connection events
         onFailover: () => {
-          console.log('Redis failover detected');
+          console.warn('Redis failover detected');
         },
       });
 
       this.redis.on('connect', () => {
-        console.log('Connected to Redis');
+        console.warn('Connected to Redis');
         this.connected = true;
       });
 
       this.redis.on('ready', () => {
-        console.log('Redis connection ready');
+        console.warn('Redis connection ready');
         this.connected = true;
       });
 
@@ -98,19 +98,19 @@ export class RedisCache {
 
         // Fallback to in-memory cache
         if (this.useRedis) {
-          console.log('Falling back to in-memory cache due to Redis error');
+          console.warn('Falling back to in-memory cache due to Redis error');
           this.useRedis = false;
 
           // Auto-retry Redis connection after 30 seconds
           setTimeout(() => {
             this.useRedis = true;
-            console.log('Retrying Redis connection...');
+            console.warn('Retrying Redis connection...');
           }, 30000);
         }
       });
 
       this.redis.on('close', () => {
-        console.log('Redis connection closed');
+        console.warn('Redis connection closed');
         this.connected = false;
       });
 

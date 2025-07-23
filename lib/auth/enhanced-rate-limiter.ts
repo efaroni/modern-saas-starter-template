@@ -177,7 +177,7 @@ export class EnhancedRateLimiter {
     const remaining = Math.max(0, config.maxAttempts - recentAttempts.length);
     const resetTime = new Date(
       Math.max(...recentAttempts.map(a => a.createdAt.getTime())) +
-        config.windowMinutes * 60 * 1000,
+        (config.windowMinutes * 60 * 1000),
     );
 
     return {
@@ -249,7 +249,7 @@ export class EnhancedRateLimiter {
       config.maxAttempts - Math.ceil(weightedCount),
     );
     const resetTime = new Date(
-      now.getTime() + config.windowMinutes * 60 * 1000,
+      now.getTime() + (config.windowMinutes * 60 * 1000),
     );
 
     return {

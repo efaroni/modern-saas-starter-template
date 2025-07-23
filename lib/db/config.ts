@@ -141,7 +141,7 @@ export function getDatabaseUrl(): string {
     if (envConfig.host && envConfig.username && envConfig.database) {
       return buildDatabaseUrl(envConfig);
     }
-  } catch (error) {
+  } catch {
     // Fall through to legacy URL method
   }
 
