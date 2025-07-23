@@ -2,7 +2,7 @@ import { eq, and, gte } from 'drizzle-orm';
 
 import { authAttempts } from '@/lib/db/schema';
 import { db } from '@/lib/db/server';
-import { addMinutes, getDaysAgo } from '@/lib/utils/date-time';
+import { addMinutes } from '@/lib/utils/date-time';
 
 export interface RateLimitConfig {
   maxAttempts: number;
@@ -54,7 +54,7 @@ export class RateLimiter {
   async checkRateLimit(
     identifier: string,
     type: string,
-    ipAddress?: string,
+    _ipAddress?: string,
   ): Promise<RateLimitResult> {
     const config = this.config[type];
     if (!config) {
@@ -111,7 +111,7 @@ export class RateLimiter {
       const remaining = Math.max(0, config.maxAttempts - recentAttempts.length);
       const resetTime = new Date(
         Math.max(...recentAttempts.map(a => a.createdAt.getTime())) +
-          config.windowMinutes * 60 * 1000,
+          (config.windowMinutes * 60 * 1000),
       );
 
       return {
@@ -177,9 +177,9 @@ export class RateLimiter {
   /**
    * Clear recent attempts for a user (e.g., after successful login)
    */
-  async clearAttempts(identifier: string, type: string): Promise<void> {
+  async clearAttempts(_identifier: string, _type: string): Promise<void> {
     try {
-      const windowStart = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
+      const _windowStart = new Date(Date.now() - (60 * 60 * 1000)); // 1 hour ago
 
       // We don't actually delete the records for audit purposes,
       // but we could mark them as cleared or similar
@@ -196,11 +196,11 @@ export class RateLimiter {
     identifier?: string,
     type?: string,
     hours: number = 24,
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     try {
-      const windowStart = new Date(Date.now() - hours * 60 * 60 * 1000);
+      const windowStart = new Date(Date.now() - (hours * 60 * 60 * 1000));
 
-      const query = db
+      const _query = db
         .select()
         .from(authAttempts)
         .where(
@@ -239,8 +239,8 @@ export class RateLimiter {
    * Check if IP should be blocked (multiple failed attempts from same IP)
    */
   async checkIPRateLimit(
-    ipAddress: string,
-    type: string,
+    _ipAddress: string,
+    _type: string,
   ): Promise<RateLimitResult> {
     if (!ipAddress) {
       return {
@@ -252,7 +252,7 @@ export class RateLimiter {
     }
 
     // Use more restrictive limits for IP-based rate limiting
-    const ipConfig = {
+    const _ipConfig = {
       maxAttempts: 10,
       windowMinutes: 60,
       lockoutMinutes: 60,

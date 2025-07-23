@@ -776,7 +776,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
     return !!process.env.TEST_DATABASE_URL;
   }
 
-  async signInWithOAuth(provider: string): Promise<OAuthResult> {
+  async signInWithOAuth(_provider: string): Promise<OAuthResult> {
     return {
       success: false,
       error: 'OAuth not supported in database test provider',

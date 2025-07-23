@@ -68,11 +68,11 @@ export async function initializeTestDatabase() {
     for (const table of requiredTables) {
       try {
         await testClient`SELECT 1 FROM ${testClient(table)} LIMIT 1`;
-      } catch (error) {
+      } catch (_error) {
         // Use a more specific check for table existence
         try {
           await testClient`SELECT to_regclass(${table})`;
-        } catch (tableCheckError) {
+        } catch (_tableCheckError) {
           missingTables.push(table);
         }
       }
@@ -117,7 +117,7 @@ export async function initializeTestDatabase() {
     }
 
     return true;
-  } catch (error) {
+  } catch (_error) {
     console.error('Test database initialization failed:', error);
     return false;
   }
@@ -128,7 +128,7 @@ export async function resetTestDatabase() {
   try {
     await initializeTestDatabase();
     await clearTestDatabase();
-  } catch (error) {
+  } catch (_error) {
     console.warn('Database reset failed:', error);
   }
 }
@@ -147,14 +147,14 @@ export async function clearTestDatabase() {
     await testClient`DELETE FROM verification_tokens`;
     await testClient`DELETE FROM user_api_keys`;
     await testClient`DELETE FROM users`;
-  } catch (error) {
+  } catch (_error) {
     // Ignore errors if tables don't exist
     console.warn('Some tables not found during cleanup, continuing...');
     // Try to clear just the core tables that should exist
     try {
       await testClient`DELETE FROM user_api_keys`;
       await testClient`DELETE FROM users`;
-    } catch (coreError) {
+    } catch (_coreError) {
       console.warn('Core tables not found during cleanup');
     }
   }
@@ -182,43 +182,43 @@ export async function clearWorkerTestData() {
         // Check which tables exist and use correct column names
         try {
           await testClient`DELETE FROM session_activity WHERE user_id = ${userId}`;
-        } catch (e) {
+        } catch (_e) {
           /* Table may not exist */
         }
 
         try {
           await testClient`DELETE FROM user_sessions WHERE user_id = ${userId}`;
-        } catch (e) {
+        } catch (_e) {
           /* Table may not exist */
         }
 
         try {
           await testClient`DELETE FROM auth_attempts WHERE user_id = ${userId}`;
-        } catch (e) {
+        } catch (_e) {
           /* Table may not exist */
         }
 
         try {
           await testClient`DELETE FROM password_history WHERE user_id = ${userId}`;
-        } catch (e) {
+        } catch (_e) {
           /* Table may not exist */
         }
 
         try {
           await testClient`DELETE FROM accounts WHERE user_id = ${userId}`;
-        } catch (e) {
+        } catch (_e) {
           /* Table may not exist */
         }
 
         try {
           await testClient`DELETE FROM sessions WHERE user_id = ${userId}`;
-        } catch (e) {
+        } catch (_e) {
           /* Table may not exist */
         }
 
         try {
           await testClient`DELETE FROM user_api_keys WHERE user_id = ${userId}`;
-        } catch (e) {
+        } catch (_e) {
           /* Table may not exist */
         }
       }
@@ -227,7 +227,7 @@ export async function clearWorkerTestData() {
     // Clear verification tokens and users with worker prefix
     await testClient`DELETE FROM verification_tokens WHERE identifier LIKE ${workerPrefix}`;
     await testClient`DELETE FROM users WHERE email LIKE ${workerPrefix}`;
-  } catch (error) {
+  } catch (_error) {
     console.warn('Worker test data cleanup failed:', error);
   }
 }
@@ -238,7 +238,7 @@ export async function closeTestDatabase() {
     console.warn('Closing test database connection...');
     await testClient.end();
     console.warn('Test database connection closed successfully');
-  } catch (error) {
+  } catch (_error) {
     console.error('Error closing test database:', error);
   }
 

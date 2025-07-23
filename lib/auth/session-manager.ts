@@ -3,8 +3,6 @@ import { db } from '@/lib/db/server';
 
 import {
   DatabaseSessionStorage,
-  SessionConfig,
-  DEFAULT_SESSION_CONFIG,
 } from './database-session-storage';
 import { type AuthUser } from './types';
 
@@ -79,7 +77,7 @@ export class SessionManager {
         userAgent,
       );
 
-      const expires = new Date(Date.now() + this.config.maxAge * 1000);
+      const expires = new Date(Date.now() + (this.config.maxAge * 1000));
 
       return {
         sessionToken,
@@ -139,7 +137,7 @@ export class SessionManager {
       }
 
       // Session is valid, refresh it
-      const refreshedExpires = new Date(Date.now() + this.config.maxAge * 1000);
+      const refreshedExpires = new Date(Date.now() + (this.config.maxAge * 1000));
       await this.storage.setSession({
         ...sessionData,
         expires: refreshedExpires.toISOString(),
@@ -172,7 +170,7 @@ export class SessionManager {
    * Get all active sessions for a user
    */
   async getUserSessions(userId: string): Promise<unknown[]> {
-    return await this.storage.getUserSessions(userId);
+    return this.storage.getUserSessions(userId);
   }
 
   /**
@@ -190,8 +188,8 @@ export class SessionManager {
    */
   private async detectSuspiciousActivity(
     sessionToken: string,
-    ipAddress: string,
-    userAgent: string,
+    _ipAddress: string,
+    _userAgent: string,
   ): Promise<boolean> {
     try {
       // Get session info to find session ID
