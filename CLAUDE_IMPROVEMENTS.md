@@ -7,29 +7,38 @@ This document outlines recommended improvements to make Claude Code even more ef
 ### Recommended MCP Servers for SaaS Development
 
 #### 1. **PostgreSQL MCP Server**
+
 ```json
 {
   "mcpServers": {
     "postgres": {
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-postgres", "postgresql://localhost/saas_dev"],
+      "args": [
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://localhost/saas_dev"
+      ],
       "description": "Direct database access for schema exploration and queries"
     }
   }
 }
 ```
+
 Benefits:
+
 - Direct database queries without writing SQL
 - Schema exploration and table introspection
 - Quick data verification during development
 
 #### 2. **Stripe MCP Server** (when available)
+
 Would enable:
+
 - Direct Stripe API access
 - Customer and subscription management
 - Webhook simulation and testing
 
 #### 3. **GitHub MCP Server**
+
 ```json
 {
   "mcpServers": {
@@ -43,7 +52,9 @@ Would enable:
   }
 }
 ```
+
 Benefits:
+
 - Issue and PR management
 - Code review workflows
 - Automated release notes
@@ -51,21 +62,27 @@ Benefits:
 ## 2. Additional Context Files
 
 ### A. Create `ARCHITECTURE.md`
+
 Document high-level architecture decisions:
+
 - Why custom auth provider vs Auth.js defaults
 - Service layer abstraction rationale
 - Testing strategy decisions
 - Performance optimization approaches
 
 ### B. Create `DEPLOYMENT.md`
+
 Deployment-specific context:
+
 - Environment variables checklist
 - Pre-deployment verification steps
 - Rollback procedures
 - Monitoring setup
 
 ### C. Create `PATTERNS.md`
+
 Code pattern library with examples:
+
 - Complex form handling patterns
 - Data fetching patterns (server vs client)
 - Error boundary implementations
@@ -74,7 +91,9 @@ Code pattern library with examples:
 ## 3. Claude Code Settings Enhancements
 
 ### Custom Command Shortcuts
+
 Add to your Claude Code settings:
+
 ```json
 {
   "customCommands": {
@@ -87,6 +106,7 @@ Add to your Claude Code settings:
 ```
 
 ### Auto-run Commands
+
 ```json
 {
   "autoRun": {
@@ -99,6 +119,7 @@ Add to your Claude Code settings:
 ## 4. Development Workflow Improvements
 
 ### A. Git Hooks Enhancement
+
 ```bash
 # .husky/pre-commit
 #!/bin/sh
@@ -108,7 +129,9 @@ npm run test:changed  # Only test changed files
 ```
 
 ### B. VS Code / Cursor Settings
+
 Create `.vscode/settings.json`:
+
 ```json
 {
   "typescript.tsdk": "node_modules/typescript/lib",
@@ -126,7 +149,9 @@ Create `.vscode/settings.json`:
 ```
 
 ### C. Snippets for Common Patterns
+
 Create `.vscode/snippets/typescript.json`:
+
 ```json
 {
   "Server Action": {
@@ -154,7 +179,9 @@ Create `.vscode/snippets/typescript.json`:
 ## 5. Testing Improvements
 
 ### A. Test Data Factories
+
 Create `tests/factories/`:
+
 ```typescript
 // tests/factories/user.factory.ts
 export const userFactory = {
@@ -162,17 +189,21 @@ export const userFactory = {
     email: `test-${Date.now()}@example.com`,
     password: 'TestPass123!',
     name: 'Test User',
-    ...overrides
+    ...overrides,
   }),
-  
-  buildMany: (count: number, overrides = {}) => 
-    Array.from({ length: count }, (_, i) => 
-      userFactory.build({ ...overrides, email: `test-${i}-${Date.now()}@example.com` })
-    )
+
+  buildMany: (count: number, overrides = {}) =>
+    Array.from({ length: count }, (_, i) =>
+      userFactory.build({
+        ...overrides,
+        email: `test-${i}-${Date.now()}@example.com`,
+      }),
+    ),
 };
 ```
 
 ### B. Custom Test Matchers
+
 ```typescript
 // tests/matchers/index.ts
 expect.extend({
@@ -180,20 +211,21 @@ expect.extend({
     const pass = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(received);
     return {
       pass,
-      message: () => `expected ${received} to be a valid email`
+      message: () => `expected ${received} to be a valid email`,
     };
-  }
+  },
 });
 ```
 
 ## 6. Performance Monitoring
 
 ### A. Custom Performance Tracking
+
 ```typescript
 // lib/utils/performance.ts
 export function measurePerformance<T>(
   name: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   const start = performance.now();
   return fn().finally(() => {
@@ -206,6 +238,7 @@ export function measurePerformance<T>(
 ```
 
 ### B. Database Query Logging
+
 ```typescript
 // lib/db/logging.ts
 export const dbLogger = {
@@ -215,31 +248,33 @@ export const dbLogger = {
         query,
         params,
         duration,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
-  }
+  },
 };
 ```
 
 ## 7. Security Enhancements
 
 ### A. Security Headers Middleware
+
 ```typescript
 // middleware.ts
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
-  
+
   // Security headers
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
+
   return response;
 }
 ```
 
 ### B. Input Sanitization Helper
+
 ```typescript
 // lib/utils/sanitize.ts
 import DOMPurify from 'isomorphic-dompurify';
@@ -247,7 +282,7 @@ import DOMPurify from 'isomorphic-dompurify';
 export function sanitizeHtml(dirty: string): string {
   return DOMPurify.sanitize(dirty, {
     ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a'],
-    ALLOWED_ATTR: ['href']
+    ALLOWED_ATTR: ['href'],
   });
 }
 ```
@@ -255,12 +290,14 @@ export function sanitizeHtml(dirty: string): string {
 ## 8. Documentation Automation
 
 ### A. API Documentation Generation
+
 ```bash
 # Generate API docs from TypeScript
 npx typedoc --out docs/api src/lib
 ```
 
 ### B. Component Documentation
+
 ```typescript
 // Use TSDoc comments
 /**
@@ -268,7 +305,7 @@ npx typedoc --out docs/api src/lib
  * @param onSubmit - Callback when form is submitted
  * @param initialData - Pre-populate form fields
  * @example
- * <UserForm 
+ * <UserForm
  *   onSubmit={handleSubmit}
  *   initialData={{ name: 'John' }}
  * />
@@ -278,6 +315,7 @@ npx typedoc --out docs/api src/lib
 ## 9. Debugging Helpers
 
 ### A. Debug Mode Toggle
+
 ```typescript
 // lib/debug/index.ts
 export const debug = {
@@ -286,30 +324,31 @@ export const debug = {
       console.log('[DEBUG]', ...args);
     }
   },
-  
+
   table: (data: any) => {
     if (process.env.NEXT_PUBLIC_DEBUG === 'true') {
       console.table(data);
     }
-  }
+  },
 };
 ```
 
 ### B. Request Logging Middleware
+
 ```typescript
 // lib/middleware/logging.ts
 export function logRequests(handler: Function) {
   return async (req: NextRequest) => {
     const start = Date.now();
     const response = await handler(req);
-    
+
     console.log({
       method: req.method,
       url: req.url,
       status: response.status,
-      duration: Date.now() - start
+      duration: Date.now() - start,
     });
-    
+
     return response;
   };
 }
@@ -318,12 +357,14 @@ export function logRequests(handler: Function) {
 ## 10. Claude Code Workflow Tips
 
 ### A. Effective Context Management
+
 1. Keep CLAUDE.md under 1000 lines
 2. Move completed features to CLAUDE_ARCHIVE.md
 3. Update "Current Sprint" section frequently
 4. Use CLAUDE.local.md for machine-specific items
 
 ### B. Prompt Patterns for Speed
+
 ```
 "Implement [feature] following the patterns in lib/auth/providers/database.ts"
 "Add [endpoint] similar to app/api/users/route.ts with proper validation"
@@ -331,6 +372,7 @@ export function logRequests(handler: Function) {
 ```
 
 ### C. Testing Workflow
+
 1. Always ask Claude to run tests after changes
 2. Use "npm run test:watch" during development
 3. Have Claude check test coverage for new features
@@ -356,6 +398,7 @@ export function logRequests(handler: Function) {
 ## Summary
 
 These improvements will help Claude Code:
+
 - Access your database directly via MCP
 - Have better context about your specific setup
 - Follow your patterns more consistently

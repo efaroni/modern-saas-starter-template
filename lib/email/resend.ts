@@ -1,18 +1,28 @@
-import { Resend } from 'resend'
-import { EmailService, EmailResult, PasswordResetEmailData, EmailVerificationData, WelcomeEmailData } from './types'
+import { Resend } from 'resend';
+
+import {
+  type EmailService,
+  type EmailResult,
+  type PasswordResetEmailData,
+  type EmailVerificationData,
+  type WelcomeEmailData,
+} from './types';
 
 export class ResendEmailService implements EmailService {
-  private resend: Resend
-  private from: string
-  private baseUrl: string
+  private resend: Resend;
+  private from: string;
+  private baseUrl: string;
 
   constructor(apiKey: string, from: string, baseUrl: string) {
-    this.resend = new Resend(apiKey)
-    this.from = from
-    this.baseUrl = baseUrl
+    this.resend = new Resend(apiKey);
+    this.from = from;
+    this.baseUrl = baseUrl;
   }
 
-  async sendPasswordResetEmail(email: string, data: PasswordResetEmailData): Promise<EmailResult> {
+  async sendPasswordResetEmail(
+    email: string,
+    data: PasswordResetEmailData,
+  ): Promise<EmailResult> {
     try {
       await this.resend.emails.send({
         from: this.from,
@@ -36,19 +46,22 @@ export class ResendEmailService implements EmailService {
               This link will expire in 1 hour.
             </p>
           </div>
-        `
-      })
-      return { success: true }
+        `,
+      });
+      return { success: true };
     } catch (error) {
-      console.error('Failed to send password reset email:', error)
+      console.error('Failed to send password reset email:', error);
       return {
         success: false,
-        error: 'Failed to send password reset email'
-      }
+        error: 'Failed to send password reset email',
+      };
     }
   }
 
-  async sendVerificationEmail(email: string, data: EmailVerificationData): Promise<EmailResult> {
+  async sendVerificationEmail(
+    email: string,
+    data: EmailVerificationData,
+  ): Promise<EmailResult> {
     try {
       await this.resend.emails.send({
         from: this.from,
@@ -72,19 +85,22 @@ export class ResendEmailService implements EmailService {
               This link will expire in 24 hours.
             </p>
           </div>
-        `
-      })
-      return { success: true }
+        `,
+      });
+      return { success: true };
     } catch (error) {
-      console.error('Failed to send verification email:', error)
+      console.error('Failed to send verification email:', error);
       return {
         success: false,
-        error: 'Failed to send verification email'
-      }
+        error: 'Failed to send verification email',
+      };
     }
   }
 
-  async sendWelcomeEmail(email: string, data: WelcomeEmailData): Promise<EmailResult> {
+  async sendWelcomeEmail(
+    email: string,
+    data: WelcomeEmailData,
+  ): Promise<EmailResult> {
     try {
       await this.resend.emails.send({
         from: this.from,
@@ -107,15 +123,15 @@ export class ResendEmailService implements EmailService {
               If you have any questions, feel free to reach out to our support team.
             </p>
           </div>
-        `
-      })
-      return { success: true }
+        `,
+      });
+      return { success: true };
     } catch (error) {
-      console.error('Failed to send welcome email:', error)
+      console.error('Failed to send welcome email:', error);
       return {
         success: false,
-        error: 'Failed to send welcome email'
-      }
+        error: 'Failed to send welcome email',
+      };
     }
   }
 }

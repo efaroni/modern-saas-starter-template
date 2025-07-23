@@ -1,0 +1,355 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Optimize concurrency - cancel in-progress runs for same PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Security: Minimal permissions by default
+permissions:
+  contents: read
+  pull-requests: write # For commenting on PRs with reports
+  checks: write # For posting check results
+
+env:
+  NODE_ENV: test
+  # Test Database Configuration (Component-based)
+  TEST_DB_HOST: localhost
+  TEST_DB_PORT: 5432
+  TEST_DB_USER: postgres
+  TEST_DB_PASSWORD: postgres
+  TEST_DB_NAME: test_saas_starter
+  # Auth Configuration for Tests (generated unique secret per run)
+  AUTH_SECRET: ${{ format('ci-test-{0}-{1}', github.run_id, github.sha) }}
+  NEXTAUTH_URL: http://localhost:3000
+  # Service URLs
+  REDIS_URL: redis://localhost:6379
+  # CI-specific settings
+  CI: true
+  FORCE_COLOR: 1
+
+jobs:
+  # ==============================================================================
+  # QUALITY CHECKS STAGE - Fast feedback for code quality issues
+  # ==============================================================================
+  quality-checks:
+    name: 'Quality Checks'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - name: '🛒 Checkout repository'
+        uses: actions/checkout@v4
+
+      - name: '🔧 Setup Node.js ${{ matrix.node-version }}'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: '📦 Install dependencies'
+        run: npm ci
+
+      - name: '🔍 TypeScript type checking'
+        run: npm run type-check
+
+      - name: '📏 ESLint code analysis'
+        run: npm run lint
+
+      - name: '🎨 Prettier formatting check'
+        run: npm run format:check
+
+  # ==============================================================================
+  # TESTS STAGE - Comprehensive testing with database services
+  # ==============================================================================
+  tests:
+    name: 'Tests & Coverage'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: quality-checks
+
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+      fail-fast: false # Continue other jobs even if one fails
+
+    # Service containers for database testing
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_saas_starter
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: '🛒 Checkout repository'
+        uses: actions/checkout@v4
+
+      - name: '🔧 Setup Node.js ${{ matrix.node-version }}'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: '📦 Install dependencies'
+        run: npm ci
+
+      - name: '🗄️ Wait for PostgreSQL to be ready'
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U postgres && break
+            echo "Waiting for PostgreSQL to be ready... ($i/30)"
+            sleep 2
+          done
+
+      - name: '🗄️ Wait for Redis to be ready'
+        run: |
+          for i in {1..30}; do
+            redis-cli -h localhost -p 6379 ping && break
+            echo "Waiting for Redis to be ready... ($i/30)"
+            sleep 2
+          done
+
+      - name: '🔄 Run database migrations'
+        run: npm run db:migrate
+
+      - name: '🧪 Run unit & integration tests'
+        run: npm run test:coverage
+        env:
+          # Override with service container details
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 5432
+          TEST_DB_USER: postgres
+          TEST_DB_PASSWORD: postgres
+          TEST_DB_NAME: test_saas_starter
+
+      - name: '📊 Upload coverage to Codecov'
+        if: matrix.node-version == 20 # Only upload once to avoid duplicates
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage/lcov.info
+          fail_ci_if_error: false # Don't fail CI if codecov upload fails
+          verbose: true
+
+  # ==============================================================================
+  # BUILD VERIFICATION STAGE - Production build and bundle analysis
+  # ==============================================================================
+  build-verification:
+    name: 'Build Verification'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: quality-checks
+
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - name: '🛒 Checkout repository'
+        uses: actions/checkout@v4
+
+      - name: '🔧 Setup Node.js ${{ matrix.node-version }}'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: '📦 Install dependencies'
+        run: npm ci
+
+      - name: '🎯 Restore Next.js build cache'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+
+      - name: '🏗️ Build Next.js application'
+        run: npm run build
+
+      - name: '📏 Analyze bundle size'
+        run: |
+          echo "## 📦 Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          find .next -name "*.js" -type f -exec ls -lh {} + | head -20 >> $GITHUB_STEP_SUMMARY || echo "No JS files found" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+          # Check if build artifacts exist
+          if [ -d ".next" ]; then
+            echo "✅ Build completed successfully"
+            du -sh .next/ | cut -f1 | xargs -I {} echo "Total build size: {}"
+          else
+            echo "❌ Build directory not found"
+            exit 1
+          fi
+
+      - name: '🎯 Cache build artifacts'
+        if: matrix.node-version == 20 # Only cache once
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .next/cache
+            .next/static
+          key: build-${{ github.sha }}-${{ matrix.node-version }}
+
+  # ==============================================================================
+  # DATABASE VALIDATION STAGE - Migration and schema validation
+  # ==============================================================================
+  database-validation:
+    name: 'Database Validation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: quality-checks
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: migration_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: '🛒 Checkout repository'
+        uses: actions/checkout@v4
+
+      - name: '🔧 Setup Node.js 20'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: '📦 Install dependencies'
+        run: npm ci
+
+      - name: '🗄️ Wait for PostgreSQL'
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U postgres && break
+            echo "Waiting for PostgreSQL... ($i/30)"
+            sleep 2
+          done
+
+      - name: '🔄 Validate database migrations'
+        run: |
+          echo "## 🗄️ Database Migration Validation" >> $GITHUB_STEP_SUMMARY
+
+          # Run migrations
+          npm run db:migrate
+
+          # Verify migrations completed
+          if [ $? -eq 0 ]; then
+            echo "✅ Database migrations completed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Database migrations failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+        env:
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 5432
+          TEST_DB_USER: postgres
+          TEST_DB_PASSWORD: postgres
+          TEST_DB_NAME: migration_test
+
+      - name: '🔍 Check migration files'
+        run: |
+          echo "### Migration Files" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          find lib/db/migrations -name "*.sql" -type f | head -10 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  # ==============================================================================
+  # FINAL STATUS CHECK - Summary of all pipeline results
+  # ==============================================================================
+  ci-status:
+    name: 'CI Pipeline Status'
+    runs-on: ubuntu-latest
+    needs: [quality-checks, tests, build-verification, database-validation]
+    if: always() # Run even if some jobs fail
+
+    steps:
+      - name: '📊 Generate CI Summary'
+        run: |
+          echo "# 🚀 CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check job results
+          if [ "${{ needs.quality-checks.result }}" == "success" ]; then
+            echo "✅ **Quality Checks**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Quality Checks**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.tests.result }}" == "success" ]; then
+            echo "✅ **Tests & Coverage**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Tests & Coverage**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.build-verification.result }}" == "success" ]; then
+            echo "✅ **Build Verification**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Build Verification**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.database-validation.result }}" == "success" ]; then
+            echo "✅ **Database Validation**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Database Validation**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Node.js versions tested**: 18, 20, 22" >> $GITHUB_STEP_SUMMARY
+          echo "**Test exclusions**: Load tests, E2E tests (run separately)" >> $GITHUB_STEP_SUMMARY
+
+      - name: '✅ All checks passed'
+        if: needs.quality-checks.result == 'success' && needs.tests.result == 'success' && needs.build-verification.result == 'success' && needs.database-validation.result == 'success'
+        run: |
+          echo "🎉 All CI pipeline stages completed successfully!"
+          echo "Ready for deployment or merge."
+
+      - name: '❌ Some checks failed'
+        if: needs.quality-checks.result != 'success' || needs.tests.result != 'success' || needs.build-verification.result != 'success' || needs.database-validation.result != 'success'
+        run: |
+          echo "⚠️ Some CI pipeline stages failed."
+          echo "Please check the failed jobs above and fix the issues."
+          exit 1

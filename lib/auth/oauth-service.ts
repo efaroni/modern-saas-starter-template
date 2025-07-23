@@ -1,8 +1,10 @@
-import { signIn as nextAuthSignIn } from '@/lib/auth/auth'
-import { db } from '@/lib/db/server'
-import { users, accounts } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { AuthUser, OAuthResult } from './types'
+import { eq, and } from 'drizzle-orm';
+
+import { signIn as nextAuthSignIn } from '@/lib/auth/auth';
+import { users, accounts } from '@/lib/db/schema';
+import { db } from '@/lib/db/server';
+
+import { type AuthUser, type OAuthResult } from './types';
 
 export class OAuthService {
   /**
@@ -12,18 +14,18 @@ export class OAuthService {
     try {
       const result = await nextAuthSignIn(provider, {
         redirectTo: redirectTo || '/auth',
-      })
-      
+      });
+
       return {
         success: true,
-        redirectUrl: result as string
-      }
+        redirectUrl: result as string,
+      };
     } catch (error) {
-      console.error('OAuth sign-in error:', error)
+      console.error('OAuth sign-in error:', error);
       return {
         success: false,
-        error: 'OAuth sign-in failed'
-      }
+        error: 'OAuth sign-in failed',
+      };
     }
   }
 
@@ -36,10 +38,10 @@ export class OAuthService {
         .select()
         .from(users)
         .where(eq(users.id, userId))
-        .limit(1)
+        .limit(1);
 
       if (!user) {
-        return null
+        return null;
       }
 
       return {
@@ -47,11 +49,11 @@ export class OAuthService {
         email: user.email,
         name: user.name,
         image: user.image,
-        emailVerified: user.emailVerified
-      }
+        emailVerified: user.emailVerified,
+      };
     } catch (error) {
-      console.error('Failed to get OAuth user:', error)
-      return null
+      console.error('Failed to get OAuth user:', error);
+      return null;
     }
   }
 
@@ -63,7 +65,7 @@ export class OAuthService {
     provider: string,
     providerAccountId: string,
     accessToken?: string,
-    refreshToken?: string
+    refreshToken?: string,
   ): Promise<boolean> {
     try {
       // Check if account is already linked
@@ -71,28 +73,26 @@ export class OAuthService {
         .select()
         .from(accounts)
         .where(eq(accounts.providerAccountId, providerAccountId))
-        .limit(1)
+        .limit(1);
 
       if (existingAccount) {
-        return false // Account already linked
+        return false; // Account already linked
       }
 
       // Link the account
-      await db
-        .insert(accounts)
-        .values({
-          userId,
-          type: 'oauth',
-          provider,
-          providerAccountId,
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        })
+      await db.insert(accounts).values({
+        userId,
+        type: 'oauth',
+        provider,
+        providerAccountId,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
 
-      return true
+      return true;
     } catch (error) {
-      console.error('Failed to link OAuth account:', error)
-      return false
+      console.error('Failed to link OAuth account:', error);
+      return false;
     }
   }
 
@@ -103,28 +103,31 @@ export class OAuthService {
     try {
       await db
         .delete(accounts)
-        .where(eq(accounts.userId, userId))
-        .where(eq(accounts.provider, provider))
+        .where(
+          and(eq(accounts.userId, userId), eq(accounts.provider, provider)),
+        );
 
-      return true
+      return true;
     } catch (error) {
-      console.error('Failed to unlink OAuth account:', error)
-      return false
+      console.error('Failed to unlink OAuth account:', error);
+      return false;
     }
   }
 
   /**
    * Get linked accounts for a user
    */
-  async getLinkedAccounts(userId: string): Promise<any[]> {
+  async getLinkedAccounts(
+    userId: string,
+  ): Promise<(typeof accounts.$inferSelect)[]> {
     try {
       return await db
         .select()
         .from(accounts)
-        .where(eq(accounts.userId, userId))
+        .where(eq(accounts.userId, userId));
     } catch (error) {
-      console.error('Failed to get linked accounts:', error)
-      return []
+      console.error('Failed to get linked accounts:', error);
+      return [];
     }
   }
 
@@ -133,20 +136,19 @@ export class OAuthService {
    */
   async hasOAuthAccount(userId: string, provider?: string): Promise<boolean> {
     try {
-      const query = db
+      const whereConditions = provider
+        ? and(eq(accounts.userId, userId), eq(accounts.provider, provider))
+        : eq(accounts.userId, userId);
+
+      const results = await db
         .select()
         .from(accounts)
-        .where(eq(accounts.userId, userId))
-
-      if (provider) {
-        query.where(eq(accounts.provider, provider))
-      }
-
-      const accounts = await query.limit(1)
-      return accounts.length > 0
+        .where(whereConditions)
+        .limit(1);
+      return results.length > 0;
     } catch (error) {
-      console.error('Failed to check OAuth account:', error)
-      return false
+      console.error('Failed to check OAuth account:', error);
+      return false;
     }
   }
 
@@ -156,11 +158,11 @@ export class OAuthService {
   async handleAccountConflict(
     email: string,
     provider: string,
-    providerAccountId: string
+    providerAccountId: string,
   ): Promise<{
-    conflictResolved: boolean
-    existingUserId?: string
-    action: 'link' | 'create' | 'error'
+    conflictResolved: boolean;
+    existingUserId?: string;
+    action: 'link' | 'create' | 'error';
   }> {
     try {
       // Check if user with this email already exists
@@ -168,74 +170,84 @@ export class OAuthService {
         .select()
         .from(users)
         .where(eq(users.email, email))
-        .limit(1)
+        .limit(1);
 
       if (!existingUser) {
         return {
           conflictResolved: true,
-          action: 'create'
-        }
+          action: 'create',
+        };
       }
 
       // Check if this OAuth account is already linked
       const [existingAccount] = await db
         .select()
         .from(accounts)
-        .where(eq(accounts.userId, existingUser.id))
-        .where(eq(accounts.provider, provider))
-        .limit(1)
+        .where(
+          and(
+            eq(accounts.userId, existingUser.id),
+            eq(accounts.provider, provider),
+          ),
+        )
+        .limit(1);
 
       if (existingAccount) {
         return {
           conflictResolved: true,
           existingUserId: existingUser.id,
-          action: 'link'
-        }
+          action: 'link',
+        };
       }
 
       // Auto-link accounts with same email (if allowDangerousEmailAccountLinking is enabled)
       const linked = await this.linkAccount(
         existingUser.id,
         provider,
-        providerAccountId
-      )
+        providerAccountId,
+      );
 
       if (linked) {
         return {
           conflictResolved: true,
           existingUserId: existingUser.id,
-          action: 'link'
-        }
+          action: 'link',
+        };
       }
 
       return {
         conflictResolved: false,
-        action: 'error'
-      }
+        action: 'error',
+      };
     } catch (error) {
-      console.error('Failed to handle OAuth account conflict:', error)
+      console.error('Failed to handle OAuth account conflict:', error);
       return {
         conflictResolved: false,
-        action: 'error'
-      }
+        action: 'error',
+      };
     }
   }
 
   /**
    * Get available OAuth providers
    */
-  getAvailableProviders(): Array<{ id: string; name: string; configured: boolean }> {
+  getAvailableProviders(): Array<{
+    id: string;
+    name: string;
+    configured: boolean;
+  }> {
     return [
       {
         id: 'google',
         name: 'Google',
-        configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+        configured: !!(
+          process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+        ),
       },
       {
         id: 'github',
         name: 'GitHub',
-        configured: !!(process.env.GITHUB_ID && process.env.GITHUB_SECRET)
-      }
-    ]
+        configured: !!(process.env.GITHUB_ID && process.env.GITHUB_SECRET),
+      },
+    ];
   }
 }

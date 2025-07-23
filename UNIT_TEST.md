@@ -7,113 +7,122 @@ Unit tests are automated tests that verify individual components or functions in
 ## Core Principles
 
 ### Test One Thing at a Time
+
 Each unit test should focus on a single behavior or scenario. When a test fails, it should be immediately clear what functionality is broken.
 
 ### Follow the AAA Pattern
+
 Structure every test using Arrange-Act-Assert:
+
 ```typescript
 it('should calculate the correct total with tax', () => {
   // Arrange - Set up test data and dependencies
-  const calculator = new PriceCalculator()
-  const items = [{ price: 100 }, { price: 50 }]
-  const taxRate = 0.08
-  
+  const calculator = new PriceCalculator();
+  const items = [{ price: 100 }, { price: 50 }];
+  const taxRate = 0.08;
+
   // Act - Execute the function being tested
-  const total = calculator.calculateTotal(items, taxRate)
-  
+  const total = calculator.calculateTotal(items, taxRate);
+
   // Assert - Verify the expected outcome
-  expect(total).toBe(162) // 150 + (150 * 0.08)
-})
+  expect(total).toBe(162); // 150 + (150 * 0.08)
+});
 ```
 
 ### Keep Tests Independent
+
 Tests should not depend on execution order or share state. Each test must be able to run in isolation and produce consistent results.
 
 ### Make Tests Fast
+
 Unit tests should run in milliseconds, not seconds. Mock external dependencies and avoid I/O operations.
 
 ## Writing Effective Unit Tests
 
 ### Clear and Descriptive Test Names
+
 ```typescript
 // ❌ Bad: Vague test name
-it('should work correctly', () => {})
+it('should work correctly', () => {});
 
 // ✅ Good: Descriptive name following MethodName_StateUnderTest_ExpectedBehavior
-it('calculateDiscount_whenUserIsVIP_shouldApply20PercentDiscount', () => {})
+it('calculateDiscount_whenUserIsVIP_shouldApply20PercentDiscount', () => {});
 
 // ✅ Also good: Natural language description
-it('should apply 20% discount when user has VIP status', () => {})
+it('should apply 20% discount when user has VIP status', () => {});
 ```
 
 ### Comprehensive Test Coverage
+
 ```typescript
 describe('PasswordValidator', () => {
   describe('validate', () => {
     // Happy path
     it('should return true for valid password', () => {
-      const result = validator.validate('SecureP@ss123')
-      expect(result.isValid).toBe(true)
-    })
-    
+      const result = validator.validate('SecureP@ss123');
+      expect(result.isValid).toBe(true);
+    });
+
     // Edge cases
     it('should reject password shorter than 8 characters', () => {
-      const result = validator.validate('Short1!')
-      expect(result.isValid).toBe(false)
-      expect(result.errorCode).toBe('PASSWORD_TOO_SHORT')
-      expect(result.minLength).toBe(8)
-    })
-    
+      const result = validator.validate('Short1!');
+      expect(result.isValid).toBe(false);
+      expect(result.errorCode).toBe('PASSWORD_TOO_SHORT');
+      expect(result.minLength).toBe(8);
+    });
+
     // Boundary conditions
     it('should accept password with exactly 8 characters', () => {
-      const result = validator.validate('Exact8!@')
-      expect(result.isValid).toBe(true)
-    })
-    
+      const result = validator.validate('Exact8!@');
+      expect(result.isValid).toBe(true);
+    });
+
     // Error scenarios
     it('should handle null input gracefully', () => {
-      const result = validator.validate(null)
-      expect(result.isValid).toBe(false)
-      expect(result.errorCode).toBe('PASSWORD_REQUIRED')
-    })
-  })
-})
+      const result = validator.validate(null);
+      expect(result.isValid).toBe(false);
+      expect(result.errorCode).toBe('PASSWORD_REQUIRED');
+    });
+  });
+});
 ```
 
 ### Effective Mocking
+
 ```typescript
 // Mock external dependencies to isolate the unit under test
 describe('UserService', () => {
-  let userService: UserService
-  let mockDatabase: jest.Mocked<Database>
-  let mockEmailService: jest.Mocked<EmailService>
-  
+  let userService: UserService;
+  let mockDatabase: jest.Mocked<Database>;
+  let mockEmailService: jest.Mocked<EmailService>;
+
   beforeEach(() => {
-    mockDatabase = createMockDatabase()
-    mockEmailService = createMockEmailService()
-    userService = new UserService(mockDatabase, mockEmailService)
-  })
-  
+    mockDatabase = createMockDatabase();
+    mockEmailService = createMockEmailService();
+    userService = new UserService(mockDatabase, mockEmailService);
+  });
+
   it('should send welcome email when user is created', async () => {
     // Arrange
-    const newUser = { email: 'test@example.com', name: 'Test User' }
-    mockDatabase.insert.mockResolvedValue({ id: 1, ...newUser })
-    
+    const newUser = { email: 'test@example.com', name: 'Test User' };
+    mockDatabase.insert.mockResolvedValue({ id: 1, ...newUser });
+
     // Act
-    await userService.createUser(newUser)
-    
+    await userService.createUser(newUser);
+
     // Assert - Verify the interaction
     expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(
       'test@example.com',
-      'Test User'
-    )
-  })
-})
+      'Test User',
+    );
+  });
+});
 ```
 
 ## Best Practices Checklist
 
 ### ✅ Do's
+
 - Write tests before or alongside production code (TDD/BDD)
 - Keep tests simple, readable, and focused
 - Use meaningful assertions that clearly express intent
@@ -127,6 +136,7 @@ describe('UserService', () => {
 - Keep test code DRY using helper functions and shared setup
 
 ### ❌ Don'ts
+
 - Don't test implementation details, focus on behavior
 - Don't test multiple units together (that's integration testing)
 - Don't use production data or external services
@@ -141,7 +151,9 @@ describe('UserService', () => {
 ## Common Testing Patterns
 
 ### Parameterized Tests
+
 Reduce duplication when testing multiple scenarios:
+
 ```typescript
 // Jest/Vitest
 describe('calculateTax', () => {
@@ -167,70 +179,72 @@ def test_calculate_tax(income, expected):
 ```
 
 ### Testing Async Code
+
 ```typescript
 describe('DataFetcher', () => {
   it('should fetch user data successfully', async () => {
     // Mock the API call
-    mockApi.get.mockResolvedValue({ 
-      data: { id: 1, name: 'John Doe' } 
-    })
-    
-    const user = await dataFetcher.fetchUser(1)
-    
-    expect(user).toEqual({ id: 1, name: 'John Doe' })
-    expect(mockApi.get).toHaveBeenCalledWith('/users/1')
-  })
-  
+    mockApi.get.mockResolvedValue({
+      data: { id: 1, name: 'John Doe' },
+    });
+
+    const user = await dataFetcher.fetchUser(1);
+
+    expect(user).toEqual({ id: 1, name: 'John Doe' });
+    expect(mockApi.get).toHaveBeenCalledWith('/users/1');
+  });
+
   it('should handle API errors gracefully', async () => {
     mockApi.get.mockRejectedValue({
-      response: { 
+      response: {
         status: 404,
-        data: { errorCode: 'USER_NOT_FOUND' }
-      }
-    })
-    
-    await expect(dataFetcher.fetchUser(1))
-      .rejects
-      .toMatchObject({
-        code: 'USER_NOT_FOUND',
-        statusCode: 404
-      })
-  })
-})
+        data: { errorCode: 'USER_NOT_FOUND' },
+      },
+    });
+
+    await expect(dataFetcher.fetchUser(1)).rejects.toMatchObject({
+      code: 'USER_NOT_FOUND',
+      statusCode: 404,
+    });
+  });
+});
 ```
 
 ### Testing Error Scenarios
+
 ```typescript
 describe('FileProcessor', () => {
   it('should throw error for unsupported file type', () => {
     expect(() => {
-      fileProcessor.process('document.pdf')
-    }).toThrow(UnsupportedFileTypeError)
-    
+      fileProcessor.process('document.pdf');
+    }).toThrow(UnsupportedFileTypeError);
+
     // Or if using error codes
     try {
-      fileProcessor.process('document.pdf')
+      fileProcessor.process('document.pdf');
     } catch (error) {
-      expect(error.code).toBe('UNSUPPORTED_FILE_TYPE')
-      expect(error.fileType).toBe('pdf')
-      expect(error.supportedTypes).toEqual(['csv', 'json', 'xml'])
+      expect(error.code).toBe('UNSUPPORTED_FILE_TYPE');
+      expect(error.fileType).toBe('pdf');
+      expect(error.supportedTypes).toEqual(['csv', 'json', 'xml']);
     }
-  })
-  
+  });
+
   it('should handle file read errors', async () => {
-    mockFs.readFile.mockRejectedValue(new Error('Permission denied'))
-    
-    const result = await fileProcessor.process('data.csv')
-    
-    expect(result.success).toBe(false)
-    expect(result.errorCode).toBe('FILE_READ_ERROR')
-    expect(result.errorType).toBe('PERMISSION_DENIED')
-  })
-})
+    mockFs.readFile.mockRejectedValue(new Error('Permission denied'));
+
+    const result = await fileProcessor.process('data.csv');
+
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe('FILE_READ_ERROR');
+    expect(result.errorType).toBe('PERMISSION_DENIED');
+  });
+});
 ```
 
 ### Test Data Builders
+
 Create maintainable test data:
+
 ```typescript
 // test/builders/user.builder.ts
 export class UserBuilder {
@@ -239,26 +253,26 @@ export class UserBuilder {
     email: 'test@example.com',
     name: 'Test User',
     role: 'user',
-    createdAt: new Date('2024-01-01')
-  }
-  
+    createdAt: new Date('2024-01-01'),
+  };
+
   withId(id: string): this {
-    this.user.id = id
-    return this
+    this.user.id = id;
+    return this;
   }
-  
+
   withEmail(email: string): this {
-    this.user.email = email
-    return this
+    this.user.email = email;
+    return this;
   }
-  
+
   asAdmin(): this {
-    this.user.role = 'admin'
-    return this
+    this.user.role = 'admin';
+    return this;
   }
-  
+
   build(): User {
-    return { ...this.user }
+    return { ...this.user };
   }
 }
 
@@ -266,12 +280,13 @@ export class UserBuilder {
 const adminUser = new UserBuilder()
   .withEmail('admin@example.com')
   .asAdmin()
-  .build()
+  .build();
 ```
 
 ## Testing Different Types of Code
 
 ### Pure Functions
+
 ```typescript
 // Easiest to test - no side effects
 describe('calculateCompoundInterest', () => {
@@ -280,105 +295,108 @@ describe('calculateCompoundInterest', () => {
       principal: 1000,
       rate: 0.05,
       time: 10,
-      compound: 12
-    })
-    
-    expect(result).toBeCloseTo(1647.01, 2)
-  })
-})
+      compound: 12,
+    });
+
+    expect(result).toBeCloseTo(1647.01, 2);
+  });
+});
 ```
 
 ### Classes and Methods
+
 ```typescript
 describe('ShoppingCart', () => {
-  let cart: ShoppingCart
-  
+  let cart: ShoppingCart;
+
   beforeEach(() => {
-    cart = new ShoppingCart()
-  })
-  
+    cart = new ShoppingCart();
+  });
+
   describe('addItem', () => {
     it('should add item to empty cart', () => {
-      const item = { id: '1', name: 'Widget', price: 10 }
-      
-      cart.addItem(item)
-      
-      expect(cart.getItems()).toHaveLength(1)
-      expect(cart.getTotal()).toBe(10)
-    })
-    
+      const item = { id: '1', name: 'Widget', price: 10 };
+
+      cart.addItem(item);
+
+      expect(cart.getItems()).toHaveLength(1);
+      expect(cart.getTotal()).toBe(10);
+    });
+
     it('should increase quantity for duplicate items', () => {
-      const item = { id: '1', name: 'Widget', price: 10 }
-      
-      cart.addItem(item)
-      cart.addItem(item)
-      
-      expect(cart.getItems()).toHaveLength(1)
-      expect(cart.getItems()[0].quantity).toBe(2)
-      expect(cart.getTotal()).toBe(20)
-    })
-  })
-})
+      const item = { id: '1', name: 'Widget', price: 10 };
+
+      cart.addItem(item);
+      cart.addItem(item);
+
+      expect(cart.getItems()).toHaveLength(1);
+      expect(cart.getItems()[0].quantity).toBe(2);
+      expect(cart.getTotal()).toBe(20);
+    });
+  });
+});
 ```
 
 ### Functions with Side Effects
+
 ```typescript
 describe('Logger', () => {
-  let mockConsole: jest.SpyInstance
-  
+  let mockConsole: jest.SpyInstance;
+
   beforeEach(() => {
-    mockConsole = jest.spyOn(console, 'log').mockImplementation()
-  })
-  
+    mockConsole = jest.spyOn(console, 'log').mockImplementation();
+  });
+
   afterEach(() => {
-    mockConsole.mockRestore()
-  })
-  
+    mockConsole.mockRestore();
+  });
+
   it('should log message with timestamp', () => {
-    const fixedDate = new Date('2024-01-01T12:00:00Z')
-    jest.useFakeTimers().setSystemTime(fixedDate)
-    
-    logger.info('Test message')
-    
+    const fixedDate = new Date('2024-01-01T12:00:00Z');
+    jest.useFakeTimers().setSystemTime(fixedDate);
+
+    logger.info('Test message');
+
     expect(mockConsole).toHaveBeenCalledWith(
-      '[2024-01-01T12:00:00.000Z] INFO: Test message'
-    )
-    
-    jest.useRealTimers()
-  })
-})
+      '[2024-01-01T12:00:00.000Z] INFO: Test message',
+    );
+
+    jest.useRealTimers();
+  });
+});
 ```
 
 ## Test Doubles and Mocking
 
 ### Types of Test Doubles
+
 ```typescript
 // Stub - Returns predetermined values
 const stubDatabase = {
-  getUser: jest.fn().mockReturnValue({ id: 1, name: 'John' })
-}
+  getUser: jest.fn().mockReturnValue({ id: 1, name: 'John' }),
+};
 
 // Mock - Verifies interactions
 const mockEmailService = {
-  send: jest.fn()
-}
+  send: jest.fn(),
+};
 // Later: expect(mockEmailService.send).toHaveBeenCalledWith(...)
 
 // Spy - Records calls while executing real implementation
-const spy = jest.spyOn(calculator, 'add')
-calculator.calculate(5, 3)
-expect(spy).toHaveBeenCalledWith(5, 3)
+const spy = jest.spyOn(calculator, 'add');
+calculator.calculate(5, 3);
+expect(spy).toHaveBeenCalledWith(5, 3);
 
 // Fake - Working implementation for testing
 class FakeUserRepository {
-  private users = new Map()
-  
+  private users = new Map();
+
   async save(user: User): Promise<void> {
-    this.users.set(user.id, user)
+    this.users.set(user.id, user);
   }
-  
+
   async findById(id: string): Promise<User | null> {
-    return this.users.get(id) || null
+    return this.users.get(id) || null;
   }
 }
 ```
@@ -386,6 +404,7 @@ class FakeUserRepository {
 ## Test Organization and Maintenance
 
 ### File Structure
+
 ```
 src/
   components/
@@ -398,7 +417,7 @@ src/
   utils/
     validation.ts
     validation.test.ts
-    
+
 # Or separate test directory
 tests/
   unit/
@@ -412,108 +431,115 @@ tests/
 ```
 
 ### Shared Test Utilities
+
 ```typescript
 // test/utils/setup.ts
 export function setupMockDate(date: string) {
-  const fixedDate = new Date(date)
-  jest.useFakeTimers().setSystemTime(fixedDate)
-  
-  return () => jest.useRealTimers()
+  const fixedDate = new Date(date);
+  jest.useFakeTimers().setSystemTime(fixedDate);
+
+  return () => jest.useRealTimers();
 }
 
 // test/utils/assertions.ts
 export function expectToBeWithinRange(
   actual: number,
   min: number,
-  max: number
+  max: number,
 ) {
-  expect(actual).toBeGreaterThanOrEqual(min)
-  expect(actual).toBeLessThanOrEqual(max)
+  expect(actual).toBeGreaterThanOrEqual(min);
+  expect(actual).toBeLessThanOrEqual(max);
 }
 ```
 
 ## Performance and Optimization
 
 ### Keep Tests Fast
+
 ```typescript
 // ❌ Slow: Real timer
 it('should retry after delay', async () => {
-  await service.fetchWithRetry()
-  await new Promise(resolve => setTimeout(resolve, 5000))
-  expect(mockApi.get).toHaveBeenCalledTimes(2)
-})
+  await service.fetchWithRetry();
+  await new Promise(resolve => setTimeout(resolve, 5000));
+  expect(mockApi.get).toHaveBeenCalledTimes(2);
+});
 
 // ✅ Fast: Fake timers
 it('should retry after delay', async () => {
-  jest.useFakeTimers()
-  
-  const promise = service.fetchWithRetry()
-  
-  jest.advanceTimersByTime(5000)
-  await promise
-  
-  expect(mockApi.get).toHaveBeenCalledTimes(2)
-  jest.useRealTimers()
-})
+  jest.useFakeTimers();
+
+  const promise = service.fetchWithRetry();
+
+  jest.advanceTimersByTime(5000);
+  await promise;
+
+  expect(mockApi.get).toHaveBeenCalledTimes(2);
+  jest.useRealTimers();
+});
 ```
 
 ### Optimize Test Execution
+
 ```javascript
 // jest.config.js
 module.exports = {
   // Run tests in parallel
   maxWorkers: '50%',
-  
+
   // Cache transformation results
   cacheDirectory: '.jest-cache',
-  
+
   // Only run tests for changed files
   onlyChanged: true, // in watch mode
-  
+
   // Fail fast
   bail: 1, // stop after first test failure in CI
-}
+};
 ```
 
 ## Common Pitfalls and How to Avoid Them
 
 ### ❌ Testing Implementation Details
+
 ```typescript
 // Bad: Testing private method
 it('should format date correctly', () => {
   // @ts-ignore accessing private method
-  expect(service._formatDate(date)).toBe('2024-01-01')
-})
+  expect(service._formatDate(date)).toBe('2024-01-01');
+});
 
 // Good: Test through public interface
 it('should return formatted user data', () => {
-  const user = service.getUser(1)
-  expect(user.createdDate).toBe('2024-01-01')
-})
+  const user = service.getUser(1);
+  expect(user.createdDate).toBe('2024-01-01');
+});
 ```
 
 ### ❌ Overmocking
+
 ```typescript
 // Bad: Mocking simple utilities
-jest.mock('./utils/math')
+jest.mock('./utils/math');
 
 // Good: Use real implementation for simple, deterministic functions
-import { add } from './utils/math' // Use the real function
+import { add } from './utils/math'; // Use the real function
 ```
 
 ### ❌ Unclear Test Failures
+
 ```typescript
 // Bad: Generic assertion
-expect(result).toBeTruthy()
+expect(result).toBeTruthy();
 
 // Good: Specific assertion with clear failure message
-expect(result.success).toBe(true)
-expect(result.data).toEqual({ id: 1, status: 'active' })
+expect(result.success).toBe(true);
+expect(result.data).toEqual({ id: 1, status: 'active' });
 ```
 
 ## Tools and Frameworks
 
 ### Popular Unit Testing Frameworks
+
 - **JavaScript/TypeScript**: Jest, Vitest, Mocha + Chai
 - **Python**: pytest, unittest
 - **Java**: JUnit 5, TestNG
@@ -523,6 +549,7 @@ expect(result.data).toEqual({ id: 1, status: 'active' })
 - **PHP**: PHPUnit, Pest
 
 ### Useful Testing Libraries
+
 - **Mocking**: Jest mocks, Sinon.js, ts-mockito
 - **Assertions**: Chai, Jest matchers, Hamcrest
 - **Test Data**: Faker.js, Chance.js, Factory Bot

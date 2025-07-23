@@ -54,7 +54,7 @@ await componentTestUtils.shouldRender(<MyComponent />)
 
 // Test with different props
 const results = await componentTestUtils.testWithProps(
-  MyComponent, 
+  MyComponent,
   [{ variant: 'primary' }, { variant: 'secondary' }]
 )
 
@@ -63,13 +63,13 @@ const { issues, passed } = await componentTestUtils.testAccessibility(<MyCompone
 
 // Test loading states
 const results = await componentTestUtils.testLoadingStates(
-  <MyComponent />, 
+  <MyComponent />,
   { loading: true }
 )
 
 // Test error states
 const results = await componentTestUtils.testErrorStates(
-  <MyComponent />, 
+  <MyComponent />,
   { error: 'Something went wrong' }
 )
 ```
@@ -108,22 +108,22 @@ const results = await formTestUtils.testValidation(
 Helper functions for creating mocks:
 
 ```typescript
-import { mockUtils } from '@/lib/testing/component-utils'
+import { mockUtils } from '@/lib/testing/component-utils';
 
 // Mock functions
-const mockFn = mockUtils.createMockFunction('myFunction')
+const mockFn = mockUtils.createMockFunction('myFunction');
 
 // Mock API responses
-const mockResponse = mockUtils.mockApiResponse({ data: 'test' }, 100)
+const mockResponse = mockUtils.mockApiResponse({ data: 'test' }, 100);
 
 // Mock components
-const MockComponent = mockUtils.mockComponent('MyComponent')
+const MockComponent = mockUtils.mockComponent('MyComponent');
 
 // Mock hooks
-const mockHook = mockUtils.mockHook('useMyHook', { data: 'test' })
+const mockHook = mockUtils.mockHook('useMyHook', { data: 'test' });
 
 // Mock router
-const mockRouter = mockUtils.mockRouter('/dashboard')
+const mockRouter = mockUtils.mockRouter('/dashboard');
 ```
 
 ## Test Templates
@@ -183,32 +183,24 @@ const testConfig = testTemplates.form(
 ### Hook Template
 
 ```typescript
-const testConfig = testTemplates.hook(
-  'useMyHook',
-  () => useMyHook(),
-  {
-    testInitialState: true,
-    testStateChanges: true,
-    initialValue: { data: null, loading: false }
-  }
-)
+const testConfig = testTemplates.hook('useMyHook', () => useMyHook(), {
+  testInitialState: true,
+  testStateChanges: true,
+  initialValue: { data: null, loading: false },
+});
 ```
 
 ### API Template
 
 ```typescript
-const testConfig = testTemplates.api(
-  'fetchUser',
-  fetchUser,
-  {
-    testSuccess: true,
-    testError: true,
-    testLoading: true,
-    successArgs: ['user123'],
-    errorArgs: ['invalid-id'],
-    expectedSuccessResponse: { id: 'user123', name: 'John' }
-  }
-)
+const testConfig = testTemplates.api('fetchUser', fetchUser, {
+  testSuccess: true,
+  testError: true,
+  testLoading: true,
+  successArgs: ['user123'],
+  errorArgs: ['invalid-id'],
+  expectedSuccessResponse: { id: 'user123', name: 'John' },
+});
 ```
 
 ## Performance Testing
@@ -257,10 +249,10 @@ snapshotUtils.testResponsiveSnapshots(
 
 ```typescript
 // Good
-it('should display error message when email is invalid')
+it('should display error message when email is invalid');
 
 // Bad
-it('should work')
+it('should work');
 ```
 
 ### 2. Test User Interactions, Not Implementation
@@ -269,11 +261,11 @@ it('should work')
 // Good - tests user interaction
 it('should submit form when submit button is clicked', async () => {
   const { user } = renderWithProviders(<LoginForm />)
-  
+
   await user.type(screen.getByLabelText(/email/i), 'test@example.com')
   await user.type(screen.getByLabelText(/password/i), 'password123')
   await user.click(screen.getByRole('button', { name: /submit/i }))
-  
+
   expect(screen.getByText('Login successful')).toBeInTheDocument()
 })
 
@@ -288,12 +280,12 @@ it('should call handleSubmit when form is submitted', async () => {
 
 ```typescript
 // Good
-screen.getByRole('button', { name: /submit/i })
-screen.getByLabelText(/email/i)
+screen.getByRole('button', { name: /submit/i });
+screen.getByLabelText(/email/i);
 
 // Less ideal
-screen.getByTestId('submit-button')
-screen.getByClassName('email-input')
+screen.getByTestId('submit-button');
+screen.getByClassName('email-input');
 ```
 
 ### 4. Test Loading and Error States
@@ -301,10 +293,10 @@ screen.getByClassName('email-input')
 ```typescript
 it('should show loading state while submitting', async () => {
   const { user } = renderWithProviders(<MyForm />)
-  
+
   // Trigger loading state
   await user.click(screen.getByRole('button', { name: /submit/i }))
-  
+
   // Assert loading state
   expect(screen.getByText('Loading...')).toBeInTheDocument()
 })
@@ -312,10 +304,10 @@ it('should show loading state while submitting', async () => {
 it('should display error when submission fails', async () => {
   // Mock API to return error
   mockApiCall.mockRejectedValue(new Error('Submission failed'))
-  
+
   const { user } = renderWithProviders(<MyForm />)
   await user.click(screen.getByRole('button', { name: /submit/i }))
-  
+
   expect(screen.getByText('Submission failed')).toBeInTheDocument()
 })
 ```
@@ -324,10 +316,10 @@ it('should display error when submission fails', async () => {
 
 ```typescript
 afterEach(() => {
-  jest.clearAllMocks()
+  jest.clearAllMocks();
   // Clear any global state
   // Reset any modified DOM
-})
+});
 ```
 
 ## Common Testing Patterns
@@ -337,9 +329,9 @@ afterEach(() => {
 ```typescript
 it('should handle async operations', async () => {
   const { user } = renderWithProviders(<AsyncComponent />)
-  
+
   await user.click(screen.getByText('Load Data'))
-  
+
   // Wait for async operation
   await waitFor(() => {
     expect(screen.getByText('Data loaded')).toBeInTheDocument()
@@ -355,9 +347,9 @@ it('should update UI when context changes', async () => {
     withAuth: true,
     mockAuth: { isAuthenticated: false }
   })
-  
+
   expect(screen.getByText('Please log in')).toBeInTheDocument()
-  
+
   // Simulate auth state change
   // This would depend on your specific implementation
 })
@@ -370,13 +362,13 @@ it('should catch and display errors', () => {
   const ThrowError = () => {
     throw new Error('Test error')
   }
-  
+
   renderWithProviders(
     <ErrorBoundary>
       <ThrowError />
     </ErrorBoundary>
   )
-  
+
   expect(screen.getByText('Something went wrong')).toBeInTheDocument()
 })
 ```
@@ -391,36 +383,37 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/lib/testing/setup.ts'],
   testEnvironment: 'jsdom',
   moduleNameMapping: {
-    '@/lib/testing/(.*)': '<rootDir>/lib/testing/$1'
-  }
-}
+    '@/lib/testing/(.*)': '<rootDir>/lib/testing/$1',
+  },
+};
 ```
 
 Create a setup file:
 
 ```typescript
 // lib/testing/setup.ts
-import '@testing-library/jest-dom'
-import { configure } from '@testing-library/react'
+import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
 
 // Configure testing library
 configure({
   testIdAttribute: 'data-testid',
-})
+});
 
 // Global test setup
 beforeEach(() => {
   // Reset any global state
-})
+});
 
 afterEach(() => {
   // Cleanup after each test
-})
+});
 ```
 
 ## Examples
 
 See the `examples/` directory for complete examples of:
+
 - Component testing with all utilities
 - Form testing with validation
 - Hook testing with state changes

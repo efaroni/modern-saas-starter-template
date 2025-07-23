@@ -1,26 +1,28 @@
-import { DatabaseSessionStorage, SessionConfig, DEFAULT_SESSION_CONFIG } from './database-session-storage'
-import { AuthUser } from './types'
-import { db } from '@/lib/db/server'
-import { AUTH_CONFIG } from '@/lib/config/app-config'
+import { AUTH_CONFIG } from '@/lib/config/app-config';
+import { db } from '@/lib/db/server';
+
+import { DatabaseSessionStorage } from './database-session-storage';
+import { type AuthUser } from './types';
 
 export interface SessionSecurityConfig {
   // Session timeouts
-  maxAge: number
-  inactivityTimeout: number
-  
+  maxAge: number;
+  inactivityTimeout: number;
+
   // Security policies
-  maxConcurrentSessions: number
-  suspiciousActivityThreshold: number
-  
+  maxConcurrentSessions: number;
+  suspiciousActivityThreshold: number;
+
   // Cookie settings
-  cookieName: string
+  cookieName: string;
   cookieOptions: {
-    httpOnly: boolean
-    secure: boolean
-    sameSite: 'strict' | 'lax' | 'none'
-    path: string
-    domain?: string
-  }
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: 'strict' | 'lax' | 'none';
+    path: string;
+    domain?: string;
+    maxAge?: number;
+  };
 }
 
 export const DEFAULT_SECURITY_CONFIG: SessionSecurityConfig = {
@@ -34,22 +36,25 @@ export const DEFAULT_SECURITY_CONFIG: SessionSecurityConfig = {
     secure: AUTH_CONFIG.COOKIE_SECURE,
     sameSite: AUTH_CONFIG.COOKIE_SAME_SITE,
     path: '/',
-    domain: undefined
-  }
-}
+    domain: undefined,
+  },
+};
 
 export class SessionManager {
-  private storage: DatabaseSessionStorage
-  private config: SessionSecurityConfig
+  private storage: DatabaseSessionStorage;
+  private config: SessionSecurityConfig;
 
-  constructor(database: typeof db = db, config: SessionSecurityConfig = DEFAULT_SECURITY_CONFIG) {
-    this.config = config
+  constructor(
+    database: typeof db = db,
+    config: SessionSecurityConfig = DEFAULT_SECURITY_CONFIG,
+  ) {
+    this.config = config;
     this.storage = new DatabaseSessionStorage(database, {
       maxAge: config.maxAge,
       maxConcurrentSessions: config.maxConcurrentSessions,
       suspiciousActivityThreshold: config.suspiciousActivityThreshold,
-      inactivityTimeout: config.inactivityTimeout
-    })
+      inactivityTimeout: config.inactivityTimeout,
+    });
   }
 
   /**
@@ -58,20 +63,20 @@ export class SessionManager {
   async createSession(
     user: AuthUser,
     ipAddress?: string,
-    userAgent?: string
+    userAgent?: string,
   ): Promise<{
-    sessionToken: string
-    expires: Date
-    cookieOptions: any
+    sessionToken: string;
+    expires: Date;
+    cookieOptions: Record<string, unknown>;
   }> {
     try {
       const sessionToken = await this.storage.createSession(
         user.id,
         ipAddress,
-        userAgent
-      )
+        userAgent,
+      );
 
-      const expires = new Date(Date.now() + this.config.maxAge * 1000)
+      const expires = new Date(Date.now() + this.config.maxAge * 1000);
 
       return {
         sessionToken,
@@ -79,11 +84,13 @@ export class SessionManager {
         cookieOptions: {
           ...this.config.cookieOptions,
           expires,
-          maxAge: this.config.maxAge
-        }
-      }
+          maxAge: this.config.maxAge,
+        },
+      };
     } catch (error) {
-      throw new Error(`Session creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(
+        `Session creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 
@@ -93,51 +100,56 @@ export class SessionManager {
   async validateSession(
     sessionToken: string,
     ipAddress?: string,
-    userAgent?: string
+    userAgent?: string,
   ): Promise<{
-    valid: boolean
-    user?: AuthUser
-    suspicious?: boolean
-    action?: 'refresh' | 'invalidate'
+    valid: boolean;
+    user?: AuthUser;
+    suspicious?: boolean;
+    action?: 'refresh' | 'invalidate';
   }> {
     try {
-      this.storage.setSessionToken(sessionToken)
-      const sessionData = await this.storage.getSession()
+      this.storage.setSessionToken(sessionToken);
+      const sessionData = await this.storage.getSession();
 
       if (!sessionData || !sessionData.user) {
-        return { valid: false }
+        return { valid: false };
       }
 
       // Check for suspicious activity
-      const suspicious = ipAddress && userAgent ? 
-        await this.detectSuspiciousActivity(sessionToken, ipAddress, userAgent) : 
-        false
+      const suspicious =
+        ipAddress && userAgent
+          ? await this.detectSuspiciousActivity(
+              sessionToken,
+              ipAddress,
+              userAgent,
+            )
+          : false;
 
       if (suspicious) {
         // Invalidate session on suspicious activity
-        await this.storage.removeSession()
-        return { 
-          valid: false, 
-          suspicious: true, 
-          action: 'invalidate' 
-        }
+        await this.storage.removeSession();
+        return {
+          valid: false,
+          suspicious: true,
+          action: 'invalidate',
+        };
       }
 
       // Session is valid, refresh it
-      const refreshedExpires = new Date(Date.now() + this.config.maxAge * 1000)
+      const refreshedExpires = new Date(Date.now() + this.config.maxAge * 1000);
       await this.storage.setSession({
         ...sessionData,
-        expires: refreshedExpires.toISOString()
-      })
+        expires: refreshedExpires.toISOString(),
+      });
 
       return {
         valid: true,
         user: sessionData.user,
-        action: 'refresh'
-      }
+        action: 'refresh',
+      };
     } catch (error) {
-      console.error('Failed to validate session:', error)
-      return { valid: false }
+      console.error('Failed to validate session:', error);
+      return { valid: false };
     }
   }
 
@@ -146,25 +158,28 @@ export class SessionManager {
    */
   async destroySession(sessionToken: string): Promise<void> {
     try {
-      this.storage.setSessionToken(sessionToken)
-      await this.storage.removeSession()
+      this.storage.setSessionToken(sessionToken);
+      await this.storage.removeSession();
     } catch (error) {
-      console.error('Failed to destroy session:', error)
+      console.error('Failed to destroy session:', error);
     }
   }
 
   /**
    * Get all active sessions for a user
    */
-  async getUserSessions(userId: string): Promise<any[]> {
-    return await this.storage.getUserSessions(userId)
+  getUserSessions(userId: string): Promise<unknown[]> {
+    return this.storage.getUserSessions(userId);
   }
 
   /**
    * Invalidate all sessions for a user (security action)
    */
-  async invalidateUserSessions(userId: string, reason: string = 'security'): Promise<void> {
-    await this.storage.invalidateUserSessions(userId, reason)
+  async invalidateUserSessions(
+    userId: string,
+    reason: string = 'security',
+  ): Promise<void> {
+    await this.storage.invalidateUserSessions(userId, reason);
   }
 
   /**
@@ -172,26 +187,26 @@ export class SessionManager {
    */
   private async detectSuspiciousActivity(
     sessionToken: string,
-    ipAddress: string,
-    userAgent: string
+    _ipAddress: string,
+    _userAgent: string,
   ): Promise<boolean> {
     try {
       // Get session info to find session ID
-      this.storage.setSessionToken(sessionToken)
-      const sessionData = await this.storage.getSession()
-      
+      this.storage.setSessionToken(sessionToken);
+      const sessionData = await this.storage.getSession();
+
       if (!sessionData) {
-        return false
+        return false;
       }
 
       // For now, we'll implement a simple check
       // In a real implementation, you'd get the session ID from the database
       // and call storage.detectSuspiciousActivity(sessionId, ipAddress, userAgent)
-      
-      return false // Simplified for now
+
+      return false; // Simplified for now
     } catch (error) {
-      console.error('Failed to detect suspicious activity:', error)
-      return false
+      console.error('Failed to detect suspicious activity:', error);
+      return false;
     }
   }
 
@@ -199,58 +214,58 @@ export class SessionManager {
    * Get cookie configuration for setting secure cookies
    */
   getCookieConfig(): {
-    name: string
-    options: any
+    name: string;
+    options: Record<string, unknown>;
   } {
     return {
       name: this.config.cookieName,
-      options: this.config.cookieOptions
-    }
+      options: this.config.cookieOptions,
+    };
   }
 
   /**
    * Create cookie string for HTTP response
    */
   createCookieString(sessionToken: string, expires: Date): string {
-    const options = this.config.cookieOptions
-    let cookieString = `${this.config.cookieName}=${sessionToken}`
-    
+    const options = this.config.cookieOptions;
+    let cookieString = `${this.config.cookieName}=${sessionToken}`;
+
     if (expires) {
-      cookieString += `; Expires=${expires.toUTCString()}`
+      cookieString += `; Expires=${expires.toUTCString()}`;
     }
-    
+
     if (options.maxAge) {
-      cookieString += `; Max-Age=${options.maxAge}`
+      cookieString += `; Max-Age=${options.maxAge}`;
     }
-    
+
     if (options.path) {
-      cookieString += `; Path=${options.path}`
+      cookieString += `; Path=${options.path}`;
     }
-    
+
     if (options.domain) {
-      cookieString += `; Domain=${options.domain}`
+      cookieString += `; Domain=${options.domain}`;
     }
-    
+
     if (options.secure) {
-      cookieString += '; Secure'
+      cookieString += '; Secure';
     }
-    
+
     if (options.httpOnly) {
-      cookieString += '; HttpOnly'
+      cookieString += '; HttpOnly';
     }
-    
+
     if (options.sameSite) {
-      cookieString += `; SameSite=${options.sameSite}`
+      cookieString += `; SameSite=${options.sameSite}`;
     }
-    
-    return cookieString
+
+    return cookieString;
   }
 
   /**
    * Create cookie string for clearing the session
    */
   createClearCookieString(): string {
-    return `${this.config.cookieName}=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=${this.config.cookieOptions.path}`
+    return `${this.config.cookieName}=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=${this.config.cookieOptions.path}`;
   }
 
   /**
@@ -261,8 +276,9 @@ export class SessionManager {
     try {
       // The cleanup is handled internally by DatabaseSessionStorage
       // We could add more sophisticated cleanup logic here
+      await this.storage.cleanupExpiredSessions();
     } catch (error) {
-      console.error('Failed to cleanup expired sessions:', error)
+      console.error('Failed to cleanup expired sessions:', error);
     }
   }
 }

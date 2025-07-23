@@ -1,14 +1,22 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Copy, FileText, Zap } from 'lucide-react'
+import { useState } from 'react';
+
+import { Copy, FileText, Zap } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 const generators = [
   {
@@ -18,11 +26,32 @@ const generators = [
     category: 'Frontend',
     icon: '⚛️',
     fields: [
-      { name: 'componentName', label: 'Component Name', type: 'text', required: true },
-      { name: 'componentType', label: 'Component Type', type: 'select', options: ['Client Component', 'Server Component', 'Both'], required: true },
-      { name: 'withProps', label: 'Include Props Interface', type: 'checkbox', default: true },
-      { name: 'withStyles', label: 'Include Styling', type: 'checkbox', default: true },
-    ]
+      {
+        name: 'componentName',
+        label: 'Component Name',
+        type: 'text',
+        required: true,
+      },
+      {
+        name: 'componentType',
+        label: 'Component Type',
+        type: 'select',
+        options: ['Client Component', 'Server Component', 'Both'],
+        required: true,
+      },
+      {
+        name: 'withProps',
+        label: 'Include Props Interface',
+        type: 'checkbox',
+        default: true,
+      },
+      {
+        name: 'withStyles',
+        label: 'Include Styling',
+        type: 'checkbox',
+        default: true,
+      },
+    ],
   },
   {
     id: 'api',
@@ -32,10 +61,26 @@ const generators = [
     icon: '🔗',
     fields: [
       { name: 'routeName', label: 'Route Name', type: 'text', required: true },
-      { name: 'methods', label: 'HTTP Methods', type: 'multiselect', options: ['GET', 'POST', 'PUT', 'DELETE'], required: true },
-      { name: 'withAuth', label: 'Include Authentication', type: 'checkbox', default: true },
-      { name: 'withValidation', label: 'Include Validation', type: 'checkbox', default: true },
-    ]
+      {
+        name: 'methods',
+        label: 'HTTP Methods',
+        type: 'multiselect',
+        options: ['GET', 'POST', 'PUT', 'DELETE'],
+        required: true,
+      },
+      {
+        name: 'withAuth',
+        label: 'Include Authentication',
+        type: 'checkbox',
+        default: true,
+      },
+      {
+        name: 'withValidation',
+        label: 'Include Validation',
+        type: 'checkbox',
+        default: true,
+      },
+    ],
   },
   {
     id: 'model',
@@ -45,10 +90,27 @@ const generators = [
     icon: '🗃️',
     fields: [
       { name: 'modelName', label: 'Model Name', type: 'text', required: true },
-      { name: 'fields', label: 'Fields (JSON)', type: 'textarea', required: true, placeholder: '[{"name": "title", "type": "text"}, {"name": "userId", "type": "uuid", "references": "users"}]' },
-      { name: 'withTimestamps', label: 'Include Timestamps', type: 'checkbox', default: true },
-      { name: 'withRelations', label: 'Include Relations', type: 'checkbox', default: true },
-    ]
+      {
+        name: 'fields',
+        label: 'Fields (JSON)',
+        type: 'textarea',
+        required: true,
+        placeholder:
+          '[{"name": "title", "type": "text"}, {"name": "userId", "type": "uuid", "references": "users"}]',
+      },
+      {
+        name: 'withTimestamps',
+        label: 'Include Timestamps',
+        type: 'checkbox',
+        default: true,
+      },
+      {
+        name: 'withRelations',
+        label: 'Include Relations',
+        type: 'checkbox',
+        default: true,
+      },
+    ],
   },
   {
     id: 'test',
@@ -57,74 +119,96 @@ const generators = [
     category: 'Testing',
     icon: '🧪',
     fields: [
-      { name: 'testTarget', label: 'Test Target', type: 'text', required: true },
-      { name: 'testType', label: 'Test Type', type: 'select', options: ['Unit Test', 'Integration Test', 'E2E Test'], required: true },
-      { name: 'withMocks', label: 'Include Mocks', type: 'checkbox', default: true },
-      { name: 'withSetup', label: 'Include Test Setup', type: 'checkbox', default: true },
-    ]
-  }
-]
+      {
+        name: 'testTarget',
+        label: 'Test Target',
+        type: 'text',
+        required: true,
+      },
+      {
+        name: 'testType',
+        label: 'Test Type',
+        type: 'select',
+        options: ['Unit Test', 'Integration Test', 'E2E Test'],
+        required: true,
+      },
+      {
+        name: 'withMocks',
+        label: 'Include Mocks',
+        type: 'checkbox',
+        default: true,
+      },
+      {
+        name: 'withSetup',
+        label: 'Include Test Setup',
+        type: 'checkbox',
+        default: true,
+      },
+    ],
+  },
+];
 
 export default function GeneratorsPage() {
-  const [selectedGenerator, setSelectedGenerator] = useState(generators[0])
-  const [formData, setFormData] = useState<Record<string, any>>({})
-  const [generatedCode, setGeneratedCode] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
+  const [selectedGenerator, setSelectedGenerator] = useState(generators[0]);
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [generatedCode, setGeneratedCode] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleFieldChange = (fieldName: string, value: any) => {
+  const handleFieldChange = (fieldName: string, value: unknown) => {
     setFormData(prev => ({
       ...prev,
-      [fieldName]: value
-    }))
-  }
+      [fieldName]: value,
+    }));
+  };
 
   const generateCode = async () => {
-    setIsGenerating(true)
-    
+    setIsGenerating(true);
+
     // Simulate code generation
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     // Generate different code based on selected generator
-    let code = ''
+    let code = '';
     switch (selectedGenerator.id) {
       case 'component':
-        code = generateComponentCode(formData)
-        break
+        code = generateComponentCode(formData);
+        break;
       case 'api':
-        code = generateApiCode(formData)
-        break
+        code = generateApiCode(formData);
+        break;
       case 'model':
-        code = generateModelCode(formData)
-        break
+        code = generateModelCode(formData);
+        break;
       case 'test':
-        code = generateTestCode(formData)
-        break
+        code = generateTestCode(formData);
+        break;
     }
-    
-    setGeneratedCode(code)
-    setIsGenerating(false)
-  }
+
+    setGeneratedCode(code);
+    setIsGenerating(false);
+  };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatedCode)
-  }
+    navigator.clipboard.writeText(generatedCode);
+  };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Code Generators</h1>
-        <p className="text-gray-600">
-          Boost your productivity with automated code generation for common patterns
+    <div className='mx-auto max-w-7xl'>
+      <div className='mb-8'>
+        <h1 className='mb-2 text-3xl font-bold'>Code Generators</h1>
+        <p className='text-gray-600'>
+          Boost your productivity with automated code generation for common
+          patterns
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
         {/* Generator Selection */}
-        <div className="space-y-4">
+        <div className='space-y-4'>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
+              <CardTitle className='flex items-center gap-2'>
+                <Zap className='h-5 w-5' />
                 Available Generators
               </CardTitle>
               <CardDescription>
@@ -132,25 +216,29 @@ export default function GeneratorsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 gap-3">
-                {generators.map((generator) => (
+              <div className='grid grid-cols-1 gap-3'>
+                {generators.map(generator => (
                   <button
                     key={generator.id}
                     onClick={() => setSelectedGenerator(generator)}
-                    className={`p-4 rounded-lg border-2 text-left transition-all ${
+                    className={`rounded-lg border-2 p-4 text-left transition-all ${
                       selectedGenerator.id === generator.id
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">{generator.icon}</span>
+                    <div className='flex items-start gap-3'>
+                      <span className='text-2xl'>{generator.icon}</span>
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold">{generator.name}</h3>
-                          <Badge variant="secondary">{generator.category}</Badge>
+                        <div className='mb-1 flex items-center gap-2'>
+                          <h3 className='font-semibold'>{generator.name}</h3>
+                          <Badge variant='secondary'>
+                            {generator.category}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">{generator.description}</p>
+                        <p className='text-sm text-gray-600'>
+                          {generator.description}
+                        </p>
                       </div>
                     </div>
                   </button>
@@ -161,84 +249,95 @@ export default function GeneratorsPage() {
         </div>
 
         {/* Generator Form and Output */}
-        <div className="space-y-4">
+        <div className='space-y-4'>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-2xl">{selectedGenerator.icon}</span>
+              <CardTitle className='flex items-center gap-2'>
+                <span className='text-2xl'>{selectedGenerator.icon}</span>
                 {selectedGenerator.name}
               </CardTitle>
-              <CardDescription>
-                {selectedGenerator.description}
-              </CardDescription>
+              <CardDescription>{selectedGenerator.description}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {selectedGenerator.fields.map((field) => (
-                  <div key={field.name} className="space-y-2">
+              <div className='space-y-4'>
+                {selectedGenerator.fields.map(field => (
+                  <div key={field.name} className='space-y-2'>
                     <Label htmlFor={field.name}>
                       {field.label}
-                      {field.required && <span className="text-red-500">*</span>}
+                      {field.required && (
+                        <span className='text-red-500'>*</span>
+                      )}
                     </Label>
-                    
+
                     {field.type === 'text' && (
                       <Input
                         id={field.name}
-                        placeholder={field.placeholder}
-                        value={formData[field.name] || ''}
-                        onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                        placeholder={field.label}
+                        value={(formData[field.name] as string) || ''}
+                        onChange={e =>
+                          handleFieldChange(field.name, e.target.value)
+                        }
                       />
                     )}
-                    
+
                     {field.type === 'textarea' && (
                       <Textarea
                         id={field.name}
-                        placeholder={field.placeholder}
-                        value={formData[field.name] || ''}
-                        onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                        placeholder={field.label}
+                        value={(formData[field.name] as string) || ''}
+                        onChange={e =>
+                          handleFieldChange(field.name, e.target.value)
+                        }
                         rows={3}
                       />
                     )}
-                    
-                    {field.type === 'select' && (
+
+                    {field.type === 'select' && 'options' in field && (
                       <Select
-                        value={formData[field.name] || ''}
-                        onValueChange={(value) => handleFieldChange(field.name, value)}
+                        value={(formData[field.name] as string) || ''}
+                        onChange={e =>
+                          handleFieldChange(field.name, e.target.value)
+                        }
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder={`Select ${field.label}`} />
-                        </SelectTrigger>
                         <SelectContent>
-                          {field.options?.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
+                          <option value=''>Select {field.label}</option>
+                          {(field as { options?: string[] }).options?.map(
+                            (option: string) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     )}
-                    
+
                     {field.type === 'checkbox' && (
-                      <div className="flex items-center space-x-2">
+                      <div className='flex items-center space-x-2'>
                         <input
                           id={field.name}
-                          type="checkbox"
-                          checked={formData[field.name] ?? field.default}
-                          onChange={(e) => handleFieldChange(field.name, e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300"
+                          type='checkbox'
+                          checked={
+                            (formData[field.name] as boolean) ??
+                            (field as { default?: boolean }).default
+                          }
+                          onChange={e =>
+                            handleFieldChange(field.name, e.target.checked)
+                          }
+                          className='h-4 w-4 rounded border-gray-300'
                         />
-                        <Label htmlFor={field.name} className="text-sm">
+                        <Label htmlFor={field.name} className='text-sm'>
                           {field.label}
                         </Label>
                       </div>
                     )}
                   </div>
                 ))}
-                
-                <Button 
+
+                <Button
                   onClick={generateCode}
                   disabled={isGenerating}
-                  className="w-full"
+                  className='w-full'
                 >
                   {isGenerating ? 'Generating...' : 'Generate Code'}
                 </Button>
@@ -250,23 +349,19 @@ export default function GeneratorsPage() {
           {generatedCode && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+                <CardTitle className='flex items-center justify-between'>
+                  <span className='flex items-center gap-2'>
+                    <FileText className='h-5 w-5' />
                     Generated Code
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyToClipboard}
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
+                  <Button variant='outline' size='sm' onClick={copyToClipboard}>
+                    <Copy className='mr-2 h-4 w-4' />
                     Copy
                   </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto">
+                <pre className='overflow-x-auto rounded-lg bg-gray-50 p-4 text-sm'>
                   <code>{generatedCode}</code>
                 </pre>
               </CardContent>
@@ -275,189 +370,189 @@ export default function GeneratorsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // Code generation functions
-function generateComponentCode(data: any) {
-  const { componentName, componentType, withProps, withStyles } = data
-  
-  let code = ''
-  
+function generateComponentCode(data: Record<string, unknown>) {
+  const { componentName, componentType, withProps, withStyles } = data;
+
+  let code = '';
+
   if (componentType === 'Client Component' || componentType === 'Both') {
-    code += `'use client'\n\n`
+    code += `'use client'\n\n`;
   }
-  
+
   if (withProps) {
-    code += `interface ${componentName}Props {\n  // Add your props here\n}\n\n`
+    code += `interface ${componentName}Props {\n  // Add your props here\n}\n\n`;
   }
-  
-  const propsParam = withProps ? `props: ${componentName}Props` : ''
-  
-  code += `export default function ${componentName}(${propsParam}) {\n`
-  code += `  return (\n`
-  code += `    <div${withStyles ? ' className="p-4"' : ''}>\n`
-  code += `      <h1>${componentName}</h1>\n`
-  code += `      {/* Add your content here */}\n`
-  code += `    </div>\n`
-  code += `  )\n`
-  code += `}\n`
-  
-  return code
+
+  const propsParam = withProps ? `props: ${componentName}Props` : '';
+
+  code += `export default function ${componentName}(${propsParam}) {\n`;
+  code += `  return (\n`;
+  code += `    <div${withStyles ? ' className="p-4"' : ''}>\n`;
+  code += `      <h1>${componentName}</h1>\n`;
+  code += `      {/* Add your content here */}\n`;
+  code += `    </div>\n`;
+  code += `  )\n`;
+  code += `}\n`;
+
+  return code;
 }
 
-function generateApiCode(data: any) {
-  const { routeName, methods, withAuth, withValidation } = data
-  
-  let code = ''
-  
+function generateApiCode(data: Record<string, unknown>) {
+  const { routeName, methods, withAuth, withValidation } = data;
+
+  let code = '';
+
   if (withAuth) {
-    code += `import { auth } from '@/lib/auth'\n`
+    code += `import { auth } from '@/lib/auth'\n`;
   }
-  
+
   if (withValidation) {
-    code += `import { z } from 'zod'\n`
+    code += `import { z } from 'zod'\n`;
   }
-  
-  code += `import { NextRequest, NextResponse } from 'next/server'\n\n`
-  
+
+  code += `import { NextRequest, NextResponse } from 'next/server'\n\n`;
+
   if (withValidation) {
-    code += `const schema = z.object({\n`
-    code += `  // Add your validation schema here\n`
-    code += `})\n\n`
+    code += `const schema = z.object({\n`;
+    code += `  // Add your validation schema here\n`;
+    code += `})\n\n`;
   }
-  
-  if (methods.includes('GET')) {
-    code += `export async function GET(request: NextRequest) {\n`
+
+  if ((methods as string[])?.includes('GET')) {
+    code += `export async function GET(request: NextRequest) {\n`;
     if (withAuth) {
-      code += `  const session = await auth()\n`
-      code += `  if (!session) {\n`
-      code += `    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })\n`
-      code += `  }\n\n`
+      code += `  const session = await auth()\n`;
+      code += `  if (!session) {\n`;
+      code += `    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })\n`;
+      code += `  }\n\n`;
     }
-    code += `  // Add your GET logic here\n`
-    code += `  return NextResponse.json({ message: 'GET ${routeName}' })\n`
-    code += `}\n\n`
+    code += `  // Add your GET logic here\n`;
+    code += `  return NextResponse.json({ message: 'GET ${routeName}' })\n`;
+    code += `}\n\n`;
   }
-  
-  if (methods.includes('POST')) {
-    code += `export async function POST(request: NextRequest) {\n`
+
+  if ((methods as string[])?.includes('POST')) {
+    code += `export async function POST(request: NextRequest) {\n`;
     if (withAuth) {
-      code += `  const session = await auth()\n`
-      code += `  if (!session) {\n`
-      code += `    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })\n`
-      code += `  }\n\n`
+      code += `  const session = await auth()\n`;
+      code += `  if (!session) {\n`;
+      code += `    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })\n`;
+      code += `  }\n\n`;
     }
-    code += `  const body = await request.json()\n`
+    code += `  const body = await request.json()\n`;
     if (withValidation) {
-      code += `  const validatedData = schema.parse(body)\n`
+      code += `  const validatedData = schema.parse(body)\n`;
     }
-    code += `  // Add your POST logic here\n`
-    code += `  return NextResponse.json({ message: 'POST ${routeName}' })\n`
-    code += `}\n\n`
+    code += `  // Add your POST logic here\n`;
+    code += `  return NextResponse.json({ message: 'POST ${routeName}' })\n`;
+    code += `}\n\n`;
   }
-  
-  return code
+
+  return code;
 }
 
-function generateModelCode(data: any) {
-  const { modelName, fields, withTimestamps, withRelations } = data
-  
-  let code = `import { pgTable, uuid, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core'\n`
-  
+function generateModelCode(data: Record<string, unknown>) {
+  const { modelName, fields, withTimestamps, withRelations } = data;
+
+  let code = `import { pgTable, uuid, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core'\n`;
+
   if (withRelations) {
-    code += `import { relations } from 'drizzle-orm'\n`
+    code += `import { relations } from 'drizzle-orm'\n`;
   }
-  
-  code += `\n`
-  code += `export const ${modelName.toLowerCase()} = pgTable('${modelName.toLowerCase()}', {\n`
-  code += `  id: uuid('id').primaryKey().defaultRandom(),\n`
-  
+
+  code += `\n`;
+  code += `export const ${(modelName as string).toLowerCase()} = pgTable('${(modelName as string).toLowerCase()}', {\n`;
+  code += `  id: uuid('id').primaryKey().defaultRandom(),\n`;
+
   try {
-    const parsedFields = JSON.parse(fields || '[]')
-    parsedFields.forEach((field: any) => {
-      let fieldDef = `  ${field.name}: `
+    const parsedFields = JSON.parse((fields as string) || '[]');
+    parsedFields.forEach((field: Record<string, unknown>) => {
+      let fieldDef = `  ${field.name}: `;
       switch (field.type) {
         case 'text':
-          fieldDef += `text('${field.name}')`
-          break
+          fieldDef += `text('${field.name}')`;
+          break;
         case 'uuid':
-          fieldDef += `uuid('${field.name}')`
-          break
+          fieldDef += `uuid('${field.name}')`;
+          break;
         case 'integer':
-          fieldDef += `integer('${field.name}')`
-          break
+          fieldDef += `integer('${field.name}')`;
+          break;
         case 'boolean':
-          fieldDef += `boolean('${field.name}')`
-          break
+          fieldDef += `boolean('${field.name}')`;
+          break;
         default:
-          fieldDef += `text('${field.name}')`
+          fieldDef += `text('${field.name}')`;
       }
-      
+
       if (field.required) {
-        fieldDef += '.notNull()'
+        fieldDef += '.notNull()';
       }
-      
+
       if (field.references) {
-        fieldDef += `.references(() => ${field.references}.id)`
+        fieldDef += `.references(() => ${field.references}.id)`;
       }
-      
-      code += fieldDef + ',\n'
-    })
-  } catch (e) {
-    code += `  // Add your fields here\n`
+
+      code += fieldDef + ',\n';
+    });
+  } catch {
+    code += `  // Add your fields here\n`;
   }
-  
+
   if (withTimestamps) {
-    code += `  createdAt: timestamp('created_at').defaultNow(),\n`
-    code += `  updatedAt: timestamp('updated_at').defaultNow(),\n`
+    code += `  createdAt: timestamp('created_at').defaultNow(),\n`;
+    code += `  updatedAt: timestamp('updated_at').defaultNow(),\n`;
   }
-  
-  code += `})\n\n`
-  
+
+  code += `})\n\n`;
+
   if (withRelations) {
-    code += `export const ${modelName.toLowerCase()}Relations = relations(${modelName.toLowerCase()}, ({ one, many }) => ({\n`
-    code += `  // Add your relations here\n`
-    code += `}))\n\n`
+    code += `export const ${(modelName as string).toLowerCase()}Relations = relations(${(modelName as string).toLowerCase()}, ({ one, many }) => ({\n`;
+    code += `  // Add your relations here\n`;
+    code += `}))\n\n`;
   }
-  
-  code += `export type ${modelName} = typeof ${modelName.toLowerCase()}.$inferSelect\n`
-  code += `export type New${modelName} = typeof ${modelName.toLowerCase()}.$inferInsert\n`
-  
-  return code
+
+  code += `export type ${modelName as string} = typeof ${(modelName as string).toLowerCase()}.$inferSelect\n`;
+  code += `export type New${modelName as string} = typeof ${(modelName as string).toLowerCase()}.$inferInsert\n`;
+
+  return code;
 }
 
-function generateTestCode(data: any) {
-  const { testTarget, testType, withMocks, withSetup } = data
-  
-  let code = `import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'\n`
-  
+function generateTestCode(data: Record<string, unknown>) {
+  const { testTarget, testType, withMocks, withSetup } = data;
+
+  let code = `import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'\n`;
+
   if (testType === 'Unit Test') {
-    code += `import { render, screen } from '@testing-library/react'\n`
-    code += `import '@testing-library/jest-dom'\n`
+    code += `import { render, screen } from '@testing-library/react'\n`;
+    code += `import '@testing-library/jest-dom'\n`;
   }
-  
+
   if (withMocks) {
-    code += `import { jest } from '@jest/globals'\n`
+    code += `import { jest } from '@jest/globals'\n`;
   }
-  
-  code += `\n`
-  code += `describe('${testTarget}', () => {\n`
-  
+
+  code += `\n`;
+  code += `describe('${testTarget}', () => {\n`;
+
   if (withSetup) {
-    code += `  beforeEach(() => {\n`
-    code += `    // Setup before each test\n`
-    code += `  })\n\n`
-    code += `  afterEach(() => {\n`
-    code += `    // Cleanup after each test\n`
-    code += `  })\n\n`
+    code += `  beforeEach(() => {\n`;
+    code += `    // Setup before each test\n`;
+    code += `  })\n\n`;
+    code += `  afterEach(() => {\n`;
+    code += `    // Cleanup after each test\n`;
+    code += `  })\n\n`;
   }
-  
-  code += `  it('should work correctly', () => {\n`
-  code += `    // Add your test logic here\n`
-  code += `    expect(true).toBe(true)\n`
-  code += `  })\n`
-  code += `})\n`
-  
-  return code
+
+  code += `  it('should work correctly', () => {\n`;
+  code += `    // Add your test logic here\n`;
+  code += `    expect(true).toBe(true)\n`;
+  code += `  })\n`;
+  code += `})\n`;
+
+  return code;
 }

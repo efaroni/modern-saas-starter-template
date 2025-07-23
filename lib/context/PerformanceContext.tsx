@@ -1,47 +1,61 @@
-'use client'
+'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { usePerformanceMonitor, PerformanceMetrics, PerformanceConfig } from '@/lib/hooks/usePerformanceMonitor'
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
+
+import {
+  usePerformanceMonitor,
+  type PerformanceMetrics,
+  type PerformanceConfig,
+} from '@/lib/hooks/usePerformanceMonitor';
 
 interface PerformanceContextType {
-  metrics: PerformanceMetrics
-  isMonitoring: boolean
-  startMonitoring: () => void
-  stopMonitoring: () => void
-  resetMetrics: () => void
-  trackApiCall: (url: string, startTime: number, endTime: number) => void
-  trackCustomMetric: (name: string, value: number) => void
-  trackError: (error: Error) => void
-  reportMetrics: () => void
-  config: PerformanceConfig
+  metrics: PerformanceMetrics;
+  isMonitoring: boolean;
+  startMonitoring: () => void;
+  stopMonitoring: () => void;
+  resetMetrics: () => void;
+  trackApiCall: (url: string, startTime: number, endTime: number) => void;
+  trackCustomMetric: (name: string, value: number) => void;
+  trackError: (error: Error) => void;
+  reportMetrics: () => void;
+  config: PerformanceConfig;
 }
 
-const PerformanceContext = createContext<PerformanceContextType | null>(null)
+const PerformanceContext = createContext<PerformanceContextType | null>(null);
 
 export const usePerformanceContext = () => {
-  const context = useContext(PerformanceContext)
+  const context = useContext(PerformanceContext);
   if (!context) {
-    throw new Error('usePerformanceContext must be used within a PerformanceProvider')
+    throw new Error(
+      'usePerformanceContext must be used within a PerformanceProvider',
+    );
   }
-  return context
-}
+  return context;
+};
 
 interface PerformanceProviderProps {
-  children: ReactNode
-  config?: PerformanceConfig
+  children: ReactNode;
+  config?: PerformanceConfig;
 }
 
-export const PerformanceProvider: React.FC<PerformanceProviderProps> = ({ 
-  children, 
-  config = {} 
+export const PerformanceProvider: React.FC<PerformanceProviderProps> = ({
+  children,
+  config = {},
 }) => {
-  const performanceHook = usePerformanceMonitor(config)
-  const [aggregatedMetrics, setAggregatedMetrics] = useState<PerformanceMetrics>({})
+  const performanceHook = usePerformanceMonitor(config);
+  const [aggregatedMetrics, setAggregatedMetrics] =
+    useState<PerformanceMetrics>({});
 
   // Aggregate metrics from all components
   useEffect(() => {
-    setAggregatedMetrics(performanceHook.metrics)
-  }, [performanceHook.metrics])
+    setAggregatedMetrics(performanceHook.metrics);
+  }, [performanceHook.metrics]);
 
   const value: PerformanceContextType = {
     ...performanceHook,
@@ -55,140 +69,158 @@ export const PerformanceProvider: React.FC<PerformanceProviderProps> = ({
       enableAnalytics: false,
       reportingInterval: 30000,
       sampleRate: 0.1,
-      ...config
-    }
-  }
+      ...config,
+    },
+  };
 
   return (
     <PerformanceContext.Provider value={value}>
       {children}
     </PerformanceContext.Provider>
-  )
-}
+  );
+};
 
 // HOC for wrapping components with performance monitoring
 export function withPerformanceMonitoring<P extends object>(
   Component: React.ComponentType<P>,
-  componentName?: string
+  componentName?: string,
 ) {
   const WrappedComponent = (props: P) => {
-    const { trackCustomMetric } = usePerformanceContext()
-    const name = componentName || Component.displayName || Component.name || 'Unknown'
-    
+    const { trackCustomMetric } = usePerformanceContext();
+    const name =
+      componentName || Component.displayName || Component.name || 'Unknown';
+
     useEffect(() => {
-      const startTime = performance.now()
-      
+      const startTime = performance.now();
+
       return () => {
-        const endTime = performance.now()
-        const renderTime = endTime - startTime
-        trackCustomMetric(`${name}_lifecycle_time`, renderTime)
-      }
-    }, [name, trackCustomMetric])
+        const endTime = performance.now();
+        const renderTime = endTime - startTime;
+        trackCustomMetric(`${name}_lifecycle_time`, renderTime);
+      };
+    }, [name, trackCustomMetric]);
 
-    return <Component {...props} />
-  }
+    return <Component {...props} />;
+  };
 
-  WrappedComponent.displayName = `withPerformanceMonitoring(${componentName || Component.displayName || Component.name})`
-  
-  return WrappedComponent
+  WrappedComponent.displayName = `withPerformanceMonitoring(${componentName || Component.displayName || Component.name})`;
+
+  return WrappedComponent;
 }
 
 // Hook for accessing performance context
 export const usePerformance = () => {
-  return usePerformanceContext()
-}
+  return usePerformanceContext();
+};
 
 // Performance metrics aggregator
 export class PerformanceAggregator {
-  private metrics: PerformanceMetrics[] = []
-  private callbacks: Array<(metrics: PerformanceMetrics) => void> = []
+  private metrics: PerformanceMetrics[] = [];
+  private callbacks: Array<(metrics: PerformanceMetrics) => void> = [];
 
   addMetrics(metrics: PerformanceMetrics) {
-    this.metrics.push(metrics)
-    this.notifyCallbacks(metrics)
+    this.metrics.push(metrics);
+    this.notifyCallbacks(metrics);
   }
 
   getAggregatedMetrics(): PerformanceMetrics {
-    if (this.metrics.length === 0) return {}
+    if (this.metrics.length === 0) return {};
 
     const aggregated: PerformanceMetrics = {
-      customMetrics: {}
-    }
+      customMetrics: {},
+    };
 
     // Aggregate numeric metrics
-    const numericFields = ['lcp', 'fid', 'cls', 'fcp', 'ttfb', 'fmp', 'renderTime', 'componentMountTime', 'apiResponseTime', 'userInteractions', 'scrollDepth', 'timeOnPage', 'errorRate', 'errorCount']
-    
+    const numericFields = [
+      'lcp',
+      'fid',
+      'cls',
+      'fcp',
+      'ttfb',
+      'fmp',
+      'renderTime',
+      'componentMountTime',
+      'apiResponseTime',
+      'userInteractions',
+      'scrollDepth',
+      'timeOnPage',
+      'errorRate',
+      'errorCount',
+    ];
+
     numericFields.forEach(field => {
       const values = this.metrics
         .map(m => m[field as keyof PerformanceMetrics] as number)
-        .filter(v => typeof v === 'number')
-      
+        .filter(v => typeof v === 'number');
+
       if (values.length > 0) {
-        aggregated[field as keyof PerformanceMetrics] = values.reduce((sum, val) => sum + val, 0) / values.length
+        (aggregated as Record<string, number | undefined>)[field] =
+          values.reduce((sum, val) => sum + val, 0) / values.length;
       }
-    })
+    });
 
     // Aggregate custom metrics
     const allCustomMetrics = this.metrics
       .map(m => m.customMetrics)
       .filter(Boolean)
-      .reduce((acc, curr) => ({ ...acc, ...curr }), {})
+      .reduce((acc, curr) => ({ ...acc, ...curr }), {});
 
-    aggregated.customMetrics = allCustomMetrics
+    aggregated.customMetrics = allCustomMetrics;
 
-    return aggregated
+    return aggregated;
   }
 
   subscribe(callback: (metrics: PerformanceMetrics) => void) {
-    this.callbacks.push(callback)
+    this.callbacks.push(callback);
     return () => {
-      this.callbacks = this.callbacks.filter(cb => cb !== callback)
-    }
+      this.callbacks = this.callbacks.filter(cb => cb !== callback);
+    };
   }
 
   private notifyCallbacks(metrics: PerformanceMetrics) {
-    this.callbacks.forEach(callback => callback(metrics))
+    this.callbacks.forEach(callback => callback(metrics));
   }
 
   reset() {
-    this.metrics = []
+    this.metrics = [];
   }
 }
 
 // Global performance aggregator instance
-export const globalPerformanceAggregator = new PerformanceAggregator()
+export const globalPerformanceAggregator = new PerformanceAggregator();
 
 // Hook for subscribing to aggregated performance metrics
 export const useAggregatedPerformance = () => {
-  const [aggregatedMetrics, setAggregatedMetrics] = useState<PerformanceMetrics>({})
+  const [aggregatedMetrics, setAggregatedMetrics] =
+    useState<PerformanceMetrics>({});
 
   useEffect(() => {
-    const unsubscribe = globalPerformanceAggregator.subscribe((metrics) => {
-      setAggregatedMetrics(globalPerformanceAggregator.getAggregatedMetrics())
-    })
+    const unsubscribe = globalPerformanceAggregator.subscribe(() => {
+      setAggregatedMetrics(globalPerformanceAggregator.getAggregatedMetrics());
+    });
 
-    return unsubscribe
-  }, [])
+    return unsubscribe;
+  }, []);
 
-  return aggregatedMetrics
-}
+  return aggregatedMetrics;
+};
 
 // Performance monitoring component
-export const PerformanceMonitor: React.FC<{ 
-  children: ReactNode
-  onMetricsUpdate?: (metrics: PerformanceMetrics) => void
+export const PerformanceMonitor: React.FC<{
+  children: ReactNode;
+  onMetricsUpdate?: (metrics: PerformanceMetrics) => void;
 }> = ({ children, onMetricsUpdate }) => {
-  const { metrics } = usePerformanceContext()
+  const { metrics } = usePerformanceContext();
 
   useEffect(() => {
     if (onMetricsUpdate) {
-      onMetricsUpdate(metrics)
+      onMetricsUpdate(metrics);
     }
-    
-    globalPerformanceAggregator.addMetrics(metrics)
-  }, [metrics, onMetricsUpdate])
 
-  return <>{children}</>
-}
+    globalPerformanceAggregator.addMetrics(metrics);
+  }, [metrics, onMetricsUpdate]);
 
-export default PerformanceProvider
+  return children;
+};
+
+export default PerformanceProvider;

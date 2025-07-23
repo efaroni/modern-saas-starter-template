@@ -59,11 +59,13 @@ npm run prepare
 ```
 
 If you get a warning about the hook not being executable, run:
+
 ```bash
 chmod +x .git/hooks/pre-commit
 ```
 
 The pre-commit hook will:
+
 - Run all unit tests with `npm test`
 - Block the commit if any tests fail
 - Show a success message if all tests pass

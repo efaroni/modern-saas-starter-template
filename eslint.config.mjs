@@ -71,7 +71,10 @@ const eslintConfig = [
       // React specific rules
       'react/jsx-boolean-value': ['error', 'never'],
       'react/self-closing-comp': 'error',
-      'react/jsx-curly-brace-presence': ['error', { props: 'never', children: 'never' }],
+      'react/jsx-curly-brace-presence': [
+        'error',
+        { props: 'never', children: 'never' },
+      ],
       'react/jsx-no-useless-fragment': 'error',
       'react/jsx-pascal-case': 'error',
       'react/no-array-index-key': 'warn',
@@ -91,24 +94,31 @@ const eslintConfig = [
       'no-multiple-empty-lines': ['error', { max: 1, maxBOF: 0, maxEOF: 0 }],
       'no-trailing-spaces': 'error',
       'comma-dangle': ['error', 'always-multiline'],
-      'semi': ['error', 'always'],
-      'quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: true }],
+      semi: ['error', 'always'],
+      quotes: [
+        'error',
+        'single',
+        { avoidEscape: true, allowTemplateLiterals: true },
+      ],
       'object-curly-spacing': ['error', 'always'],
       'array-bracket-spacing': ['error', 'never'],
       'computed-property-spacing': ['error', 'never'],
-      'space-before-function-paren': ['error', {
-        anonymous: 'always',
-        named: 'never',
-        asyncArrow: 'always',
-      }],
+      'space-before-function-paren': [
+        'error',
+        {
+          anonymous: 'always',
+          named: 'never',
+          asyncArrow: 'always',
+        },
+      ],
       'arrow-spacing': ['error', { before: true, after: true }],
       'key-spacing': ['error', { beforeColon: false, afterColon: true }],
       'keyword-spacing': ['error', { before: true, after: true }],
       'space-infix-ops': 'error',
-      'eqeqeq': ['error', 'always'],
+      eqeqeq: ['error', 'always'],
       'no-nested-ternary': 'error',
       'no-unneeded-ternary': 'error',
-      'no-mixed-operators': 'error',
+      'no-mixed-operators': 'off', // Disabled due to overly strict enforcement with time calculations
 
       // Import rules
       'import/order': [
@@ -159,7 +169,10 @@ const eslintConfig = [
       'require-await': 'error',
       'no-throw-literal': 'error',
       'prefer-promise-reject-errors': 'error',
-      'no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true }],
+      'no-unused-expressions': [
+        'error',
+        { allowShortCircuit: true, allowTernary: true },
+      ],
     },
   },
   {
@@ -171,6 +184,8 @@ const eslintConfig = [
       'no-console': 'off', // Console logs are useful in tests for debugging
     },
   },
+  // IMPORTANT: Keep prettier config last to override any formatting rules
+  ...compat.extends('prettier'),
 ];
 
 export default eslintConfig;

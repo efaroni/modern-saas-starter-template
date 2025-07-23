@@ -5,6 +5,7 @@ This project includes comprehensive testing for the Configuration & API Manageme
 ## Test Structure
 
 ### Unit Tests
+
 Located in `__tests__/` directory using Jest:
 
 - **Config Tests** (`config.test.ts`): Tests configuration loading and environment variables
@@ -13,6 +14,7 @@ Located in `__tests__/` directory using Jest:
 - **API Validators Tests** (`api-validators.test.ts`): Tests API key validation for different providers
 
 ### E2E Tests
+
 Located in `e2e/` directory using Playwright:
 
 - **Configuration Tests** (`configuration.spec.ts`): Comprehensive end-to-end tests for the configuration page
@@ -22,6 +24,7 @@ Located in `e2e/` directory using Playwright:
 ## Running Tests
 
 ### Unit Tests
+
 ```bash
 # Run all unit tests
 npm test
@@ -34,6 +37,7 @@ npm run test:coverage
 ```
 
 ### E2E Tests
+
 ```bash
 # Run all E2E tests
 npm run test:e2e
@@ -48,21 +52,27 @@ npm run test:e2e:debug
 ## Test Features
 
 ### Mock Mode Testing
+
 All tests run in mock mode by default, which means:
+
 - No real database connection required
 - No real API calls to external services
 - Mock data is used for all operations
 - Tests are fast and reliable
 
 ### API Key Validation Testing
+
 Tests cover:
-- ✅ Format validation (sk-, re_, pk_, etc.)
+
+- ✅ Format validation (sk-, re*, pk*, etc.)
 - ✅ Mock key handling
 - ✅ Real API validation (when not in mock mode)
 - ✅ Error handling and edge cases
 
 ### E2E Test Coverage
+
 The E2E tests verify:
+
 - ✅ Page loading and UI components
 - ✅ Form submissions and validation
 - ✅ API key testing functionality
@@ -71,7 +81,9 @@ The E2E tests verify:
 - ✅ Complete user workflows
 
 ### Mock API Keys
+
 Test files use these mock API keys:
+
 ```typescript
 {
   openai: 'sk-mock-test-key-for-e2e-testing',
@@ -94,12 +106,14 @@ Test files use these mock API keys:
 ## Test Environment
 
 ### Configuration
+
 - Tests run with `NODE_ENV=test`
 - Database URL is mocked to force mock mode
 - Encryption key is set to a test value
 - Next.js router is mocked for component testing
 
 ### CI/CD Ready
+
 - Tests are configured to run in CI environments
 - Playwright includes retry logic and proper timeouts
 - No external dependencies required for testing
@@ -115,6 +129,7 @@ Test files use these mock API keys:
 ## Debugging Tests
 
 ### Unit Tests
+
 ```bash
 # Run specific test file
 npm test -- config.test.ts
@@ -124,6 +139,7 @@ npm test -- --verbose
 ```
 
 ### E2E Tests
+
 ```bash
 # Run specific test file
 npm run test:e2e -- configuration.spec.ts
@@ -138,6 +154,7 @@ npm run test:e2e && npx playwright show-report
 ## Test Quality Metrics
 
 Current test coverage includes:
+
 - 🧪 **15 Unit Tests** covering core functionality
 - 🎭 **8 E2E Tests** covering user workflows
 - 📊 **90%+ Code Coverage** for business logic
@@ -147,12 +164,14 @@ Current test coverage includes:
 ## Adding New Tests
 
 ### For New Features
+
 1. Add unit tests for service/utility functions
 2. Add E2E tests for user-facing functionality
 3. Update mock data as needed
 4. Test both success and error scenarios
 
 ### Test Naming Convention
+
 - Unit tests: `describe('Component/Service Name', () => { ... })`
 - E2E tests: `test.describe('Feature Name', () => { ... })`
 - Test cases: Should be descriptive and action-oriented

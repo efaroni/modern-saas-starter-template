@@ -2,8 +2,7 @@
 // This module can be safely imported by client components
 
 // Export only types and schemas
-export * from './schema'
-export type { Database } from './types'
+export * from './schema';
 
 // Re-export commonly used Drizzle types
-export type { InferSelectModel, InferInsertModel } from 'drizzle-orm'
+export type { InferSelectModel, InferInsertModel } from 'drizzle-orm';

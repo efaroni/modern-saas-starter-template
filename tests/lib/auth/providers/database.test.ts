@@ -102,7 +102,7 @@ describe('DatabaseAuthProvider', () => {
       // Authenticate with correct password
       const authResult = await provider.authenticateUser(
         userData.email,
-        userData.password
+        userData.password,
       );
       authTestHelpers.assertAuthResult(authResult, true);
       expect(authResult.user?.email).toBe(userData.email);
@@ -125,7 +125,7 @@ describe('DatabaseAuthProvider', () => {
       // Try to authenticate with wrong password
       const authResult = await provider.authenticateUser(
         userData.email,
-        'WrongP@ssw0rd123!'
+        'WrongP@ssw0rd123!',
       );
       authTestHelpers.assertAuthResult(authResult, false);
       expect(authResult.error).toBeDefined();
@@ -136,7 +136,7 @@ describe('DatabaseAuthProvider', () => {
         authTestHelpers.generateUniqueEmail('nonexistent');
       const authResult = await provider.authenticateUser(
         nonExistentEmail,
-        'StrongP@ssw0rd123!'
+        'StrongP@ssw0rd123!',
       );
       authTestHelpers.assertAuthResult(authResult, false);
       expect(authResult.error).toBeDefined();
@@ -203,7 +203,7 @@ describe('DatabaseAuthProvider', () => {
       };
       const updateResult = await provider.updateUser(
         createResult.user!.id,
-        updateData
+        updateData,
       );
       authTestHelpers.assertAuthResult(updateResult, true);
       expect(updateResult.user?.name).toBe(updateData.name);
@@ -225,7 +225,7 @@ describe('DatabaseAuthProvider', () => {
 
       // Verify email first
       const verifyResult = await provider.verifyUserEmail(
-        createResult.user!.id
+        createResult.user!.id,
       );
       authTestHelpers.assertAuthResult(verifyResult, true);
       expect(verifyResult.user?.emailVerified).toBeTruthy();
@@ -237,7 +237,7 @@ describe('DatabaseAuthProvider', () => {
       };
       const updateResult = await provider.updateUser(
         createResult.user!.id,
-        updateData
+        updateData,
       );
       authTestHelpers.assertAuthResult(updateResult, true);
       expect(updateResult.user?.email).toBe(updateData.email);
@@ -263,7 +263,7 @@ describe('DatabaseAuthProvider', () => {
       };
       const updateResult = await provider.updateUser(
         createResult.user!.id,
-        updateData
+        updateData,
       );
       authTestHelpers.assertAuthResult(updateResult, false);
       expect(updateResult.error).toBeDefined();
@@ -296,7 +296,7 @@ describe('DatabaseAuthProvider', () => {
       };
       const updateResult = await provider.updateUser(
         createResult2.user!.id,
-        updateData
+        updateData,
       );
       authTestHelpers.assertAuthResult(updateResult, false);
       expect(updateResult.error).toBeDefined();
@@ -308,7 +308,7 @@ describe('DatabaseAuthProvider', () => {
       };
       const updateResult = await provider.updateUser(
         'non-existent-id',
-        updateData
+        updateData,
       );
       authTestHelpers.assertAuthResult(updateResult, false);
       expect(updateResult.error).toBeDefined();
@@ -361,7 +361,7 @@ describe('DatabaseAuthProvider', () => {
 
       // Verify email
       const verifyResult = await provider.verifyUserEmail(
-        createResult.user!.id
+        createResult.user!.id,
       );
       authTestHelpers.assertAuthResult(verifyResult, true);
       expect(verifyResult.user?.emailVerified).toBeTruthy();
@@ -394,7 +394,7 @@ describe('DatabaseAuthProvider', () => {
       const changeResult = await provider.changeUserPassword(
         createResult.user!.id,
         'WrongP@ssw0rd123!',
-        'NewStrongP@ssw0rd123!'
+        'NewStrongP@ssw0rd123!',
       );
       authTestHelpers.assertAuthResult(changeResult, false);
       expect(changeResult.error).toBeDefined();
@@ -416,7 +416,7 @@ describe('DatabaseAuthProvider', () => {
       const changeResult = await provider.changeUserPassword(
         createResult.user!.id,
         userData.password,
-        '123'
+        '123',
       );
       authTestHelpers.assertAuthResult(changeResult, false);
       expect(changeResult.error).toBeDefined();
@@ -426,7 +426,7 @@ describe('DatabaseAuthProvider', () => {
       const changeResult = await provider.changeUserPassword(
         'non-existent-id',
         'StrongP@ssw0rd123!',
-        'NewStrongP@ssw0rd123!'
+        'NewStrongP@ssw0rd123!',
       );
       authTestHelpers.assertAuthResult(changeResult, false);
       expect(changeResult.error).toBeDefined();
@@ -450,7 +450,7 @@ describe('DatabaseAuthProvider', () => {
       const newPassword = 'ResetStrongP@ssw0rd123!';
       const resetResult = await provider.resetUserPassword(
         createResult.user!.id,
-        newPassword
+        newPassword,
       );
       authTestHelpers.assertAuthResult(resetResult, true);
       authTestHelpers.assertUserStructure(resetResult.user!);
@@ -458,14 +458,14 @@ describe('DatabaseAuthProvider', () => {
       // Verify new password works
       const authResult = await provider.authenticateUser(
         userData.email,
-        newPassword
+        newPassword,
       );
       authTestHelpers.assertAuthResult(authResult, true);
 
       // Verify old password doesn't work
       const oldAuthResult = await provider.authenticateUser(
         userData.email,
-        userData.password
+        userData.password,
       );
       authTestHelpers.assertAuthResult(oldAuthResult, false);
     });
@@ -485,7 +485,7 @@ describe('DatabaseAuthProvider', () => {
       // Try to reset to weak password
       const resetResult = await provider.resetUserPassword(
         createResult.user!.id,
-        '123'
+        '123',
       );
       authTestHelpers.assertAuthResult(resetResult, false);
       expect(resetResult.error).toBeDefined();
@@ -494,7 +494,7 @@ describe('DatabaseAuthProvider', () => {
     it('should return error for non-existent user', async () => {
       const resetResult = await provider.resetUserPassword(
         'non-existent-id',
-        'NewStrongP@ssw0rd123!'
+        'NewStrongP@ssw0rd123!',
       );
       authTestHelpers.assertAuthResult(resetResult, false);
       expect(resetResult.error).toBeDefined();

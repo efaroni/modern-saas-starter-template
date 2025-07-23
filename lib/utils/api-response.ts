@@ -1,30 +1,31 @@
-import { NextResponse } from 'next/server'
-import { ZodError } from 'zod'
+import { NextResponse } from 'next/server';
+
+import { ZodError } from 'zod';
 
 /**
  * Standard API response types
  */
 export interface ApiResponse<T = unknown> {
-  success: boolean
-  data?: T
-  error?: string
-  message?: string
-  timestamp: string
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+  timestamp: string;
 }
 
 export interface ApiError {
-  success: false
-  error: string
-  message?: string
-  timestamp: string
-  details?: unknown
+  success: false;
+  error: string;
+  message?: string;
+  timestamp: string;
+  details?: unknown;
 }
 
 export interface ApiSuccess<T = unknown> {
-  success: true
-  data?: T
-  message?: string
-  timestamp: string
+  success: true;
+  data?: T;
+  message?: string;
+  timestamp: string;
 }
 
 /**
@@ -33,14 +34,17 @@ export interface ApiSuccess<T = unknown> {
 export function createSuccessResponse<T = unknown>(
   data?: T,
   message?: string,
-  status: number = 200
+  status: number = 200,
 ): NextResponse<ApiSuccess<T>> {
-  return NextResponse.json({
-    success: true,
-    data,
-    message,
-    timestamp: new Date().toISOString(),
-  }, { status })
+  return NextResponse.json(
+    {
+      success: true,
+      data,
+      message,
+      timestamp: new Date().toISOString(),
+    },
+    { status },
+  );
 }
 
 /**
@@ -49,110 +53,121 @@ export function createSuccessResponse<T = unknown>(
 export function createErrorResponse(
   error: string,
   status: number = 400,
-  details?: unknown
+  details?: unknown,
 ): NextResponse<ApiError> {
-  return NextResponse.json({
-    success: false,
-    error,
-    timestamp: new Date().toISOString(),
-    ...(details && { details }),
-  }, { status })
+  return NextResponse.json(
+    {
+      success: false,
+      error,
+      timestamp: new Date().toISOString(),
+      ...(details && typeof details === 'object' && details !== null
+        ? { details }
+        : {}),
+    },
+    { status },
+  );
 }
 
 /**
  * Handles validation errors from Zod schemas
  */
 export function handleValidationError(error: ZodError): NextResponse<ApiError> {
-  const firstError = error.errors[0]
-  const errorMessage = firstError 
+  const firstError = error.errors[0];
+  const errorMessage = firstError
     ? `${firstError.path.join('.')} ${firstError.message}`.trim()
-    : 'Validation failed'
+    : 'Validation failed';
 
   return createErrorResponse(errorMessage, 400, {
     validationErrors: error.errors.map(err => ({
       field: err.path.join('.'),
       message: err.message,
-    }))
-  })
+    })),
+  });
 }
 
 /**
  * Handles database errors with appropriate responses
  */
 export function handleDatabaseError(error: unknown): NextResponse<ApiError> {
-  console.error('Database error:', error)
-  
+  console.error('Database error:', error);
+
   // Don't expose internal database errors to clients
-  return createErrorResponse('Internal server error', 500)
+  return createErrorResponse('Internal server error', 500);
 }
 
 /**
  * Handles authentication errors
  */
 export function handleAuthError(error: string): NextResponse<ApiError> {
-  return createErrorResponse(error, 401)
+  return createErrorResponse(error, 401);
 }
 
 /**
  * Handles authorization errors
  */
-export function handleAuthorizationError(error: string = 'Access denied'): NextResponse<ApiError> {
-  return createErrorResponse(error, 403)
+export function handleAuthorizationError(
+  error: string = 'Access denied',
+): NextResponse<ApiError> {
+  return createErrorResponse(error, 403);
 }
 
 /**
  * Handles not found errors
  */
-export function handleNotFoundError(resource: string = 'Resource'): NextResponse<ApiError> {
-  return createErrorResponse(`${resource} not found`, 404)
+export function handleNotFoundError(
+  resource: string = 'Resource',
+): NextResponse<ApiError> {
+  return createErrorResponse(`${resource} not found`, 404);
 }
 
 /**
  * Handles rate limiting errors
  */
-export function handleRateLimitError(message: string = 'Too many requests'): NextResponse<ApiError> {
-  return createErrorResponse(message, 429)
+export function handleRateLimitError(
+  message: string = 'Too many requests',
+): NextResponse<ApiError> {
+  return createErrorResponse(message, 429);
 }
 
 /**
  * Standard error handler for API routes
  */
 export function handleApiError(error: unknown): NextResponse<ApiError> {
-  console.error('API error:', error)
-  
+  console.error('API error:', error);
+
   // Handle known error types
   if (error instanceof ZodError) {
-    return handleValidationError(error)
+    return handleValidationError(error);
   }
-  
+
   // Handle custom errors with status codes
   if (error instanceof Error) {
-    const errorObj = error as Error & { status?: number }
-    
+    const errorObj = error as Error & { status?: number };
+
     if (errorObj.status === 401) {
-      return handleAuthError(errorObj.message)
+      return handleAuthError(errorObj.message);
     }
-    
+
     if (errorObj.status === 403) {
-      return handleAuthorizationError(errorObj.message)
+      return handleAuthorizationError(errorObj.message);
     }
-    
+
     if (errorObj.status === 404) {
-      return handleNotFoundError(errorObj.message)
+      return handleNotFoundError(errorObj.message);
     }
-    
+
     if (errorObj.status === 429) {
-      return handleRateLimitError(errorObj.message)
+      return handleRateLimitError(errorObj.message);
     }
-    
+
     // Handle client errors (4xx)
     if (errorObj.status && errorObj.status >= 400 && errorObj.status < 500) {
-      return createErrorResponse(errorObj.message, errorObj.status)
+      return createErrorResponse(errorObj.message, errorObj.status);
     }
   }
-  
+
   // Default to internal server error
-  return createErrorResponse('Internal server error', 500)
+  return createErrorResponse('Internal server error', 500);
 }
 
 /**
@@ -161,42 +176,51 @@ export function handleApiError(error: unknown): NextResponse<ApiError> {
 export function createPaginatedResponse<T>(
   data: T[],
   pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
   },
-  message?: string
-): NextResponse<ApiSuccess<{
-  items: T[]
-  pagination: typeof pagination
-}>> {
-  return createSuccessResponse({
-    items: data,
-    pagination,
-  }, message)
+  message?: string,
+): NextResponse<
+  ApiSuccess<{
+    items: T[];
+    pagination: typeof pagination;
+  }>
+> {
+  return createSuccessResponse(
+    {
+      items: data,
+      pagination,
+    },
+    message,
+  );
 }
 
 /**
  * Wraps an async API handler with standard error handling
  */
-export function withErrorHandling<T extends any[], R>(
-  handler: (...args: T) => Promise<NextResponse<ApiSuccess<R>>>
+export function withErrorHandling<T extends unknown[], R>(
+  handler: (...args: T) => Promise<NextResponse<ApiSuccess<R>>>,
 ) {
-  return async (...args: T): Promise<NextResponse<ApiSuccess<R> | ApiError>> => {
+  return async (
+    ...args: T
+  ): Promise<NextResponse<ApiSuccess<R> | ApiError>> => {
     try {
-      return await handler(...args)
+      return await handler(...args);
     } catch (error) {
-      return handleApiError(error)
+      return handleApiError(error);
     }
-  }
+  };
 }
 
 /**
  * Creates a response for empty results
  */
-export function createEmptyResponse(message: string = 'No results found'): NextResponse<ApiSuccess<null>> {
-  return createSuccessResponse(null, message, 200)
+export function createEmptyResponse(
+  message: string = 'No results found',
+): NextResponse<ApiSuccess<null>> {
+  return createSuccessResponse(null, message, 200);
 }
 
 /**
@@ -204,9 +228,9 @@ export function createEmptyResponse(message: string = 'No results found'): NextR
  */
 export function createCreatedResponse<T>(
   data: T,
-  message: string = 'Resource created successfully'
+  message: string = 'Resource created successfully',
 ): NextResponse<ApiSuccess<T>> {
-  return createSuccessResponse(data, message, 201)
+  return createSuccessResponse(data, message, 201);
 }
 
 /**
@@ -214,18 +238,18 @@ export function createCreatedResponse<T>(
  */
 export function createUpdatedResponse<T>(
   data: T,
-  message: string = 'Resource updated successfully'
+  message: string = 'Resource updated successfully',
 ): NextResponse<ApiSuccess<T>> {
-  return createSuccessResponse(data, message, 200)
+  return createSuccessResponse(data, message, 200);
 }
 
 /**
  * Creates a response for deleted resources
  */
 export function createDeletedResponse(
-  message: string = 'Resource deleted successfully'
+  message: string = 'Resource deleted successfully',
 ): NextResponse<ApiSuccess<null>> {
-  return createSuccessResponse(null, message, 200)
+  return createSuccessResponse(null, message, 200);
 }
 
 /**
@@ -233,15 +257,12 @@ export function createDeletedResponse(
  */
 export function validateMethod(
   request: Request,
-  allowedMethods: string[]
+  allowedMethods: string[],
 ): NextResponse<ApiError> | null {
   if (!allowedMethods.includes(request.method)) {
-    return createErrorResponse(
-      `Method ${request.method} not allowed`,
-      405
-    )
+    return createErrorResponse(`Method ${request.method} not allowed`, 405);
   }
-  return null
+  return null;
 }
 
 /**
@@ -249,17 +270,14 @@ export function validateMethod(
  */
 export function validateHeaders(
   request: Request,
-  requiredHeaders: string[]
+  requiredHeaders: string[],
 ): NextResponse<ApiError> | null {
   for (const header of requiredHeaders) {
     if (!request.headers.get(header)) {
-      return createErrorResponse(
-        `Missing required header: ${header}`,
-        400
-      )
+      return createErrorResponse(`Missing required header: ${header}`, 400);
     }
   }
-  return null
+  return null;
 }
 
 /**
@@ -267,21 +285,21 @@ export function validateHeaders(
  */
 export async function validateJsonBody<T>(
   request: Request,
-  schema?: (data: unknown) => T
+  schema?: (data: unknown) => T,
 ): Promise<T | NextResponse<ApiError>> {
   try {
-    const body = await request.json()
-    
+    const body = await request.json();
+
     if (schema) {
-      return schema(body)
+      return schema(body);
     }
-    
-    return body as T
+
+    return body as T;
   } catch (error) {
     if (error instanceof ZodError) {
-      return handleValidationError(error)
+      return handleValidationError(error);
     }
-    
-    return createErrorResponse('Invalid JSON body', 400)
+
+    return createErrorResponse('Invalid JSON body', 400);
   }
 }

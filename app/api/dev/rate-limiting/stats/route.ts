@@ -1,36 +1,51 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { EnhancedRateLimiter, ENHANCED_RATE_LIMITS } from '@/lib/auth/enhanced-rate-limiter'
+import { type NextRequest, NextResponse } from 'next/server';
 
-const rateLimiter = new EnhancedRateLimiter()
+import {
+  EnhancedRateLimiter,
+  ENHANCED_RATE_LIMITS,
+} from '@/lib/auth/enhanced-rate-limiter';
+
+const rateLimiter = new EnhancedRateLimiter();
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const timeRange = searchParams.get('timeRange') || '24h'
-    const type = searchParams.get('type')
-    
+    const searchParams = request.nextUrl.searchParams;
+    const timeRange = searchParams.get('timeRange') || '24h';
+    const type = searchParams.get('type');
+
     // Convert timeRange to hours
-    const hours = timeRange === '1h' ? 1 : timeRange === '7d' ? 168 : 24
-    
+    let hours: number;
+    if (timeRange === '1h') {
+      hours = 1;
+    } else if (timeRange === '7d') {
+      hours = 168;
+    } else {
+      hours = 24;
+    }
+
     // Get statistics for all types or specific type
-    const types = type ? [type] : ['login', 'signup', 'api', 'passwordReset', 'upload']
-    const stats: Record<string, unknown> = {}
-    
+    const types = type
+      ? [type]
+      : ['login', 'signup', 'api', 'passwordReset', 'upload'];
+    const stats: Record<string, unknown> = {};
+
     for (const rateLimitType of types) {
       const typeStats = await rateLimiter.getRateLimitStats(
         undefined, // identifier (undefined for all)
         rateLimitType,
-        hours
-      )
-      stats[rateLimitType] = typeStats
+        hours,
+      );
+      stats[rateLimitType] = typeStats;
     }
-    
+
     // Get current configurations
-    const configurations = Object.entries(ENHANCED_RATE_LIMITS).map(([type, config]) => ({
-      type,
-      ...config
-    }))
-    
+    const configurations = Object.entries(ENHANCED_RATE_LIMITS).map(
+      ([type, config]) => ({
+        type,
+        ...config,
+      }),
+    );
+
     // Mock active limits for demonstration
     // In a real implementation, you would query current rate limit states
     const activeLimits = [
@@ -40,7 +55,7 @@ export async function GET(request: NextRequest) {
         remaining: 3,
         resetTime: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         locked: false,
-        algorithm: 'sliding-window'
+        algorithm: 'sliding-window',
       },
       {
         identifier: '192.168.1.100',
@@ -48,10 +63,10 @@ export async function GET(request: NextRequest) {
         remaining: 87,
         resetTime: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
         locked: false,
-        algorithm: 'token-bucket'
-      }
-    ]
-    
+        algorithm: 'token-bucket',
+      },
+    ];
+
     return NextResponse.json({
       success: true,
       data: {
@@ -59,53 +74,53 @@ export async function GET(request: NextRequest) {
         configurations,
         activeLimits,
         timeRange,
-        timestamp: new Date().toISOString()
-      }
-    })
-  } catch (error) {
-    console.error('Failed to get rate limiting stats:', error)
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch rate limiting statistics' 
+        timestamp: new Date().toISOString(),
       },
-      { status: 500 }
-    )
+    });
+  } catch (error) {
+    console.error('Failed to get rate limiting stats:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fetch rate limiting statistics',
+      },
+      { status: 500 },
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { action, identifier, type } = body
-    
+    const body = await request.json();
+    const { action, identifier, type } = body;
+
     if (action === 'check') {
       // Check current rate limit status
-      const result = await rateLimiter.checkRateLimit(identifier, type)
-      return NextResponse.json({ success: true, data: result })
+      const result = await rateLimiter.checkRateLimit(identifier, type);
+      return NextResponse.json({ success: true, data: result });
     }
-    
+
     if (action === 'reset') {
       // Reset rate limit for specific identifier/type
       // This would require additional implementation in the EnhancedRateLimiter
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Rate limit reset successfully' 
-      })
+      return NextResponse.json({
+        success: true,
+        message: 'Rate limit reset successfully',
+      });
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Invalid action' },
-      { status: 400 }
-    )
+      { status: 400 },
+    );
   } catch (error) {
-    console.error('Rate limiting action failed:', error)
+    console.error('Rate limiting action failed:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Rate limiting action failed' 
+      {
+        success: false,
+        error: 'Rate limiting action failed',
       },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }

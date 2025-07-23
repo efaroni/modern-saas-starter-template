@@ -1,8 +1,8 @@
 // Export centralized app configuration
-export * from './app-config'
+export * from './app-config';
 
 // Import database utilities
-import { isRealDatabase, getDatabaseUrl } from '../db/config'
+import { isRealDatabase, getDatabaseUrl } from '../db/config';
 
 // Legacy configuration service that works with or without database
 // TODO: Migrate these to app-config.ts
@@ -11,9 +11,9 @@ export const config = {
     enabled: isRealDatabase(),
     get url() {
       try {
-        return getDatabaseUrl()
+        return getDatabaseUrl();
       } catch {
-        return undefined
+        return undefined;
       }
     },
   },
@@ -23,7 +23,8 @@ export const config = {
   services: {
     stripe: {
       enabled: !!process.env.STRIPE_SECRET_KEY,
-      publicKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock',
+      publicKey:
+        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock',
     },
     openai: {
       enabled: !!process.env.OPENAI_API_KEY,
@@ -32,4 +33,4 @@ export const config = {
       enabled: !!process.env.RESEND_API_KEY,
     },
   },
-}
+};

@@ -48,12 +48,8 @@
           "name": "api_key_logs_api_key_id_api_keys_id_fk",
           "tableFrom": "api_key_logs",
           "tableTo": "api_keys",
-          "columnsFrom": [
-            "api_key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["api_key_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -197,9 +193,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -211,23 +205,12 @@
     "public.key_type": {
       "name": "key_type",
       "schema": "public",
-      "values": [
-        "secret",
-        "public",
-        "webhook_secret"
-      ]
+      "values": ["secret", "public", "webhook_secret"]
     },
     "public.service_type": {
       "name": "service_type",
       "schema": "public",
-      "values": [
-        "openai",
-        "stripe",
-        "resend",
-        "github",
-        "google",
-        "custom"
-      ]
+      "values": ["openai", "stripe", "resend", "github", "google", "custom"]
     }
   },
   "schemas": {},

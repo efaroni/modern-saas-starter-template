@@ -1,18 +1,25 @@
 #!/usr/bin/env tsx
 
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import { config } from 'dotenv'
-import { users, apiKeys, userSessions, sessionActivity } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
-import { getDatabaseUrl } from '../lib/db/config'
+import { config } from 'dotenv';
+import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+
+import {
+  users,
+  userApiKeys,
+  userSessions,
+  sessionActivity,
+} from '@/lib/db/schema';
+
+import { getDatabaseUrl } from '../lib/db/config';
 
 // Load environment variables
-config({ path: '.env.local' })
+config({ path: '.env.local' });
 
 // Handle command line arguments first
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
-  console.log(`
+  console.warn(`
 Database Seed Script
 
 Usage: npm run seed [options]
@@ -24,23 +31,26 @@ Options:
 Examples:
   npm run seed              # Seed database (skip if data exists)
   npm run seed -- --force   # Clear existing data and reseed
-  `)
-  process.exit(0)
+  `);
+  process.exit(0);
 }
 
 // Get database URL from centralized configuration
-let DATABASE_URL: string
+let DATABASE_URL: string;
 try {
-  DATABASE_URL = getDatabaseUrl()
+  DATABASE_URL = getDatabaseUrl();
 } catch (error) {
-  console.error('❌ Database configuration error:', error.message)
-  console.log('Please ensure DATABASE_URL is set in your .env.local file')
-  process.exit(1)
+  console.error(
+    '❌ Database configuration error:',
+    error instanceof Error ? error.message : String(error),
+  );
+  console.warn('Please ensure DATABASE_URL is set in your .env.local file');
+  process.exit(1);
 }
 
 // Create database connection
-const client = postgres(DATABASE_URL)
-const db = drizzle(client)
+const client = postgres(DATABASE_URL);
+const db = drizzle(client);
 
 // Seed data
 const seedUsers = [
@@ -52,7 +62,7 @@ const seedUsers = [
     emailVerified: true,
   },
   {
-    email: 'user@example.com', 
+    email: 'user@example.com',
     password: 'user123',
     name: 'Regular User',
     role: 'user',
@@ -72,7 +82,7 @@ const seedUsers = [
     role: 'user',
     emailVerified: true,
   },
-]
+];
 
 const seedApiKeys = [
   {
@@ -90,107 +100,124 @@ const seedApiKeys = [
     description: 'For analytics and reporting',
     keyType: 'analytics',
   },
-]
+];
 
 async function seedDatabase() {
-  console.log('🌱 Starting database seed...')
-  
+  console.warn('🌱 Starting database seed...');
+
   try {
     // Check if database already has data
-    const existingUsers = await db.select().from(users).limit(1)
+    const existingUsers = await db.select().from(users).limit(1);
     if (existingUsers.length > 0) {
-      console.log('⚠️  Database already has data. Use --force to reseed.')
-      const forceFlag = process.argv.includes('--force')
+      console.warn('⚠️  Database already has data. Use --force to reseed.');
+      const forceFlag = process.argv.includes('--force');
       if (!forceFlag) {
-        console.log('Run with --force to clear existing data and reseed')
-        process.exit(0)
+        console.warn('Run with --force to clear existing data and reseed');
+        process.exit(0);
       }
-      
+
       // Clear existing data
-      console.log('🧹 Clearing existing data...')
-      await db.delete(sessionActivity)
-      await db.delete(userSessions)
-      await db.delete(apiKeys)
-      await db.delete(users)
-      console.log('✅ Existing data cleared')
+      console.warn('🧹 Clearing existing data...');
+      await db.delete(sessionActivity);
+      await db.delete(userSessions);
+      await db.delete(userApiKeys);
+      await db.delete(users);
+      console.warn('✅ Existing data cleared');
     }
 
     // Create auth service for user creation (lazy import to avoid early DB connection)
-    const { createAuthService } = await import('@/lib/auth/factory')
-    const authService = createAuthService()
+    const { createAuthService } = await import('@/lib/auth/factory');
+    const authService = await createAuthService();
 
     // Seed users
-    console.log('👥 Creating users...')
-    const createdUsers = []
-    
+    console.warn('👥 Creating users...');
+    const createdUsers = [];
+
     for (const userData of seedUsers) {
-      const result = await authService.signUp(userData.email, userData.password, userData.name)
+      const result = await authService.signUp(userData);
       if (result.success && result.user) {
-        console.log(`✅ Created user: ${userData.email}`)
-        createdUsers.push(result.user)
-        
+        console.warn(`✅ Created user: ${userData.email}`);
+        createdUsers.push(result.user);
+
         // Update email verification status if needed
         if (userData.emailVerified) {
-          await db.update(users)
+          await db
+            .update(users)
             .set({ emailVerified: new Date() })
-            .where(eq(users.id, result.user.id))
+            .where(eq(users.id, result.user.id));
         }
       } else {
-        console.error(`❌ Failed to create user ${userData.email}:`, result.error)
+        console.error(
+          `❌ Failed to create user ${userData.email}:`,
+          result.error,
+        );
       }
     }
 
     // Seed API keys for the first user (admin)
     if (createdUsers.length > 0) {
-      console.log('🔑 Creating API keys...')
-      const adminUser = createdUsers[0]
-      
+      console.warn('🔑 Creating API keys...');
+      const adminUser = createdUsers[0];
+
       for (const keyData of seedApiKeys) {
-        const apiKey = await db.insert(apiKeys).values({
-          userId: adminUser.id,
-          name: keyData.name,
-          description: keyData.description,
-          keyHash: `test_${keyData.keyType}_${Date.now()}`, // Mock hash for development
-          keyPreview: `${keyData.keyType}_****`,
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
-        }).returning()
-        
-        console.log(`✅ Created API key: ${keyData.name}`)
+        const _apiKey = await db
+          .insert(userApiKeys)
+          .values({
+            userId: adminUser.id,
+            provider: keyData.keyType === 'production' ? 'openai' : 'stripe',
+            privateKeyEncrypted: `test_${keyData.keyType}_${Date.now()}`, // Mock encrypted key for development
+            publicKey: null,
+            metadata: {
+              name: keyData.name,
+              description: keyData.description,
+              keyType: keyData.keyType,
+            },
+          })
+          .returning();
+
+        console.warn(`✅ Created API key: ${keyData.name}`);
       }
     }
 
     // Create some sample sessions for testing
-    console.log('🔐 Creating sample sessions...')
-    for (const user of createdUsers.slice(0, 2)) { // Only for first 2 users
+    console.warn('🔐 Creating sample sessions...');
+    for (const user of createdUsers.slice(0, 2)) {
+      // Only for first 2 users
       try {
-        const sessionManager = (authService as any).sessionManager
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const sessionManager = (authService as any).sessionManager;
         if (sessionManager) {
-          await sessionManager.createSession(user.id, '127.0.0.1', 'Seed Script User Agent')
-          console.log(`✅ Created session for user: ${user.email}`)
+          await sessionManager.createSession(
+            user.id,
+            '127.0.0.1',
+            'Seed Script User Agent',
+          );
+          console.warn(`✅ Created session for user: ${user.email}`);
         }
       } catch (error) {
-        console.log(`⚠️  Could not create session for ${user.email}:`, error)
+        console.warn(`⚠️  Could not create session for ${user.email}:`, error);
       }
     }
 
-    console.log('🎉 Database seeding completed successfully!')
-    console.log(`\n📊 Summary:`)
-    console.log(`- Created ${createdUsers.length} users`)
-    console.log(`- Created ${seedApiKeys.length} API keys`)
-    console.log(`- Created sample sessions`)
-    
-    console.log(`\n🔐 Test Credentials:`)
-    seedUsers.forEach(user => {
-      console.log(`- ${user.email} / ${user.password} (${user.role}${user.emailVerified ? ', verified' : ', unverified'})`)
-    })
+    console.warn('🎉 Database seeding completed successfully!');
+    console.warn(`\n📊 Summary:`);
+    console.warn(`- Created ${createdUsers.length} users`);
+    console.warn(`- Created ${seedApiKeys.length} API keys`);
+    console.warn(`- Created sample sessions`);
 
+    console.warn(`\n🔐 Test Credentials:`);
+    seedUsers.forEach(user => {
+      console.warn(
+        `- ${user.email} / ${user.password} (${user.role}${user.emailVerified ? ', verified' : ', unverified'})`,
+      );
+    });
   } catch (error) {
-    console.error('❌ Database seeding failed:', error)
-    process.exit(1)
+    console.error('❌ Database seeding failed:', error);
+    process.exit(1);
   } finally {
-    await client.end()
+    await client.end();
   }
 }
 
 // Run the seeding
-seedDatabase()
+seedDatabase();

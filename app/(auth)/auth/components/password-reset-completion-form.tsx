@@ -1,115 +1,143 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { resetPasswordAction } from '@/app/actions/auth'
+import { useState } from 'react';
 
-const passwordResetCompletionSchema = z.object({
-  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string().min(8, 'Password must be at least 8 characters')
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"]
-})
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
-type PasswordResetCompletionFormData = z.infer<typeof passwordResetCompletionSchema>
+import { resetPasswordAction } from '@/app/actions/auth';
+
+const passwordResetCompletionSchema = z
+  .object({
+    newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters'),
+  })
+  .refine(data => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
+
+type PasswordResetCompletionFormData = z.infer<
+  typeof passwordResetCompletionSchema
+>;
 
 interface PasswordResetCompletionFormProps {
-  token: string
-  onSuccess: (message: string) => void
-  onError: (error: string) => void
-  onBackToLogin: () => void
+  token: string;
+  onSuccess: (message: string) => void;
+  onError: (error: string) => void;
+  onBackToLogin: () => void;
 }
 
-export function PasswordResetCompletionForm({ token, onSuccess, onError, onBackToLogin }: PasswordResetCompletionFormProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  
+export function PasswordResetCompletionForm({
+  token,
+  onSuccess,
+  onError,
+  onBackToLogin,
+}: PasswordResetCompletionFormProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
   } = useForm<PasswordResetCompletionFormData>({
-    resolver: zodResolver(passwordResetCompletionSchema)
-  })
+    resolver: zodResolver(passwordResetCompletionSchema),
+  });
 
   const onSubmit = async (data: PasswordResetCompletionFormData) => {
-    setIsLoading(true)
-    
+    setIsLoading(true);
+
     try {
-      const result = await resetPasswordAction({ token, newPassword: data.newPassword })
-      
+      const result = await resetPasswordAction({
+        token,
+        newPassword: data.newPassword,
+      });
+
       if (result.success) {
-        onSuccess('Your password has been reset successfully. You can now log in with your new password.')
+        onSuccess(
+          'Your password has been reset successfully. You can now log in with your new password.',
+        );
       } else {
-        onError(result.error || 'Failed to reset password')
+        onError(result.error || 'Failed to reset password');
       }
     } catch {
-      onError('An unexpected error occurred')
+      onError('An unexpected error occurred');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       <div>
-        <h2 className="text-lg font-medium text-gray-900">Set New Password</h2>
-        <p className="text-sm text-gray-600 mt-1">
+        <h2 className='text-lg font-medium text-gray-900'>Set New Password</h2>
+        <p className='mt-1 text-sm text-gray-600'>
           Enter your new password below.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
         <div>
-          <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor='newPassword'
+            className='block text-sm font-medium text-gray-700'
+          >
             New Password
           </label>
           <input
-            id="newPassword"
-            type="password"
+            id='newPassword'
+            type='password'
             {...register('newPassword')}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter new password"
+            className='mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none'
+            placeholder='Enter new password'
           />
           {errors.newPassword && (
-            <p className="mt-1 text-sm text-red-600">{errors.newPassword.message}</p>
+            <p className='mt-1 text-sm text-red-600'>
+              {errors.newPassword.message}
+            </p>
           )}
         </div>
 
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor='confirmPassword'
+            className='block text-sm font-medium text-gray-700'
+          >
             Confirm New Password
           </label>
           <input
-            id="confirmPassword"
-            type="password"
+            id='confirmPassword'
+            type='password'
             {...register('confirmPassword')}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Confirm new password"
+            className='mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:outline-none'
+            placeholder='Confirm new password'
           />
           {errors.confirmPassword && (
-            <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+            <p className='mt-1 text-sm text-red-600'>
+              {errors.confirmPassword.message}
+            </p>
           )}
         </div>
 
         <button
-          type="submit"
+          type='submit'
           disabled={isLoading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          className='flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50'
         >
           {isLoading ? 'Resetting...' : 'Reset Password'}
         </button>
 
         <button
-          type="button"
+          type='button'
           onClick={onBackToLogin}
-          className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className='flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
         >
           Back to Login
         </button>
       </form>
     </div>
-  )
+  );
 }

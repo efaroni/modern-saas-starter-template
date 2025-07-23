@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from 'next/link';
 
 const sections = [
   {
@@ -7,7 +7,12 @@ const sections = [
     href: '/configuration',
     status: 'active',
     description: 'Manage API keys with mock fallback support',
-    features: ['API key CRUD', 'Service validation', 'Mock mode', 'Database storage'],
+    features: [
+      'API key CRUD',
+      'Service validation',
+      'Mock mode',
+      'Database storage',
+    ],
   },
   {
     number: 2,
@@ -15,7 +20,12 @@ const sections = [
     href: '/auth',
     status: 'active',
     description: 'Auth.js v5 with user CRUD operations',
-    features: ['Email/password auth', 'OAuth providers', 'User profiles', 'Session management'],
+    features: [
+      'Email/password auth',
+      'OAuth providers',
+      'User profiles',
+      'Session management',
+    ],
   },
   {
     number: 3,
@@ -23,7 +33,12 @@ const sections = [
     href: '/payments',
     status: 'coming-soon',
     description: 'Stripe integration with subscriptions',
-    features: ['Checkout flow', 'Subscription management', 'Webhooks', 'Invoice history'],
+    features: [
+      'Checkout flow',
+      'Subscription management',
+      'Webhooks',
+      'Invoice history',
+    ],
   },
   {
     number: 4,
@@ -39,7 +54,12 @@ const sections = [
     href: '/ai-styling',
     status: 'coming-soon',
     description: 'Screenshot to design generation',
-    features: ['Image upload', 'Style extraction', 'Theme generation', 'Code export'],
+    features: [
+      'Image upload',
+      'Style extraction',
+      'Theme generation',
+      'Code export',
+    ],
   },
   {
     number: 6,
@@ -47,7 +67,12 @@ const sections = [
     href: '/ai-assistant',
     status: 'coming-soon',
     description: 'Contextual help system',
-    features: ['Chat interface', 'Context awareness', 'Help articles', 'User feedback'],
+    features: [
+      'Chat interface',
+      'Context awareness',
+      'Help articles',
+      'User feedback',
+    ],
   },
   {
     number: 7,
@@ -55,7 +80,12 @@ const sections = [
     href: '/generators',
     status: 'active',
     description: 'Developer productivity tools',
-    features: ['Component templates', 'API endpoints', 'Database models', 'Test scaffolding'],
+    features: [
+      'Component templates',
+      'API endpoints',
+      'Database models',
+      'Test scaffolding',
+    ],
   },
   {
     number: 8,
@@ -63,7 +93,12 @@ const sections = [
     href: '/rate-limiting',
     status: 'active',
     description: 'Monitor and manage API rate limiting',
-    features: ['Live statistics', 'Algorithm monitoring', 'Active limits', 'Alert system'],
+    features: [
+      'Live statistics',
+      'Algorithm monitoring',
+      'Active limits',
+      'Alert system',
+    ],
   },
   {
     number: 9,
@@ -71,7 +106,12 @@ const sections = [
     href: '/performance',
     status: 'active',
     description: 'Monitor and optimize application performance',
-    features: ['Core Web Vitals', 'Runtime metrics', 'Resource timings', 'Performance insights'],
+    features: [
+      'Core Web Vitals',
+      'Runtime metrics',
+      'Resource timings',
+      'Performance insights',
+    ],
   },
   {
     number: 10,
@@ -79,45 +119,50 @@ const sections = [
     href: '/deployment',
     status: 'coming-soon',
     description: 'GitHub Actions and Vercel setup',
-    features: ['Auto-deploy', 'Environment config', 'Health checks', 'Monitoring'],
+    features: [
+      'Auto-deploy',
+      'Environment config',
+      'Health checks',
+      'Monitoring',
+    ],
   },
-]
+];
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+    <div className='min-h-screen bg-gray-50'>
+      <div className='mx-auto max-w-6xl px-4 py-12'>
+        <div className='mb-12 text-center'>
+          <h1 className='mb-4 text-4xl font-bold text-gray-900'>
             Modern SaaS Starter Template
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className='text-xl text-gray-600'>
             Test and explore each feature of the modern SaaS template
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {sections.map((section) => (
+        <div className='grid gap-6 md:grid-cols-2'>
+          {sections.map(section => (
             <Link
               key={section.number}
               href={section.status === 'active' ? section.href : '#'}
-              className={`block p-6 bg-white rounded-lg border-2 transition-all ${
+              className={`block rounded-lg border-2 bg-white p-6 transition-all ${
                 section.status === 'active'
-                  ? 'border-blue-500 hover:shadow-lg cursor-pointer hover:border-blue-600'
-                  : 'border-gray-200 opacity-60 cursor-not-allowed'
+                  ? 'cursor-pointer border-blue-500 hover:border-blue-600 hover:shadow-lg'
+                  : 'cursor-not-allowed border-gray-200 opacity-60'
               }`}
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className='mb-4 flex items-start justify-between'>
                 <div>
-                  <span className="text-sm font-medium text-gray-500">
+                  <span className='text-sm font-medium text-gray-500'>
                     Section {section.number}
                   </span>
-                  <h2 className="text-xl font-semibold mt-1 text-gray-900">
+                  <h2 className='mt-1 text-xl font-semibold text-gray-900'>
                     {section.name}
                   </h2>
                 </div>
                 <span
-                  className={`px-3 py-1 text-sm font-medium rounded-full ${
+                  className={`rounded-full px-3 py-1 text-sm font-medium ${
                     section.status === 'active'
                       ? 'bg-green-100 text-green-700'
                       : 'bg-gray-100 text-gray-500'
@@ -126,13 +171,16 @@ export default function HomePage() {
                   {section.status === 'active' ? 'Ready' : 'Coming Soon'}
                 </span>
               </div>
-              
-              <p className="text-gray-600 mb-4">{section.description}</p>
-              
-              <div className="space-y-1">
-                {section.features.map((feature, i) => (
-                  <div key={i} className="flex items-center text-sm text-gray-500">
-                    <span className="mr-2">•</span>
+
+              <p className='mb-4 text-gray-600'>{section.description}</p>
+
+              <div className='space-y-1'>
+                {section.features.map(feature => (
+                  <div
+                    key={feature}
+                    className='flex items-center text-sm text-gray-500'
+                  >
+                    <span className='mr-2'>•</span>
                     {feature}
                   </div>
                 ))}
@@ -141,12 +189,12 @@ export default function HomePage() {
           ))}
         </div>
 
-        <div className="mt-12 text-center text-gray-500">
-          <p className="text-sm">
+        <div className='mt-12 text-center text-gray-500'>
+          <p className='text-sm'>
             Click on any &ldquo;Ready&rdquo; section to explore its features
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }

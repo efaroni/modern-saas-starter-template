@@ -32,9 +32,6 @@
     }
   },
   "permissions": {
-    "tools": [
-      "Bash(grep:*)",
-      "Bash(find:*)"
-    ]
+    "tools": ["Bash(grep:*)", "Bash(find:*)"]
   }
 }

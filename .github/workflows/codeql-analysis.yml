@@ -1,0 +1,343 @@
+name: CodeQL Security Analysis
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run weekly on Sunday at 02:00 UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      languages:
+        description: 'Languages to analyze (comma-separated)'
+        required: false
+        default: 'javascript'
+        type: string
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  analyze:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript']
+        # Add more languages as needed: ['cpp', 'csharp', 'go', 'java', 'python', 'ruby']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        if: matrix.language == 'javascript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: matrix.language == 'javascript'
+        run: |
+          npm ci
+          # Create build output for better analysis
+          npm run build || echo "Build failed, continuing with source analysis"
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          config: |
+            name: "CodeQL Config"
+
+            # Paths to include in analysis
+            paths:
+              - app
+              - lib
+              - components
+              - src
+
+            # Paths to exclude from analysis
+            paths-ignore:
+              - "**/*.test.ts"
+              - "**/*.test.tsx"
+              - "**/*.spec.ts"
+              - "**/*.spec.tsx"
+              - "**/node_modules/**"
+              - "**/.next/**"
+              - "**/dist/**"
+              - "**/build/**"
+              - "**/coverage/**"
+              - "**/*.config.js"
+              - "**/*.config.ts"
+              - "**/public/**"
+
+            # Queries to run
+            queries:
+              - uses: security-extended
+              - uses: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+          upload: true
+
+  sarif-upload:
+    name: Upload SARIF Results
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: always()
+    permissions:
+      security-events: write
+
+    steps:
+      - name: Download SARIF results
+        if: needs.analyze.result == 'success'
+        run: |
+          echo "✅ CodeQL analysis completed successfully"
+          echo "Results uploaded to GitHub Security tab"
+
+      - name: Analysis failed
+        if: needs.analyze.result == 'failure'
+        run: |
+          echo "❌ CodeQL analysis failed"
+          echo "Check the analyze job logs for details"
+
+  security-report:
+    name: Security Report
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+      security-events: read
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get security alerts
+        id: alerts
+        run: |
+          # Note: This would require a GitHub token with security-events read permission
+          # For now, we'll create a placeholder report
+
+          echo "## Security Analysis Report - $(date)" > security-report.md
+          echo "" >> security-report.md
+          echo "### CodeQL Analysis" >> security-report.md
+
+          if [ "${{ needs.analyze.result }}" == "success" ]; then
+            echo "✅ CodeQL analysis completed successfully" >> security-report.md
+            echo "📊 Results available in the [Security tab](https://github.com/${{ github.repository }}/security/code-scanning)" >> security-report.md
+          else
+            echo "❌ CodeQL analysis failed" >> security-report.md
+            echo "🔍 Please check the workflow logs" >> security-report.md
+          fi
+
+          echo "" >> security-report.md
+          echo "### Security Recommendations" >> security-report.md
+          echo "- Review any new alerts in the Security tab" >> security-report.md
+          echo "- Address high-severity findings promptly" >> security-report.md
+          echo "- Consider security testing in PR reviews" >> security-report.md
+
+          # Set output for potential issue creation
+          if [ "${{ needs.analyze.result }}" != "success" ]; then
+            echo "create_issue=true" >> $GITHUB_OUTPUT
+          else
+            echo "create_issue=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create security issue
+        if: steps.alerts.outputs.create_issue == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `🔒 Security Analysis Failed - ${new Date().toISOString().split('T')[0]}`;
+            const body = `## Security Analysis Failure
+
+            The scheduled CodeQL security analysis failed.
+
+            **Details:**
+            - Date: ${new Date().toISOString()}
+            - Workflow: [CodeQL Analysis](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            - Branch: ${context.ref}
+
+            **Action Required:**
+            1. Review the [workflow logs](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            2. Fix any configuration or build issues
+            3. Re-run the analysis
+
+            **Security Impact:**
+            - Automated security scanning is currently failing
+            - Manual security review recommended for recent changes
+            - Consider temporary additional security measures
+
+            /cc @security-team
+
+            ---
+            🤖 Created by CodeQL Analysis workflow`;
+
+            // Check if a similar issue already exists
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'security,codeql,automated'
+            });
+
+            const hasExistingIssue = existingIssues.data.some(issue => 
+              issue.title.includes('Security Analysis Failed')
+            );
+
+            if (!hasExistingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['security', 'codeql', 'automated', 'high-priority']
+              });
+            }
+
+  custom-security-checks:
+    name: Custom Security Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Security audit
+        run: |
+          echo "🔍 Running npm security audit..."
+          npm audit --audit-level=moderate || EXIT_CODE=$?
+
+          if [ ${EXIT_CODE:-0} -ne 0 ]; then
+            echo "⚠️ Security vulnerabilities found"
+            npm audit --audit-level=moderate --json > audit-results.json
+          else
+            echo "✅ No security vulnerabilities found"
+            echo '{"vulnerabilities": {}}' > audit-results.json
+          fi
+
+      - name: Check for sensitive files
+        run: |
+          echo "🔍 Checking for sensitive files..."
+
+          # List of patterns to check for
+          SENSITIVE_PATTERNS=(
+            "*.pem"
+            "*.key" 
+            "*.p12"
+            "*.pfx"
+            "id_rsa"
+            "id_dsa"
+            ".env.local"
+            ".env.production"
+            "secrets.json"
+            "service-account*.json"
+          )
+
+          FOUND=0
+          for pattern in "${SENSITIVE_PATTERNS[@]}"; do
+            if find . -name "$pattern" -not -path "./node_modules/*" -not -path "./.git/*" | head -5; then
+              FOUND=1
+            fi
+          done
+
+          if [ $FOUND -eq 1 ]; then
+            echo "⚠️ Potentially sensitive files found"
+            echo "Please review and ensure they are properly gitignored"
+          else
+            echo "✅ No obviously sensitive files found"
+          fi
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "🔍 Checking for hardcoded secrets..."
+
+          # Simple regex patterns for common secrets
+          SECRET_PATTERNS=(
+            "password\s*=\s*['\"][^'\"]{8,}['\"]"
+            "secret\s*=\s*['\"][^'\"]{8,}['\"]"
+            "key\s*=\s*['\"][^'\"]{8,}['\"]"
+            "token\s*=\s*['\"][^'\"]{8,}['\"]"
+            "api_key\s*=\s*['\"][^'\"]{8,}['\"]"
+          )
+
+          FOUND_SECRETS=0
+          for pattern in "${SECRET_PATTERNS[@]}"; do
+            if grep -r -i -E "$pattern" . --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --exclude-dir=node_modules --exclude-dir=.git | head -5; then
+              FOUND_SECRETS=1
+            fi
+          done
+
+          if [ $FOUND_SECRETS -eq 1 ]; then
+            echo "⚠️ Potential hardcoded secrets found"
+            echo "Please review and move to environment variables"
+          else
+            echo "✅ No obvious hardcoded secrets found"
+          fi
+
+      - name: Upload security results
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: |
+            audit-results.json
+          retention-days: 30
+
+  summary:
+    name: Security Analysis Summary
+    runs-on: ubuntu-latest
+    needs: [analyze, custom-security-checks]
+    if: always()
+
+    steps:
+      - name: Analysis Summary
+        run: |
+          echo "## Security Analysis Summary"
+          echo ""
+          echo "**CodeQL Analysis:** ${{ needs.analyze.result }}"
+          echo "**Custom Security Checks:** ${{ needs.custom-security-checks.result }}"
+          echo ""
+
+          if [ "${{ needs.analyze.result }}" == "success" ] && [ "${{ needs.custom-security-checks.result }}" == "success" ]; then
+            echo "✅ All security checks passed"
+            echo "🔒 View detailed results in the Security tab"
+          else
+            echo "⚠️ Some security checks failed or had issues"
+            echo "👀 Please review the job outputs above"
+          fi
+
+          echo ""
+          echo "📊 **Next Steps:**"
+          echo "1. Review any security alerts in the GitHub Security tab"
+          echo "2. Address high and medium severity findings"
+          echo "3. Consider security training for the development team"
+          echo "4. Regular security reviews in code reviews"

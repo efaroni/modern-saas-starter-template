@@ -1,11 +1,11 @@
-import { defineConfig } from 'drizzle-kit'
-import { config } from 'dotenv'
+import { defineConfig } from 'drizzle-kit';
+import { config } from 'dotenv';
 
 // Load .env.local file
-config({ path: '.env.local' })
+config({ path: '.env.local' });
 
 // Import centralized database configuration
-import { getDatabaseUrl } from './lib/db/config'
+import { getDatabaseUrl } from './lib/db/config';
 
 export default defineConfig({
   schema: './lib/db/schema.ts',
@@ -16,4 +16,4 @@ export default defineConfig({
   },
   verbose: true,
   strict: true,
-})
+});

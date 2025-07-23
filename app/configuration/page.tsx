@@ -1,15 +1,15 @@
-import { ServiceApiKeyInput } from '@/components/services/service-api-key-input'
-import { config } from '@/lib/config'
+import { ServiceApiKeyInput } from '@/components/services/service-api-key-input';
+import { config } from '@/lib/config';
 
 export default function ConfigurationPage() {
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">API Configuration</h1>
-        <p className="text-gray-600 mb-8">
-          Configure your service integrations and API keys. 
+    <div className='container mx-auto px-4 py-8'>
+      <div className='mx-auto max-w-6xl'>
+        <h1 className='mb-2 text-3xl font-bold'>API Configuration</h1>
+        <p className='mb-8 text-gray-600'>
+          Configure your service integrations and API keys.
           {!config.database.enabled && (
-            <span className="text-amber-600 ml-2">
+            <span className='ml-2 text-amber-600'>
               (Running in mock mode - database not connected)
             </span>
           )}
@@ -17,25 +17,25 @@ export default function ConfigurationPage() {
 
         {/* User Keys Section */}
         <div>
-          <h2 className="text-2xl font-semibold mb-2">API Keys</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className='mb-2 text-2xl font-semibold'>API Keys</h2>
+          <p className='mb-6 text-gray-600'>
             Configure your service integrations and API keys
           </p>
-          
-          <div className="grid gap-6 lg:grid-cols-2">
+
+          <div className='grid gap-6 lg:grid-cols-2'>
             <ServiceApiKeyInput
-              service="openai"
-              title="OpenAI"
-              description="For AI features like chat and completions"
+              service='openai'
+              title='OpenAI'
+              description='For AI features like chat and completions'
             />
             <ServiceApiKeyInput
-              service="resend"
-              title="Resend"
-              description="For sending transactional emails"
+              service='resend'
+              title='Resend'
+              description='For sending transactional emails'
             />
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

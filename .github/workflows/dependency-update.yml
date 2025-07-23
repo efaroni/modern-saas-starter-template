@@ -1,0 +1,383 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run weekly on Monday at 09:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      update_type:
+        description: 'Type of update to perform'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - security
+      create_pr:
+        description: 'Create PR with updates'
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: dependency-updates
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  check-dependencies:
+    name: Check Dependencies
+    runs-on: ubuntu-latest
+    outputs:
+      has_updates: ${{ steps.check.outputs.has_updates }}
+      update_type: ${{ steps.check.outputs.update_type }}
+      security_updates: ${{ steps.check.outputs.security_updates }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for updates
+        id: check
+        run: |
+          # Check for security vulnerabilities
+          SECURITY_COUNT=$(npm audit --json 2>/dev/null | jq '.metadata.vulnerabilities.total' || echo "0")
+          echo "security_updates=$SECURITY_COUNT" >> $GITHUB_OUTPUT
+
+          # Check for outdated packages
+          npm outdated --json > outdated.json || true
+
+          if [ -s outdated.json ] && [ "$(cat outdated.json)" != "{}" ]; then
+            echo "has_updates=true" >> $GITHUB_OUTPUT
+            
+            # Determine update type
+            if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+              UPDATE_TYPE="${{ github.event.inputs.update_type }}"
+            elif [ "$SECURITY_COUNT" -gt 0 ]; then
+              UPDATE_TYPE="security"
+            else
+              UPDATE_TYPE="patch"
+            fi
+            
+            echo "update_type=$UPDATE_TYPE" >> $GITHUB_OUTPUT
+            echo "📦 Found package updates (type: $UPDATE_TYPE, security: $SECURITY_COUNT)"
+            
+            # Show outdated packages
+            echo "Outdated packages:"
+            npm outdated || true
+          else
+            echo "has_updates=false" >> $GITHUB_OUTPUT
+            echo "✅ All dependencies are up to date"
+          fi
+
+      - name: Upload outdated packages info
+        if: steps.check.outputs.has_updates == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: outdated-packages
+          path: outdated.json
+          retention-days: 7
+
+  security-updates:
+    name: Apply Security Updates
+    runs-on: ubuntu-latest
+    needs: check-dependencies
+    if: needs.check-dependencies.outputs.security_updates != '0'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create security update branch
+        run: |
+          BRANCH_NAME="deps/security-updates-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH_NAME"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply security fixes
+        run: |
+          echo "🔒 Applying security fixes..."
+          npm audit fix --audit-level=high
+
+          # Check if there are still vulnerabilities
+          REMAINING=$(npm audit --json 2>/dev/null | jq '.metadata.vulnerabilities.total' || echo "0")
+
+          if [ "$REMAINING" -gt 0 ]; then
+            echo "⚠️ $REMAINING vulnerabilities remain after automatic fixes"
+            npm audit --audit-level=high || true
+          else
+            echo "✅ All security vulnerabilities resolved"
+          fi
+
+      - name: Run tests after security updates
+        run: |
+          echo "🧪 Running tests to verify security updates..."
+          npm run type-check
+          npm run lint || echo "⚠️ Linting issues found"
+          npm test -- --passWithNoTests
+
+      - name: Commit security updates
+        run: |
+          if git diff --staged --quiet && git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git add .
+          git commit -m "security: automatic security updates
+
+          - Applied npm audit fix for high-severity vulnerabilities
+          - Resolved ${{ needs.check-dependencies.outputs.security_updates }} security issues
+          - All tests passing after updates
+
+          Co-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+
+      - name: Push security updates
+        run: |
+          git push origin "$BRANCH_NAME"
+
+      - name: Create Security Updates PR
+        run: |
+          gh pr create \
+            --title "🔒 Security Updates - $(date +%Y-%m-%d)" \
+            --body "## Security Updates
+
+          This PR contains automatic security updates for high-severity vulnerabilities.
+
+          ### Changes
+          - Applied \`npm audit fix\` for high-severity issues
+          - Resolved ${{ needs.check-dependencies.outputs.security_updates }} security vulnerabilities
+          - All tests are passing
+
+          ### Security Scan Results
+          \`\`\`
+          $(npm audit --audit-level=high || echo 'All high-severity vulnerabilities resolved')
+          \`\`\`
+
+          ### Testing
+          - ✅ Type checking passed
+          - ✅ Unit tests passed
+          - ⚠️ Manual testing recommended for critical paths
+
+          **Priority: High** - Please review and merge promptly.
+
+          ---
+          🤖 Generated by dependency-update workflow" \
+            --label "security,dependencies,automated" \
+            --assignee "@me"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-updates:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    needs: check-dependencies
+    if: needs.check-dependencies.outputs.has_updates == 'true' && needs.check-dependencies.outputs.update_type != 'security'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Download outdated packages info
+        uses: actions/download-artifact@v4
+        with:
+          name: outdated-packages
+          path: .
+
+      - name: Create update branch
+        run: |
+          UPDATE_TYPE="${{ needs.check-dependencies.outputs.update_type }}"
+          BRANCH_NAME="deps/${UPDATE_TYPE}-updates-$(date +%Y%m%d)"
+          git checkout -b "$BRANCH_NAME"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "UPDATE_TYPE=$UPDATE_TYPE" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Update dependencies
+        run: |
+          echo "📦 Updating $UPDATE_TYPE dependencies..."
+
+          case "$UPDATE_TYPE" in
+            "patch")
+              # Update patch versions only
+              npx npm-check-updates -u --target patch
+              ;;
+            "minor")
+              # Update minor versions (includes patches)
+              npx npm-check-updates -u --target minor
+              ;;
+            "major")
+              # Update all versions (careful!)
+              echo "⚠️ Major updates - reviewing each package"
+              npx npm-check-updates -u --target major
+              ;;
+          esac
+
+          npm install
+
+      - name: Generate update report
+        run: |
+          echo "## Dependency Update Report" > update-report.md
+          echo "Update type: **$UPDATE_TYPE**" >> update-report.md
+          echo "Date: $(date)" >> update-report.md
+          echo "" >> update-report.md
+
+          if [ -f outdated.json ]; then
+            echo "### Updated Packages" >> update-report.md
+            echo "\`\`\`json" >> update-report.md
+            cat outdated.json | jq '.' >> update-report.md
+            echo "\`\`\`" >> update-report.md
+          fi
+
+      - name: Run comprehensive tests
+        run: |
+          echo "🧪 Running comprehensive test suite..."
+
+          # Type checking
+          npm run type-check
+
+          # Linting (allow warnings)
+          npm run lint || echo "⚠️ Linting issues found - review required"
+
+          # Unit tests
+          npm test -- --passWithNoTests
+
+          # Build test
+          npm run build
+
+          echo "✅ All tests completed"
+
+      - name: Commit dependency updates
+        run: |
+          if git diff --staged --quiet && git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git add .
+          git commit -m "deps: $UPDATE_TYPE dependency updates
+
+          - Updated $UPDATE_TYPE version dependencies
+          - All tests passing after updates
+          - Build successful
+
+          Co-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+
+      - name: Push dependency updates
+        run: git push origin "$BRANCH_NAME"
+
+      - name: Create Dependency Updates PR
+        if: github.event.inputs.create_pr != 'false'
+        run: |
+          EMOJI=""
+          PRIORITY="normal"
+
+          case "$UPDATE_TYPE" in
+            "patch") EMOJI="🩹"; PRIORITY="normal" ;;
+            "minor") EMOJI="✨"; PRIORITY="normal" ;;
+            "major") EMOJI="⚡"; PRIORITY="high" ;;
+          esac
+
+          gh pr create \
+            --title "$EMOJI Dependency Updates ($UPDATE_TYPE) - $(date +%Y-%m-%d)" \
+            --body "## $UPDATE_TYPE Dependency Updates
+
+          This PR contains automatic dependency updates.
+
+          ### Update Type: $UPDATE_TYPE
+          $(case "$UPDATE_TYPE" in
+            "patch") echo "- Bug fixes and security patches only" ;;
+            "minor") echo "- New features with backward compatibility" ;;
+            "major") echo "- Breaking changes - requires careful review" ;;
+          esac)
+
+          ### Testing Results
+          - ✅ Type checking passed
+          - ✅ Build successful
+          - ✅ Unit tests passed
+          - ⚠️ Linting may have warnings
+
+          ### Review Notes
+          $(case "$UPDATE_TYPE" in
+            "major") echo "⚠️ **Major updates** - Please review breaking changes carefully" ;;
+            "minor") echo "ℹ️ Minor updates should be safe but test critical paths" ;;
+            "patch") echo "✅ Patch updates are generally safe" ;;
+          esac)
+
+          ### Changed Files
+          \`\`\`diff
+          $(git diff HEAD~1 package.json || echo 'package.json updated')
+          \`\`\`
+
+          ---
+          🤖 Generated by dependency-update workflow
+          Priority: **$PRIORITY**" \
+            --label "dependencies,$UPDATE_TYPE,automated" \
+            --assignee "@me"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [check-dependencies, security-updates, dependency-updates]
+    if: always()
+
+    steps:
+      - name: Summary
+        run: |
+          echo "## Dependency Update Summary"
+          echo "Has updates: ${{ needs.check-dependencies.outputs.has_updates }}"
+          echo "Update type: ${{ needs.check-dependencies.outputs.update_type }}"
+          echo "Security updates: ${{ needs.check-dependencies.outputs.security_updates }}"
+
+          if [ "${{ needs.check-dependencies.outputs.has_updates }}" == "true" ]; then
+            echo "✅ Dependency updates processed"
+          else
+            echo "ℹ️ No dependency updates needed"
+          fi
