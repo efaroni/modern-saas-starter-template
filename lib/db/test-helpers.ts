@@ -181,7 +181,7 @@ export class TestDatabaseManager {
       // Don't seed test users automatically - let tests create their own data
       // This prevents conflicts between tests
     } catch (error) {
-      console.log('Database not ready, skipping seed:', error);
+      console.warn('Database not ready, skipping seed:', error);
     }
   }
 
@@ -243,7 +243,7 @@ export const testHelpers = {
       // Initialize database if needed (but don't clear all data)
       await initializeTestDatabase();
     } catch (error) {
-      console.log('Test setup failed, database may not be ready:', error);
+      console.warn('Test setup failed, database may not be ready:', error);
     }
   },
 
@@ -253,7 +253,7 @@ export const testHelpers = {
       // Use worker-specific cleanup to avoid affecting other workers
       await clearWorkerTestData();
     } catch (error) {
-      console.log('Test teardown failed:', error);
+      console.warn('Test teardown failed:', error);
     }
   },
 

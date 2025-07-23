@@ -50,7 +50,7 @@ export class DatabaseMigrator {
     };
 
     try {
-      console.log('Starting database migrations...');
+      console.warn('Starting database migrations...');
 
       // Ensure migrations table exists
       await this.ensureMigrationsTable();
@@ -59,12 +59,12 @@ export class DatabaseMigrator {
       const pendingMigrations = await this.getPendingMigrations();
 
       if (pendingMigrations.length === 0) {
-        console.log('No pending migrations found');
+        console.warn('No pending migrations found');
         result.totalTime = Date.now() - startTime;
         return result;
       }
 
-      console.log(`Found ${pendingMigrations.length} pending migrations`);
+      console.warn(`Found ${pendingMigrations.length} pending migrations`);
 
       // Apply migrations using Drizzle's migrate function
       await migrate(this.db, { migrationsFolder: this.migrationsPath });
@@ -73,11 +73,11 @@ export class DatabaseMigrator {
       for (const migration of pendingMigrations) {
         await this.recordMigration(migration);
         result.migrationsApplied.push(migration);
-        console.log(`Applied migration: ${migration}`);
+        console.warn(`Applied migration: ${migration}`);
       }
 
       result.totalTime = Date.now() - startTime;
-      console.log(
+      console.warn(
         `All migrations completed successfully in ${result.totalTime}ms`,
       );
 
@@ -316,11 +316,11 @@ const runMigrate = async () => {
   const connection = postgres(connectionString, { max: 1 });
   const db = drizzle(connection);
 
-  console.log('Running migrations...');
+  console.warn('Running migrations...');
 
   await migrate(db, { migrationsFolder: 'lib/db/migrations' });
 
-  console.log('Migrations complete!');
+  console.warn('Migrations complete!');
 
   await connection.end();
 };

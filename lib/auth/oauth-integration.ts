@@ -141,7 +141,7 @@ export class OAuthIntegration {
    * Get linked accounts for a user
    */
   async getLinkedAccounts(userId: string): Promise<OAuthAccount[]> {
-    return await oauthService.getLinkedAccounts(userId);
+    return oauthService.getLinkedAccounts(userId);
   }
 
   /**
@@ -154,7 +154,7 @@ export class OAuthIntegration {
     accessToken?: string,
     refreshToken?: string,
   ): Promise<boolean> {
-    return await oauthService.linkAccount(
+    return oauthService.linkAccount(
       userId,
       provider,
       providerAccountId,
@@ -167,14 +167,14 @@ export class OAuthIntegration {
    * Unlink OAuth account
    */
   async unlinkAccount(userId: string, provider: string): Promise<boolean> {
-    return await oauthService.unlinkAccount(userId, provider);
+    return oauthService.unlinkAccount(userId, provider);
   }
 
   /**
    * Check if user has OAuth account linked
    */
   async hasOAuthAccount(userId: string, provider?: string): Promise<boolean> {
-    return await oauthService.hasOAuthAccount(userId, provider);
+    return oauthService.hasOAuthAccount(userId, provider);
   }
 
   /**

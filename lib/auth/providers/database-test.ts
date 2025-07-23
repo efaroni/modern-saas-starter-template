@@ -208,7 +208,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           },
         };
       });
-    } catch (error) {
+    } catch {
       authLogger.logAuthEvent({
         type: 'login',
         email,
@@ -360,7 +360,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           },
         };
       });
-    } catch (error) {
+    } catch {
       authLogger.logAuthEvent({
         type: 'signup',
         email,
@@ -404,7 +404,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           emailVerified: user.emailVerified,
         },
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to get user',
@@ -437,7 +437,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           emailVerified: user.emailVerified,
         },
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to get user',
@@ -514,7 +514,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           emailVerified: updatedUser.emailVerified,
         },
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to update user',
@@ -544,7 +544,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       return {
         success: true,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to delete user',
@@ -585,7 +585,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           emailVerified: updatedUser.emailVerified,
         },
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to verify email',
@@ -703,7 +703,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           emailVerified: user.emailVerified,
         },
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to change password',
@@ -764,7 +764,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
           emailVerified: user.emailVerified,
         },
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Failed to reset password',
@@ -828,7 +828,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       });
 
       return { success: emailResult.success, error: emailResult.error };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to send verification email' };
     }
   }
@@ -868,7 +868,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         .where(eq(users.id, user.id));
 
       return { success: true };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to verify email' };
     }
   }
@@ -908,7 +908,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       });
 
       return { success: emailResult.success, error: emailResult.error };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to send password reset email' };
     }
   }
@@ -947,7 +947,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       }
 
       return { success: true };
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Failed to reset password' };
     }
   }

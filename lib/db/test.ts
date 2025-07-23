@@ -37,10 +37,10 @@ export const testDb = drizzle(testClient, { schema });
 export async function initializeTestDatabase() {
   try {
     // First, validate the test database connection
-    console.log('Validating test database connection...');
+    console.warn('Validating test database connection...');
     try {
       await testClient`SELECT 1 as test`;
-      console.log('Test database connection successful');
+      console.warn('Test database connection successful');
     } catch (connectionError) {
       console.error(
         'Cannot connect to test database:',
@@ -79,8 +79,8 @@ export async function initializeTestDatabase() {
     }
 
     if (missingTables.length > 0) {
-      console.log(`Missing tables: ${missingTables.join(', ')}`);
-      console.log('Running migrations...');
+      console.warn(`Missing tables: ${missingTables.join(', ')}`);
+      console.warn('Running migrations...');
 
       // Run migrations using drizzle-kit
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -99,7 +99,7 @@ export async function initializeTestDatabase() {
           timeout: 30000, // 30 second timeout
           killSignal: 'SIGKILL', // Force kill if timeout
         });
-        console.log('Migrations completed successfully');
+        console.warn('Migrations completed successfully');
       } catch (migrationError) {
         console.error('Migration failed:', migrationError);
 
@@ -129,7 +129,7 @@ export async function resetTestDatabase() {
     await initializeTestDatabase();
     await clearTestDatabase();
   } catch (error) {
-    console.log('Database reset failed:', error);
+    console.warn('Database reset failed:', error);
   }
 }
 
@@ -149,13 +149,13 @@ export async function clearTestDatabase() {
     await testClient`DELETE FROM users`;
   } catch (error) {
     // Ignore errors if tables don't exist
-    console.log('Some tables not found during cleanup, continuing...');
+    console.warn('Some tables not found during cleanup, continuing...');
     // Try to clear just the core tables that should exist
     try {
       await testClient`DELETE FROM user_api_keys`;
       await testClient`DELETE FROM users`;
     } catch (coreError) {
-      console.log('Core tables not found during cleanup');
+      console.warn('Core tables not found during cleanup');
     }
   }
 }
@@ -228,16 +228,16 @@ export async function clearWorkerTestData() {
     await testClient`DELETE FROM verification_tokens WHERE identifier LIKE ${workerPrefix}`;
     await testClient`DELETE FROM users WHERE email LIKE ${workerPrefix}`;
   } catch (error) {
-    console.log('Worker test data cleanup failed:', error);
+    console.warn('Worker test data cleanup failed:', error);
   }
 }
 
 // Close test database connection
 export async function closeTestDatabase() {
   try {
-    console.log('Closing test database connection...');
+    console.warn('Closing test database connection...');
     await testClient.end();
-    console.log('Test database connection closed successfully');
+    console.warn('Test database connection closed successfully');
   } catch (error) {
     console.error('Error closing test database:', error);
   }

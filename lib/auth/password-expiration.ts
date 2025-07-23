@@ -216,7 +216,7 @@ export class PasswordExpirationService {
 
       if (result.isNearExpiration) {
         // In a real implementation, you'd send an email here
-        console.log(
+        console.warn(
           `Password expiration warning for user ${userId}: ${result.daysUntilExpiration} days remaining`,
         );
 
@@ -237,7 +237,7 @@ export class PasswordExpirationService {
 
       if (result.isExpired) {
         // In a real implementation, you'd send an email here
-        console.log(
+        console.warn(
           `Password expired notification for user ${userId}: ${result.graceLoginsRemaining} grace logins remaining`,
         );
 

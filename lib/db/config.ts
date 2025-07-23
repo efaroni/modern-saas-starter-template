@@ -291,7 +291,7 @@ export function getDatabaseName(): string {
  * @example
  * ```typescript
  * const components = getDatabaseConnectionComponents()
- * console.log(`Connecting to ${components.host}:${components.port}`)
+ * console.warn(`Connecting to ${components.host}:${components.port}`)
  * ```
  */
 export function getDatabaseConnectionComponents(): DatabaseConnectionComponents {

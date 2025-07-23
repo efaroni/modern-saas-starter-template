@@ -106,12 +106,12 @@ export class DatabaseConnectionPool {
 
       // Connection event handlers
       onnotice: notice => {
-        console.log('PostgreSQL notice:', notice);
+        console.warn('PostgreSQL notice:', notice);
       },
 
       // Error handling
       onclose: connectionId => {
-        console.log(`PostgreSQL connection ${connectionId} closed`);
+        console.warn(`PostgreSQL connection ${connectionId} closed`);
       },
 
       // Query transformation for metrics
@@ -353,7 +353,7 @@ export class DatabaseConnectionPool {
   async close(): Promise<void> {
     try {
       await this.sql.end();
-      console.log('Database connection pool closed gracefully');
+      console.warn('Database connection pool closed gracefully');
     } catch (error) {
       console.error('Error closing database connection pool:', error);
     }
@@ -371,7 +371,7 @@ export class DatabaseConnectionPool {
       }
 
       await Promise.all(warmupPromises);
-      console.log(
+      console.warn(
         `Database connection pool warmed up with ${warmupCount} connections`,
       );
     } catch (error) {
@@ -423,7 +423,7 @@ export const db = getDatabasePool().database;
 // Graceful shutdown handler
 if (typeof process !== 'undefined') {
   process.on('SIGTERM', async () => {
-    console.log('Received SIGTERM, closing database connection pool...');
+    console.warn('Received SIGTERM, closing database connection pool...');
     if (dbPool) {
       await dbPool.close();
     }
@@ -431,7 +431,7 @@ if (typeof process !== 'undefined') {
   });
 
   process.on('SIGINT', async () => {
-    console.log('Received SIGINT, closing database connection pool...');
+    console.warn('Received SIGINT, closing database connection pool...');
     if (dbPool) {
       await dbPool.close();
     }

@@ -176,7 +176,7 @@ export class AuthLogger implements Logger {
       this.logToConsole(level, message, logEntry);
     } else {
       // Structured JSON logging in production
-      console.log(JSON.stringify(logEntry));
+      console.warn(JSON.stringify(logEntry));
     }
   }
 
@@ -199,12 +199,12 @@ export class AuthLogger implements Logger {
     const color = colors[level] || '';
     const timestamp = new Date().toISOString();
 
-    console.log(
+    console.warn(
       `${color}[${timestamp}] ${level.toUpperCase()}: ${message}${reset}`,
     );
     if (data && Object.keys(data).length > 3) {
       // Only log extra data if it's substantial
-      console.log(`${color}${JSON.stringify(data, null, 2)}${reset}`);
+      console.warn(`${color}${JSON.stringify(data, null, 2)}${reset}`);
     }
   }
 
@@ -249,7 +249,7 @@ export class AuthLogger implements Logger {
     // - Grafana
     // For now, we'll just log it
     if (process.env.NODE_ENV !== 'test') {
-      console.log(`[MONITORING] ${eventType}:`, JSON.stringify(data));
+      console.warn(`[MONITORING] ${eventType}:`, JSON.stringify(data));
     }
   }
 
