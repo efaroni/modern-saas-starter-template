@@ -94,16 +94,16 @@ export const EXPIRATION_TIMES = {
   ONE_HOUR: 60,
 
   // Medium-term (hours)
-  THREE_HOURS: (3 * 60),
-  SIX_HOURS: (6 * 60),
-  TWELVE_HOURS: (12 * 60),
-  TWENTY_FOUR_HOURS: (24 * 60),
+  THREE_HOURS: 3 * 60,
+  SIX_HOURS: 6 * 60,
+  TWELVE_HOURS: 12 * 60,
+  TWENTY_FOUR_HOURS: 24 * 60,
 
   // Long-term (days in minutes)
-  ONE_DAY: (24 * 60),
-  ONE_WEEK: (7 * 24 * 60),
-  ONE_MONTH: (30 * 24 * 60),
-  THREE_MONTHS: (90 * 24 * 60),
+  ONE_DAY: 24 * 60,
+  ONE_WEEK: 7 * 24 * 60,
+  ONE_MONTH: 30 * 24 * 60,
+  THREE_MONTHS: 90 * 24 * 60,
 } as const;
 
 /**

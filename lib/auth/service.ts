@@ -9,7 +9,7 @@ import type { EmailService } from '@/lib/email/types';
 import { uploadService } from '@/lib/upload/service';
 import type { UploadService } from '@/lib/upload/types';
 import { addHours } from '@/lib/utils/date-time';
-import { ErrorFactory, withErrorContext } from '@/lib/utils/error-handler';
+// Note: ErrorFactory and withErrorContext available but not currently used
 import { TokenGenerators } from '@/lib/utils/token-generator';
 import { validateEmail } from '@/lib/utils/validators';
 

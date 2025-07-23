@@ -162,7 +162,7 @@ async function seedDatabase() {
             description: keyData.description,
             keyHash: `test_${keyData.keyType}_${Date.now()}`, // Mock hash for development
             keyPreview: `${keyData.keyType}_****`,
-            expiresAt: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)), // 1 year from now
+            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
           })
           .returning();
 

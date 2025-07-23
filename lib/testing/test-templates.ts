@@ -59,7 +59,9 @@ export const createComponentTest = (
             {
               name: 'should render with different props',
               test: async () => {
-                const Component = component.type as React.ComponentType<Record<string, unknown>>;
+                const Component = component.type as React.ComponentType<
+                  Record<string, unknown>
+                >;
                 const results = await componentTestUtils.testWithProps(
                   Component,
                   propVariations,
@@ -496,7 +498,9 @@ export const createPerformanceTest = (
               name: 'should handle large datasets efficiently',
               test: async () => {
                 const { performanceUtils } = await import('./component-utils');
-                const Component = component.type as React.ComponentType<Record<string, unknown>>;
+                const Component = component.type as React.ComponentType<
+                  Record<string, unknown>
+                >;
                 const results = await performanceUtils.testWithLargeData(
                   Component,
                   dataGenerator,

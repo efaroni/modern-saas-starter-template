@@ -19,7 +19,7 @@ export const DEFAULT_THRESHOLDS: PerformanceThresholds = {
   ttfb: { good: 800, poor: 1800 },
   renderTime: { good: 16, poor: 100 }, // 16ms for 60fps
   apiResponseTime: { good: 200, poor: 1000 },
-  memoryUsage: { good: (50 * 1024 * 1024), poor: (100 * 1024 * 1024) }, // 50MB good, 100MB poor
+  memoryUsage: { good: 50 * 1024 * 1024, poor: 100 * 1024 * 1024 }, // 50MB good, 100MB poor
 };
 
 export type PerformanceScore = 'good' | 'needs-improvement' | 'poor';
@@ -327,10 +327,10 @@ export const DEFAULT_BUDGET: PerformanceBudget = {
   cls: 0.1,
   fcp: 1800,
   ttfb: 800,
-  totalJSSize: (300 * 1024), // 300KB
-  totalCSSSize: (100 * 1024), // 100KB
-  totalImageSize: (500 * 1024), // 500KB
-  totalFontSize: (100 * 1024), // 100KB
+  totalJSSize: 300 * 1024, // 300KB
+  totalCSSSize: 100 * 1024, // 100KB
+  totalImageSize: 500 * 1024, // 500KB
+  totalFontSize: 100 * 1024, // 100KB
 };
 
 export function checkPerformanceBudget(

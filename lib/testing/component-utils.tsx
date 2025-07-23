@@ -30,7 +30,11 @@ const MockAuthProvider = ({
   mockAuth,
 }: {
   children: ReactNode;
-  mockAuth?: { user?: { id: string; email: string; name: string }; isAuthenticated?: boolean; permissions?: string[] };
+  mockAuth?: {
+    user?: { id: string; email: string; name: string };
+    isAuthenticated?: boolean;
+    permissions?: string[];
+  };
 }) => {
   // Mock auth context
   return <div data-testid='mock-auth-provider'>{children}</div>;
@@ -200,7 +204,9 @@ export const componentTestUtils = {
     const results = [];
 
     for (const [propName, isLoading] of Object.entries(loadingProps)) {
-      const Component = component.type as React.ComponentType<Record<string, unknown>>;
+      const Component = component.type as React.ComponentType<
+        Record<string, unknown>
+      >;
       const props = { ...component.props, [propName]: isLoading };
 
       const { container } = renderWithProviders(<Component {...props} />);
@@ -239,7 +245,9 @@ export const componentTestUtils = {
     const results = [];
 
     for (const [propName, errorMessage] of Object.entries(errorProps)) {
-      const Component = component.type as React.ComponentType<Record<string, unknown>>;
+      const Component = component.type as React.ComponentType<
+        Record<string, unknown>
+      >;
       const props = { ...component.props, [propName]: errorMessage };
 
       const { container } = renderWithProviders(<Component {...props} />);

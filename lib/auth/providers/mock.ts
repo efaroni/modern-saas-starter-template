@@ -318,7 +318,7 @@ export class MockAuthProvider implements AuthProvider {
     });
   }
 
-  async changeUserPassword(
+  changeUserPassword(
     id: string,
     currentPassword: string,
     newPassword: string,
@@ -326,26 +326,26 @@ export class MockAuthProvider implements AuthProvider {
     const user = this.mockUsers.get(id);
 
     if (!user) {
-      return {
+      return Promise.resolve({
         success: false,
         error: 'User not found',
-      };
+      });
     }
 
     // Verify current password using secure comparison
     if (!compareSync(currentPassword, user.password)) {
-      return {
+      return Promise.resolve({
         success: false,
         error: 'Current password is incorrect',
-      };
+      });
     }
 
     // Validate new password
     if (newPassword.length < 8) {
-      return {
+      return Promise.resolve({
         success: false,
         error: 'Password must be at least 8 characters',
-      };
+      });
     }
 
     // Update password with secure hashing
@@ -353,31 +353,31 @@ export class MockAuthProvider implements AuthProvider {
 
     // Return user without password
     const { password: _, ...authUser } = user;
-    return {
+    return Promise.resolve({
       success: true,
       user: authUser,
-    };
+    });
   }
 
-  async resetUserPassword(
+  resetUserPassword(
     id: string,
     newPassword: string,
   ): Promise<AuthResult> {
     const user = this.mockUsers.get(id);
 
     if (!user) {
-      return {
+      return Promise.resolve({
         success: false,
         error: 'User not found',
-      };
+      });
     }
 
     // Validate new password
     if (newPassword.length < 8) {
-      return {
+      return Promise.resolve({
         success: false,
         error: 'Password must be at least 8 characters',
-      };
+      });
     }
 
     // Update password with secure hashing (no current password verification needed for reset)
@@ -385,10 +385,10 @@ export class MockAuthProvider implements AuthProvider {
 
     // Return user without password
     const { password: _, ...authUser } = user;
-    return {
+    return Promise.resolve({
       success: true,
       user: authUser,
-    };
+    });
   }
 
   // Email verification methods

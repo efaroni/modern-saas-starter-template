@@ -129,7 +129,7 @@ describe('Password Reset', () => {
     it('should reject expired reset token', async () => {
       // Mock date to simulate token expiration
       const originalDate = Date.now;
-      Date.now = jest.fn(() => originalDate() + (4 * 60 * 60 * 1000)); // 4 hours later
+      Date.now = jest.fn(() => originalDate() + 4 * 60 * 60 * 1000); // 4 hours later
 
       const result = await authService.verifyPasswordResetToken(resetToken);
 
@@ -193,7 +193,7 @@ describe('Password Reset', () => {
     it('should reject expired token for password reset', async () => {
       // Mock date to simulate token expiration
       const originalDate = Date.now;
-      Date.now = jest.fn(() => originalDate() + (4 * 60 * 60 * 1000)); // 4 hours later
+      Date.now = jest.fn(() => originalDate() + 4 * 60 * 60 * 1000); // 4 hours later
 
       const result = await authService.resetPassword(
         resetToken,
@@ -241,7 +241,7 @@ describe('Password Reset', () => {
 
       // Mock date to simulate token expiration
       const originalDate = Date.now;
-      Date.now = jest.fn(() => originalDate() + (4 * 60 * 60 * 1000)); // 4 hours later
+      Date.now = jest.fn(() => originalDate() + 4 * 60 * 60 * 1000); // 4 hours later
 
       // Clean up expired tokens
       await authService.cleanupExpiredResetTokens();

@@ -496,8 +496,15 @@ export const oauthTokenCacheUtils = {
     oauthTokenCache.invalidateOAuthToken(userId, provider),
   invalidateUserOAuthTokens: (userId: string) =>
     oauthTokenCache.invalidateUserOAuthTokens(userId),
-  refreshOAuthToken: (userId: string, provider: string, newTokenData: { access_token: string; refresh_token?: string; expires_in?: number }) =>
-    oauthTokenCache.refreshOAuthToken(userId, provider, newTokenData),
+  refreshOAuthToken: (
+    userId: string,
+    provider: string,
+    newTokenData: {
+      access_token: string;
+      refresh_token?: string;
+      expires_in?: number;
+    },
+  ) => oauthTokenCache.refreshOAuthToken(userId, provider, newTokenData),
   getDecryptedToken: (userId: string, provider: string) =>
     oauthTokenCache.getDecryptedToken(userId, provider),
   getCacheStats: () => oauthTokenCache.getCacheStats(),

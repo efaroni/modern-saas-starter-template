@@ -295,7 +295,7 @@ export default function RateLimitingPage() {
                   <div key={type} className='rounded-lg border p-4'>
                     <h4 className='mb-2 font-semibold capitalize'>{type}</h4>
                     <div className='space-y-2'>
-                      {data.topFailureReasons.map((reason) => (
+                      {data.topFailureReasons.map(reason => (
                         <div
                           key={reason.reason}
                           className='flex items-center justify-between text-sm'
@@ -324,7 +324,7 @@ export default function RateLimitingPage() {
             </CardHeader>
             <CardContent>
               <div className='space-y-4'>
-                {configs.map((config) => (
+                {configs.map(config => (
                   <div key={config.type} className='rounded-lg border p-4'>
                     <div className='mb-3 flex items-center justify-between'>
                       <div className='flex items-center space-x-2'>
@@ -398,8 +398,11 @@ export default function RateLimitingPage() {
             </CardHeader>
             <CardContent>
               <div className='space-y-4'>
-                {currentLimits.map((limit) => (
-                  <div key={`${limit.identifier}-${limit.type}`} className='rounded-lg border p-4'>
+                {currentLimits.map(limit => (
+                  <div
+                    key={`${limit.identifier}-${limit.type}`}
+                    className='rounded-lg border p-4'
+                  >
                     <div className='mb-2 flex items-center justify-between'>
                       <div className='flex items-center space-x-2'>
                         <code className='rounded bg-gray-100 px-2 py-1 text-sm'>

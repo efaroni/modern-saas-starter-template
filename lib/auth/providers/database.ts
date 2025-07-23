@@ -1003,17 +1003,17 @@ export class DatabaseAuthProvider implements AuthProvider {
     }
   }
 
-  async signInWithOAuth(provider: string): Promise<OAuthResult> {
+  signInWithOAuth(provider: string): Promise<OAuthResult> {
     try {
       // Validate provider
       const availableProviders = this.getAvailableOAuthProviders();
       const oauthProvider = availableProviders.find(p => p.id === provider);
 
       if (!oauthProvider) {
-        return {
+        return Promise.resolve({
           success: false,
           error: `OAuth provider '${provider}' is not supported`,
-        };
+        });
       }
 
       // Generate state for CSRF protection
@@ -1022,16 +1022,16 @@ export class DatabaseAuthProvider implements AuthProvider {
       // Create OAuth redirect URL
       const redirectUrl = `/api/auth/signin/${provider}?state=${state}`;
 
-      return {
+      return Promise.resolve({
         success: true,
         redirectUrl,
-      };
+      });
     } catch {
       console.error('OAuth sign-in error:', error);
-      return {
+      return Promise.resolve({
         success: false,
         error: 'OAuth sign-in failed',
-      };
+      });
     }
   }
 

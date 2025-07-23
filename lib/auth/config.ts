@@ -115,7 +115,7 @@ export const authConfig = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: (AUTH_CONFIG.SESSION_DURATION_HOURS * 60 * 60), // Convert hours to seconds
+    maxAge: AUTH_CONFIG.SESSION_DURATION_HOURS * 60 * 60, // Convert hours to seconds
   },
   useSecureCookies: process.env.NODE_ENV === 'production',
   cookies: {

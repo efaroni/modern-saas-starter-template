@@ -1,9 +1,7 @@
 import { AUTH_CONFIG } from '@/lib/config/app-config';
 import { db } from '@/lib/db/server';
 
-import {
-  DatabaseSessionStorage,
-} from './database-session-storage';
+import { DatabaseSessionStorage } from './database-session-storage';
 import { type AuthUser } from './types';
 
 export interface SessionSecurityConfig {
@@ -77,7 +75,7 @@ export class SessionManager {
         userAgent,
       );
 
-      const expires = new Date(Date.now() + (this.config.maxAge * 1000));
+      const expires = new Date(Date.now() + this.config.maxAge * 1000);
 
       return {
         sessionToken,
@@ -137,7 +135,7 @@ export class SessionManager {
       }
 
       // Session is valid, refresh it
-      const refreshedExpires = new Date(Date.now() + (this.config.maxAge * 1000));
+      const refreshedExpires = new Date(Date.now() + this.config.maxAge * 1000);
       await this.storage.setSession({
         ...sessionData,
         expires: refreshedExpires.toISOString(),

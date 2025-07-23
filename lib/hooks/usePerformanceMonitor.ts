@@ -169,7 +169,15 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
 
     try {
       if ('memory' in performance) {
-        const memoryInfo = (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
+        const memoryInfo = (
+          performance as unknown as {
+            memory: {
+              usedJSHeapSize: number;
+              totalJSHeapSize: number;
+              jsHeapSizeLimit: number;
+            };
+          }
+        ).memory;
         setMetrics(prev => ({ ...prev, memoryUsage: memoryInfo }));
       }
     } catch (error) {
@@ -261,7 +269,9 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
     if (typeof window === 'undefined') return;
 
     try {
-      const connection = (navigator as unknown as { connection?: { effectiveType?: string } }).connection;
+      const connection = (
+        navigator as unknown as { connection?: { effectiveType?: string } }
+      ).connection;
       if (connection) {
         setMetrics(prev => ({
           ...prev,

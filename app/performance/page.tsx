@@ -105,9 +105,9 @@ export default function PerformancePage() {
           componentMountTime: 145,
           apiResponseTime: 280,
           memoryUsage: {
-            usedJSHeapSize: (45 * 1024 * 1024),
-            totalJSHeapSize: (67 * 1024 * 1024),
-            jsHeapSizeLimit: (2048 * 1024 * 1024),
+            usedJSHeapSize: 45 * 1024 * 1024,
+            totalJSHeapSize: 67 * 1024 * 1024,
+            jsHeapSizeLimit: 2048 * 1024 * 1024,
           },
           userInteractions: 47,
           scrollDepth: 85,
@@ -354,7 +354,7 @@ export default function PerformancePage() {
               <AlertDescription>
                 <strong>Budget Violations:</strong>
                 <ul className='mt-1 space-y-1'>
-                  {data.budgetStatus.violations.map((violation) => (
+                  {data.budgetStatus.violations.map(violation => (
                     <li key={violation} className='text-sm'>
                       • {violation}
                     </li>
@@ -370,7 +370,7 @@ export default function PerformancePage() {
               <AlertDescription>
                 <strong>Warnings:</strong>
                 <ul className='mt-1 space-y-1'>
-                  {data.budgetStatus.warnings.map((warning) => (
+                  {data.budgetStatus.warnings.map(warning => (
                     <li key={warning} className='text-sm'>
                       • {warning}
                     </li>
@@ -629,7 +629,7 @@ export default function PerformancePage() {
             </CardHeader>
             <CardContent>
               <div className='space-y-4'>
-                {data.resourceTimings.map((resource) => (
+                {data.resourceTimings.map(resource => (
                   <div key={resource.name} className='rounded-lg border p-4'>
                     <div className='mb-2 flex items-center justify-between'>
                       <div className='flex items-center gap-2'>
@@ -664,7 +664,7 @@ export default function PerformancePage() {
               </CardHeader>
               <CardContent>
                 <div className='space-y-2'>
-                  {data.insights.map((insight) => (
+                  {data.insights.map(insight => (
                     <div key={insight} className='flex items-start gap-2'>
                       <CheckCircle className='mt-0.5 h-4 w-4 flex-shrink-0 text-green-500' />
                       <span className='text-sm'>{insight}</span>
@@ -683,8 +683,11 @@ export default function PerformancePage() {
               </CardHeader>
               <CardContent>
                 <div className='space-y-2'>
-                  {data.recommendations.map((recommendation) => (
-                    <div key={recommendation} className='flex items-start gap-2'>
+                  {data.recommendations.map(recommendation => (
+                    <div
+                      key={recommendation}
+                      className='flex items-start gap-2'
+                    >
                       <TrendingUp className='mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500' />
                       <span className='text-sm'>{recommendation}</span>
                     </div>

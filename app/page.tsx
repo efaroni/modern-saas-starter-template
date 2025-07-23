@@ -175,7 +175,7 @@ export default function HomePage() {
               <p className='mb-4 text-gray-600'>{section.description}</p>
 
               <div className='space-y-1'>
-                {section.features.map((feature) => (
+                {section.features.map(feature => (
                   <div
                     key={feature}
                     className='flex items-center text-sm text-gray-500'

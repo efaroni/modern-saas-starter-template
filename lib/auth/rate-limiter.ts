@@ -111,7 +111,7 @@ export class RateLimiter {
       const remaining = Math.max(0, config.maxAttempts - recentAttempts.length);
       const resetTime = new Date(
         Math.max(...recentAttempts.map(a => a.createdAt.getTime())) +
-          (config.windowMinutes * 60 * 1000),
+          config.windowMinutes * 60 * 1000,
       );
 
       return {
@@ -126,7 +126,7 @@ export class RateLimiter {
       return {
         allowed: true,
         remaining: 999,
-        resetTime: new Date(Date.now() + (60 * 60 * 1000)),
+        resetTime: new Date(Date.now() + 60 * 60 * 1000),
         locked: false,
       };
     }
@@ -177,9 +177,9 @@ export class RateLimiter {
   /**
    * Clear recent attempts for a user (e.g., after successful login)
    */
-  async clearAttempts(_identifier: string, _type: string): Promise<void> {
+  clearAttempts(_identifier: string, _type: string): Promise<void> {
     try {
-      const _windowStart = new Date(Date.now() - (60 * 60 * 1000)); // 1 hour ago
+      const _windowStart = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
 
       // We don't actually delete the records for audit purposes,
       // but we could mark them as cleared or similar
@@ -187,6 +187,7 @@ export class RateLimiter {
     } catch (error) {
       console.error('Failed to clear auth attempts:', error);
     }
+    return Promise.resolve();
   }
 
   /**
@@ -198,7 +199,7 @@ export class RateLimiter {
     hours: number = 24,
   ): Promise<unknown[]> {
     try {
-      const windowStart = new Date(Date.now() - (hours * 60 * 60 * 1000));
+      const windowStart = new Date(Date.now() - hours * 60 * 60 * 1000);
 
       const _query = db
         .select()
@@ -239,14 +240,14 @@ export class RateLimiter {
    * Check if IP should be blocked (multiple failed attempts from same IP)
    */
   async checkIPRateLimit(
-    _ipAddress: string,
-    _type: string,
+    ipAddress: string,
+    type: string,
   ): Promise<RateLimitResult> {
     if (!ipAddress) {
       return {
         allowed: true,
         remaining: 999,
-        resetTime: new Date(Date.now() + (60 * 60 * 1000)),
+        resetTime: new Date(Date.now() + 60 * 60 * 1000),
         locked: false,
       };
     }

@@ -116,7 +116,9 @@ export class OAuthService {
   /**
    * Get linked accounts for a user
    */
-  async getLinkedAccounts(userId: string): Promise<typeof accounts.$inferSelect[]> {
+  async getLinkedAccounts(
+    userId: string,
+  ): Promise<(typeof accounts.$inferSelect)[]> {
     try {
       return await db
         .select()
