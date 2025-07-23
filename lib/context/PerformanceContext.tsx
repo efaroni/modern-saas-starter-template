@@ -220,7 +220,7 @@ export const PerformanceMonitor: React.FC<{
     globalPerformanceAggregator.addMetrics(metrics);
   }, [metrics, onMetricsUpdate]);
 
-  return <>{children}</>;
+  return children;
 };
 
 export default PerformanceProvider;

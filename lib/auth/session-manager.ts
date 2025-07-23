@@ -167,7 +167,7 @@ export class SessionManager {
   /**
    * Get all active sessions for a user
    */
-  async getUserSessions(userId: string): Promise<unknown[]> {
+  getUserSessions(userId: string): Promise<unknown[]> {
     return this.storage.getUserSessions(userId);
   }
 

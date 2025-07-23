@@ -247,7 +247,7 @@ export async function closeTestDatabase() {
 }
 
 // Test database helpers for isolation
-export async function withTestTransaction<T>(
+export function withTestTransaction<T>(
   fn: (db: typeof testDb) => Promise<T>,
 ): Promise<T> {
   // Use actual database transactions for test isolation

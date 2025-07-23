@@ -71,7 +71,7 @@ export const renderWithProviders = (
   } = options;
 
   const Wrapper = ({ children }: { children: ReactNode }) => {
-    let component = <>{children}</>;
+    let component = children;
 
     if (withQueryClient) {
       component = <MockQueryProvider>{component}</MockQueryProvider>;
@@ -174,7 +174,7 @@ export const componentTestUtils = {
       expectation: () => Promise<void>;
     }[],
   ) {
-    const { user } = renderWithProviders(component);
+    renderWithProviders(component);
     const results = [];
 
     for (const interaction of interactions) {
@@ -331,7 +331,7 @@ export const formTestUtils = {
       expectedError: string;
     }[],
   ) {
-    const { user } = renderWithProviders(component);
+    renderWithProviders(component);
     const results = [];
 
     for (const test of validationTests) {
@@ -453,7 +453,7 @@ export const performanceUtils = {
    */
   testWithLargeData(
     Component: React.ComponentType<Record<string, unknown>>,
-    dataGenerator: (size: number) => any,
+    dataGenerator: (size: number) => unknown,
     sizes = [100, 1000, 5000],
   ) {
     const results = [];
@@ -492,7 +492,7 @@ export const snapshotUtils = {
   /**
    * Create component snapshot with different props
    */
-  testSnapshots<T extends Record<string, any>>(
+  testSnapshots<T extends Record<string, unknown>>(
     Component: React.ComponentType<T>,
     propVariations: { name: string; props: T }[],
   ) {

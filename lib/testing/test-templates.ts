@@ -252,8 +252,8 @@ export const createHookTest = (
   const {
     testInitialState = true,
     testStateChanges = false,
-    testEffects = false,
-    testErrors = false,
+    testEffects: _testEffects = false,
+    testErrors: _testErrors = false,
     initialValue,
     stateChanges = [],
   } = options;
@@ -267,7 +267,7 @@ export const createHookTest = (
               name: 'should return initial state',
               test: async () => {
                 const { renderHook } = await import('@testing-library/react');
-                const { result } = renderHook(() => hookFunction());
+                renderHook(() => hookFunction());
 
                 if (initialValue !== undefined) {
                   expect(result.current).toEqual(initialValue);
@@ -283,10 +283,10 @@ export const createHookTest = (
         ? stateChanges.map(change => ({
             name: `should handle ${change.action}`,
             test: async () => {
-              const { renderHook, act } = await import(
+              const { renderHook, act: _act } = await import(
                 '@testing-library/react'
               );
-              const { result } = renderHook(() => hookFunction());
+              renderHook(() => hookFunction());
 
               // This would need to be customized based on the hook's API
               // act(() => {

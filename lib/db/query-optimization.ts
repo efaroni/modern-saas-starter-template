@@ -178,7 +178,7 @@ export class QueryOptimizer {
   }
 
   // Optimized user queries
-  async findUserByEmail(
+  findUserByEmail(
     email: string,
     useCache = true,
   ): Promise<typeof users.$inferSelect | null> {
@@ -199,7 +199,7 @@ export class QueryOptimizer {
     );
   }
 
-  async findUserById(
+  findUserById(
     id: string,
     useCache = true,
   ): Promise<typeof users.$inferSelect | null> {
@@ -221,7 +221,7 @@ export class QueryOptimizer {
   }
 
   // Optimized auth attempt queries with proper indexing
-  async getRecentAuthAttempts(
+  getRecentAuthAttempts(
     identifier: string,
     type: string,
     timeWindowMinutes: number = 15,
@@ -231,7 +231,7 @@ export class QueryOptimizer {
 
     return this.executeQuery(
       'getRecentAuthAttempts',
-      async () => {
+      () => {
         const timeWindow = new Date(Date.now() - (timeWindowMinutes * 60 * 1000));
 
         return db
@@ -252,11 +252,11 @@ export class QueryOptimizer {
   }
 
   // Optimized password history queries
-  async getRecentPasswordHistory(
+  getRecentPasswordHistory(
     userId: string,
     limit: number = 5,
   ): Promise<(typeof passwordHistory.$inferSelect)[]> {
-    return this.executeQuery('getRecentPasswordHistory', async () => {
+    return this.executeQuery('getRecentPasswordHistory', () => {
       return db
         .select()
         .from(passwordHistory)
@@ -267,7 +267,7 @@ export class QueryOptimizer {
   }
 
   // Batch operations for better performance
-  async batchCreateAuthAttempts(
+  batchCreateAuthAttempts(
     attempts: (typeof authAttempts.$inferInsert)[],
   ): Promise<void> {
     const batchSize = Math.min(attempts.length, this.config.maxBatchSize);
@@ -282,7 +282,7 @@ export class QueryOptimizer {
   }
 
   // Optimized session queries
-  async getActiveSessions(
+  getActiveSessions(
     userId: string,
     useCache = true,
   ): Promise<(typeof userSessions.$inferSelect)[]> {
@@ -290,7 +290,7 @@ export class QueryOptimizer {
 
     return this.executeQuery(
       'getActiveSessions',
-      async () => {
+      () => {
         const now = new Date();
 
         return db
@@ -310,7 +310,7 @@ export class QueryOptimizer {
   }
 
   // Aggregated queries for analytics
-  async getAuthAttemptStats(timeWindowHours: number = 24): Promise<{
+  getAuthAttemptStats(timeWindowHours: number = 24): Promise<{
     totalAttempts: number;
     successfulAttempts: number;
     failedAttempts: number;
@@ -370,7 +370,7 @@ export class QueryOptimizer {
   }
 
   // Cleanup operations
-  async cleanupExpiredTokens(): Promise<number> {
+  cleanupExpiredTokens(): Promise<number> {
     return this.executeQuery('cleanupExpiredTokens', async () => {
       const now = new Date();
       const result = await db
@@ -386,7 +386,7 @@ export class QueryOptimizer {
     });
   }
 
-  async cleanupExpiredSessions(): Promise<number> {
+  cleanupExpiredSessions(): Promise<number> {
     return this.executeQuery('cleanupExpiredSessions', async () => {
       const now = new Date();
       const result = await db
@@ -428,7 +428,7 @@ export class QueryOptimizer {
   }
 
   // Get database connection health
-  async getDatabaseHealth() {
+  getDatabaseHealth() {
     const dbPool = getDatabasePool();
     return dbPool.getHealth();
   }

@@ -81,7 +81,7 @@ export class AuthErrorBoundary extends React.Component<
       'eval',
       'innerHTML',
       'document.write',
-      'javascript:',
+      'javascript:', // eslint-disable-line no-script-url
       'data:',
       'vbscript:',
       'onload',
