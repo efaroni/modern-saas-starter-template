@@ -298,24 +298,24 @@ export class MockAuthProvider implements AuthProvider {
     };
   }
 
-  async verifyUserEmail(id: string): Promise<AuthResult> {
+  verifyUserEmail(id: string): Promise<AuthResult> {
     const user = this.mockUsers.get(id);
 
     if (!user) {
-      return {
+      return Promise.resolve({
         success: false,
         error: 'User not found',
-      };
+      });
     }
 
     user.emailVerified = new Date();
 
     // Return user without password
     const { password: _, ...authUser } = user;
-    return {
+    return Promise.resolve({
       success: true,
       user: authUser,
-    };
+    });
   }
 
   async changeUserPassword(
@@ -392,33 +392,33 @@ export class MockAuthProvider implements AuthProvider {
   }
 
   // Email verification methods
-  async sendEmailVerification(
-    email: string,
+  sendEmailVerification(
+    _email: string,
   ): Promise<{ success: boolean; error?: string }> {
     // Mock implementation - just return success
-    return { success: true };
+    return Promise.resolve({ success: true });
   }
 
-  async verifyEmailWithToken(
-    token: string,
+  verifyEmailWithToken(
+    _token: string,
   ): Promise<{ success: boolean; error?: string }> {
     // Mock implementation - just return success
-    return { success: true };
+    return Promise.resolve({ success: true });
   }
 
   // Password reset methods
-  async sendPasswordReset(
-    email: string,
+  sendPasswordReset(
+    _email: string,
   ): Promise<{ success: boolean; error?: string }> {
     // Mock implementation - just return success
-    return { success: true };
+    return Promise.resolve({ success: true });
   }
 
-  async resetPasswordWithToken(
-    token: string,
-    newPassword: string,
+  resetPasswordWithToken(
+    _token: string,
+    _newPassword: string,
   ): Promise<{ success: boolean; error?: string }> {
     // Mock implementation - just return success
-    return { success: true };
+    return Promise.resolve({ success: true });
   }
 }

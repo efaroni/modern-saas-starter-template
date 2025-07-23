@@ -140,14 +140,14 @@ export class OAuthIntegration {
   /**
    * Get linked accounts for a user
    */
-  async getLinkedAccounts(userId: string): Promise<OAuthAccount[]> {
+  getLinkedAccounts(userId: string): Promise<OAuthAccount[]> {
     return oauthService.getLinkedAccounts(userId);
   }
 
   /**
    * Link OAuth account to existing user
    */
-  async linkAccount(
+  linkAccount(
     userId: string,
     provider: string,
     providerAccountId: string,
@@ -166,14 +166,14 @@ export class OAuthIntegration {
   /**
    * Unlink OAuth account
    */
-  async unlinkAccount(userId: string, provider: string): Promise<boolean> {
+  unlinkAccount(userId: string, provider: string): Promise<boolean> {
     return oauthService.unlinkAccount(userId, provider);
   }
 
   /**
    * Check if user has OAuth account linked
    */
-  async hasOAuthAccount(userId: string, provider?: string): Promise<boolean> {
+  hasOAuthAccount(userId: string, provider?: string): Promise<boolean> {
     return oauthService.hasOAuthAccount(userId, provider);
   }
 

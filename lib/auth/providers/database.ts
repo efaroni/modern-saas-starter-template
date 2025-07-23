@@ -601,7 +601,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Build update object
-      const updateData: any = {
+      const updateData: Partial<typeof users.$inferInsert> = {
         updatedAt: new Date(),
       };
 

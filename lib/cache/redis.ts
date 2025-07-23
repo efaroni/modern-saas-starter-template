@@ -16,7 +16,7 @@ export interface CacheConfig {
   maxLoadingTimeout?: number;
 }
 
-export interface CacheItem<T = any> {
+export interface CacheItem<T = unknown> {
   data: T;
   timestamp: number;
   ttl: number;
@@ -428,7 +428,7 @@ export class RedisCache {
   }
 
   // Get Redis info
-  async getInfo(): Promise<any> {
+  async getInfo(): Promise<Record<string, string | number>> {
     try {
       if (this.useRedis && this.connected) {
         const info = await this.redis.info();
@@ -480,9 +480,9 @@ export class RedisCache {
     return regex.test(key);
   }
 
-  private parseRedisInfo(info: string): any {
+  private parseRedisInfo(info: string): Record<string, string | number> {
     const lines = info.split('\r\n');
-    const result: any = {};
+    const result: Record<string, string | number> = {};
     let currentSection = 'general';
 
     for (const line of lines) {
