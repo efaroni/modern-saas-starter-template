@@ -141,7 +141,7 @@ export class OAuthIntegration {
    * Get linked accounts for a user
    */
   async getLinkedAccounts(userId: string): Promise<OAuthAccount[]> {
-    return await oauthService.getLinkedAccounts(userId);
+    return oauthService.getLinkedAccounts(userId);
   }
 
   /**

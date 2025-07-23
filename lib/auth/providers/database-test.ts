@@ -490,7 +490,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       }
 
       // Update user
-      const updateData: any = {};
+      const updateData: Partial<typeof users.$inferInsert> = {};
       if (data.name !== undefined) updateData.name = data.name;
       if (data.email !== undefined) {
         updateData.email = data.email;

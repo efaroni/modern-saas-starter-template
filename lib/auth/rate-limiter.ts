@@ -126,7 +126,7 @@ export class RateLimiter {
       return {
         allowed: true,
         remaining: 999,
-        resetTime: new Date(Date.now() + 60 * 60 * 1000),
+        resetTime: new Date(Date.now() + (60 * 60 * 1000)),
         locked: false,
       };
     }
@@ -246,7 +246,7 @@ export class RateLimiter {
       return {
         allowed: true,
         remaining: 999,
-        resetTime: new Date(Date.now() + 60 * 60 * 1000),
+        resetTime: new Date(Date.now() + (60 * 60 * 1000)),
         locked: false,
       };
     }

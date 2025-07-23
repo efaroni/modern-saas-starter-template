@@ -17,7 +17,7 @@ export const createComponentTest = (
     testInteractions?: boolean;
     testLoadingStates?: boolean;
     testErrorStates?: boolean;
-    propVariations?: Record<string, any>[];
+    propVariations?: Record<string, unknown>[];
     interactions?: {
       name: string;
       action: () => Promise<void>;
@@ -59,7 +59,7 @@ export const createComponentTest = (
             {
               name: 'should render with different props',
               test: async () => {
-                const Component = component.type as React.ComponentType<any>;
+                const Component = component.type as React.ComponentType<Record<string, unknown>>;
                 const results = await componentTestUtils.testWithProps(
                   Component,
                   propVariations,
@@ -235,16 +235,16 @@ export const createFormTest = (
 // Hook test template
 export const createHookTest = (
   hookName: string,
-  hookFunction: () => any,
+  hookFunction: () => unknown,
   options: {
     testInitialState?: boolean;
     testStateChanges?: boolean;
     testEffects?: boolean;
     testErrors?: boolean;
-    initialValue?: any;
+    initialValue?: unknown;
     stateChanges?: {
       action: string;
-      expectedValue: any;
+      expectedValue: unknown;
     }[];
   } = {},
 ) => {
@@ -303,15 +303,15 @@ export const createHookTest = (
 // API test template
 export const createApiTest = (
   apiName: string,
-  apiFunction: (...args: any[]) => Promise<any>,
+  apiFunction: (...args: unknown[]) => Promise<unknown>,
   options: {
     testSuccess?: boolean;
     testError?: boolean;
     testLoading?: boolean;
-    successArgs?: any[];
-    errorArgs?: any[];
-    expectedSuccessResponse?: any;
-    expectedErrorResponse?: any;
+    successArgs?: unknown[];
+    errorArgs?: unknown[];
+    expectedSuccessResponse?: unknown;
+    expectedErrorResponse?: unknown;
   } = {},
 ) => {
   const {
@@ -460,7 +460,7 @@ export const createPerformanceTest = (
     testRenderTime?: boolean;
     testLargeData?: boolean;
     maxRenderTime?: number;
-    dataGenerator?: (size: number) => any;
+    dataGenerator?: (size: number) => unknown;
     dataSizes?: number[];
   } = {},
 ) => {
@@ -496,7 +496,7 @@ export const createPerformanceTest = (
               name: 'should handle large datasets efficiently',
               test: async () => {
                 const { performanceUtils } = await import('./component-utils');
-                const Component = component.type as React.ComponentType<any>;
+                const Component = component.type as React.ComponentType<Record<string, unknown>>;
                 const results = await performanceUtils.testWithLargeData(
                   Component,
                   dataGenerator,
@@ -531,7 +531,7 @@ export const testTemplates = {
 export const generateTestFile = (
   componentName: string,
   testType: keyof typeof testTemplates,
-  ...args: any[]
+  ...args: unknown[]
 ) => {
   const template = testTemplates[testType];
   const testConfig = template(componentName, ...args);

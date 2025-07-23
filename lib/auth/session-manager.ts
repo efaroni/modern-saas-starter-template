@@ -70,7 +70,7 @@ export class SessionManager {
   ): Promise<{
     sessionToken: string;
     expires: Date;
-    cookieOptions: any;
+    cookieOptions: Record<string, unknown>;
   }> {
     try {
       const sessionToken = await this.storage.createSession(
@@ -171,7 +171,7 @@ export class SessionManager {
   /**
    * Get all active sessions for a user
    */
-  async getUserSessions(userId: string): Promise<any[]> {
+  async getUserSessions(userId: string): Promise<unknown[]> {
     return await this.storage.getUserSessions(userId);
   }
 
@@ -218,7 +218,7 @@ export class SessionManager {
    */
   getCookieConfig(): {
     name: string;
-    options: any;
+    options: Record<string, unknown>;
   } {
     return {
       name: this.config.cookieName,

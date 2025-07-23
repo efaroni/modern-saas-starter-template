@@ -248,7 +248,7 @@ export async function closeTestDatabase() {
 
 // Test database helpers for isolation
 export async function withTestTransaction<T>(
-  fn: (db: any) => Promise<T>,
+  fn: (db: typeof testDb) => Promise<T>,
 ): Promise<T> {
   // Use actual database transactions for test isolation
   return await testDb
@@ -268,8 +268,8 @@ export async function withTestTransaction<T>(
 }
 
 // Custom error class for intentional transaction rollback
-class TestTransactionRollback extends Error {
-  constructor(public result: any) {
+class TestTransactionRollback<T = unknown> extends Error {
+  constructor(public result: T) {
     super('Test transaction rollback');
     this.name = 'TestTransactionRollback';
   }
@@ -284,7 +284,7 @@ export const testFactories = {
       provider: string;
       publicKey: string;
       privateKeyEncrypted: string;
-      metadata: Record<string, any>;
+      metadata: Record<string, unknown>;
     }> = {},
   ) => ({
     id: `00000000-0000-0000-0000-${Date.now().toString(16).padStart(12, '0')}`,
