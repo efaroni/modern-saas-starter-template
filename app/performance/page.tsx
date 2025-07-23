@@ -105,9 +105,9 @@ export default function PerformancePage() {
           componentMountTime: 145,
           apiResponseTime: 280,
           memoryUsage: {
-            usedJSHeapSize: 45 * 1024 * 1024,
-            totalJSHeapSize: 67 * 1024 * 1024,
-            jsHeapSizeLimit: 2048 * 1024 * 1024,
+            usedJSHeapSize: (45 * 1024 * 1024),
+            totalJSHeapSize: (67 * 1024 * 1024),
+            jsHeapSizeLimit: (2048 * 1024 * 1024),
           },
           userInteractions: 47,
           scrollDepth: 85,

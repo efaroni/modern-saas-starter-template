@@ -4,6 +4,21 @@ import { authService } from './factory';
 import { OAuthService } from './oauth-service';
 import { type AuthUser } from './types';
 
+interface OAuthUser {
+  id: string;
+  email: string;
+  name: string;
+  image?: string;
+}
+
+interface OAuthAccount {
+  provider: string;
+  providerAccountId: string;
+  type: string;
+  access_token?: string;
+  refresh_token?: string;
+}
+
 const oauthService = new OAuthService();
 
 /**
@@ -33,7 +48,7 @@ export class OAuthIntegration {
   /**
    * Sync OAuth user with our auth system
    */
-  async syncOAuthUser(oauthUser: any): Promise<AuthUser | null> {
+  async syncOAuthUser(oauthUser: OAuthUser): Promise<AuthUser | null> {
     try {
       // Check if user exists in our system
       const service = await authService;
@@ -67,8 +82,8 @@ export class OAuthIntegration {
    */
   async handleOAuthCallback(
     provider: string,
-    oauthUser: any,
-    account: any,
+    oauthUser: OAuthUser,
+    account: OAuthAccount,
   ): Promise<{ success: boolean; user?: AuthUser; error?: string }> {
     try {
       // Handle account conflicts
@@ -125,7 +140,7 @@ export class OAuthIntegration {
   /**
    * Get linked accounts for a user
    */
-  async getLinkedAccounts(userId: string): Promise<any[]> {
+  async getLinkedAccounts(userId: string): Promise<OAuthAccount[]> {
     return await oauthService.getLinkedAccounts(userId);
   }
 

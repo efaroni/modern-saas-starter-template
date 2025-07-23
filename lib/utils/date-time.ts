@@ -6,28 +6,28 @@
  * Adds minutes to the current date
  */
 export function addMinutes(minutes: number, fromDate: Date = new Date()): Date {
-  return new Date(fromDate.getTime() + minutes * 60 * 1000);
+  return new Date(fromDate.getTime() + (minutes * 60 * 1000));
 }
 
 /**
  * Adds hours to the current date
  */
 export function addHours(hours: number, fromDate: Date = new Date()): Date {
-  return new Date(fromDate.getTime() + hours * 60 * 60 * 1000);
+  return new Date(fromDate.getTime() + (hours * 60 * 60 * 1000));
 }
 
 /**
  * Adds days to the current date
  */
 export function addDays(days: number, fromDate: Date = new Date()): Date {
-  return new Date(fromDate.getTime() + days * 24 * 60 * 60 * 1000);
+  return new Date(fromDate.getTime() + (days * 24 * 60 * 60 * 1000));
 }
 
 /**
  * Adds seconds to the current date
  */
 export function addSeconds(seconds: number, fromDate: Date = new Date()): Date {
-  return new Date(fromDate.getTime() + seconds * 1000);
+  return new Date(fromDate.getTime() + (seconds * 1000));
 }
 
 /**
@@ -50,7 +50,7 @@ export function isNearExpiration(
   if (!date) return true;
 
   const expirationDate = typeof date === 'string' ? new Date(date) : date;
-  const warningTime = Date.now() + withinMinutes * 60 * 1000;
+  const warningTime = Date.now() + (withinMinutes * 60 * 1000);
 
   return expirationDate.getTime() <= warningTime;
 }
@@ -94,16 +94,16 @@ export const EXPIRATION_TIMES = {
   ONE_HOUR: 60,
 
   // Medium-term (hours)
-  THREE_HOURS: 3 * 60,
-  SIX_HOURS: 6 * 60,
-  TWELVE_HOURS: 12 * 60,
-  TWENTY_FOUR_HOURS: 24 * 60,
+  THREE_HOURS: (3 * 60),
+  SIX_HOURS: (6 * 60),
+  TWELVE_HOURS: (12 * 60),
+  TWENTY_FOUR_HOURS: (24 * 60),
 
   // Long-term (days in minutes)
-  ONE_DAY: 24 * 60,
-  ONE_WEEK: 7 * 24 * 60,
-  ONE_MONTH: 30 * 24 * 60,
-  THREE_MONTHS: 90 * 24 * 60,
+  ONE_DAY: (24 * 60),
+  ONE_WEEK: (7 * 24 * 60),
+  ONE_MONTH: (30 * 24 * 60),
+  THREE_MONTHS: (90 * 24 * 60),
 } as const;
 
 /**

@@ -104,10 +104,10 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
                 }));
                 break;
               case 'layout-shift':
-                if (!(entry as any).hadRecentInput) {
+                if (!(entry as LayoutShiftEntry).hadRecentInput) {
                   setMetrics(prev => ({
                     ...prev,
-                    cls: (prev.cls || 0) + (entry as any).value,
+                    cls: (prev.cls || 0) + (entry as LayoutShiftEntry).value,
                   }));
                 }
                 break;
@@ -169,7 +169,7 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
 
     try {
       if ('memory' in performance) {
-        const memoryInfo = (performance as any).memory;
+        const memoryInfo = (performance as unknown as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
         setMetrics(prev => ({ ...prev, memoryUsage: memoryInfo }));
       }
     } catch (error) {
@@ -261,7 +261,7 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
     if (typeof window === 'undefined') return;
 
     try {
-      const connection = (navigator as any).connection;
+      const connection = (navigator as unknown as { connection?: { effectiveType?: string } }).connection;
       if (connection) {
         setMetrics(prev => ({
           ...prev,

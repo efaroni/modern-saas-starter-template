@@ -401,7 +401,7 @@ export const cacheInvalidationUtils = {
   invalidateForEvent: (
     event: string,
     userIds: string | string[],
-    options?: any,
+    options?: { immediate?: boolean; delay?: number },
   ) => cacheInvalidator.invalidateForEvent(event, userIds, options),
   invalidateImmediately: (
     userIds: string | string[],

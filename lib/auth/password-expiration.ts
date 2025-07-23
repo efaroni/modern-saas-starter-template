@@ -122,7 +122,13 @@ export class PasswordExpirationService {
   /**
    * Get users with passwords nearing expiration
    */
-  async getUsersWithExpiringPasswords(): Promise<any[]> {
+  async getUsersWithExpiringPasswords(): Promise<Array<{
+    id: string;
+    email: string;
+    name: string | null;
+    updatedAt: Date | null;
+    createdAt: Date;
+  }>> {
     if (!this.config.enabled) {
       return [];
     }
@@ -130,10 +136,10 @@ export class PasswordExpirationService {
     try {
       const warningDate = new Date(
         Date.now() -
-          (this.config.maxAge - this.config.warningDays) * 24 * 60 * 60 * 1000,
+          ((this.config.maxAge - this.config.warningDays) * 24 * 60 * 60 * 1000),
       );
-      const expirationDate = new Date(
-        Date.now() - this.config.maxAge * 24 * 60 * 60 * 1000,
+      const _expirationDate = new Date(
+        Date.now() - (this.config.maxAge * 24 * 60 * 60 * 1000),
       );
 
       return await this.database
@@ -155,14 +161,20 @@ export class PasswordExpirationService {
   /**
    * Get users with expired passwords
    */
-  async getUsersWithExpiredPasswords(): Promise<any[]> {
+  async getUsersWithExpiredPasswords(): Promise<Array<{
+    id: string;
+    email: string;
+    name: string | null;
+    updatedAt: Date | null;
+    createdAt: Date;
+  }>> {
     if (!this.config.enabled) {
       return [];
     }
 
     try {
       const expirationDate = new Date(
-        Date.now() - this.config.maxAge * 24 * 60 * 60 * 1000,
+        Date.now() - (this.config.maxAge * 24 * 60 * 60 * 1000),
       );
 
       return await this.database

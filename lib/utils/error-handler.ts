@@ -520,7 +520,7 @@ export function assert(condition: boolean, error: AppError): asserts condition {
 /**
  * Wrap async function with error handling
  */
-export function withErrorContext<T extends any[], R>(
+export function withErrorContext<T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
   context: { operation: string; userId?: string },
 ): (...args: T) => Promise<R> {

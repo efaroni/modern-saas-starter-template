@@ -6,7 +6,7 @@ export interface RateLimitMiddlewareOptions {
   type: string;
   keyGenerator?: (req: NextRequest) => string;
   skipIf?: (req: NextRequest) => boolean;
-  onRateLimited?: (req: NextRequest, result: any) => NextResponse;
+  onRateLimited?: (req: NextRequest, result: { allowed: boolean; remainingAttempts: number; resetTime: Date; locked: boolean }) => NextResponse;
 }
 
 const globalRateLimiter = new EnhancedRateLimiter();
@@ -76,7 +76,7 @@ export function withRateLimit(options: RateLimitMiddlewareOptions) {
 /**
  * Create a rate limit exceeded response
  */
-function createRateLimitResponse(result: any): NextResponse {
+function createRateLimitResponse(result: { allowed: boolean; remainingAttempts: number; resetTime: Date; locked: boolean }): NextResponse {
   const message = result.locked
     ? 'Account temporarily locked due to too many failed attempts'
     : 'Rate limit exceeded';

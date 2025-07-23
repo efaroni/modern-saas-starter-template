@@ -155,6 +155,8 @@ export class MockAuthProvider implements AuthProvider {
     // Simulate OAuth flow delay only for timeout tests
     if (provider === 'timeout-test') {
       await new Promise(resolve => setTimeout(resolve, 1000));
+    } else {
+      await Promise.resolve(); // Ensure async compliance
     }
 
     // Mock OAuth providers with properly hashed passwords

@@ -18,7 +18,7 @@ export interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
   withQueryClient?: boolean;
   initialUrl?: string;
   mockAuth?: {
-    user?: any;
+    user?: { id: string; email: string; name: string };
     isAuthenticated?: boolean;
     permissions?: string[];
   };
@@ -30,7 +30,7 @@ const MockAuthProvider = ({
   mockAuth,
 }: {
   children: ReactNode;
-  mockAuth?: any;
+  mockAuth?: { user?: { id: string; email: string; name: string }; isAuthenticated?: boolean; permissions?: string[] };
 }) => {
   // Mock auth context
   return <div data-testid='mock-auth-provider'>{children}</div>;
@@ -110,7 +110,7 @@ export const componentTestUtils = {
   /**
    * Test component with different props
    */
-  async testWithProps<T extends Record<string, any>>(
+  async testWithProps<T extends Record<string, unknown>>(
     Component: React.ComponentType<T>,
     propVariations: T[],
   ) {
@@ -200,7 +200,7 @@ export const componentTestUtils = {
     const results = [];
 
     for (const [propName, isLoading] of Object.entries(loadingProps)) {
-      const Component = component.type as React.ComponentType<any>;
+      const Component = component.type as React.ComponentType<Record<string, unknown>>;
       const props = { ...component.props, [propName]: isLoading };
 
       const { container } = renderWithProviders(<Component {...props} />);
@@ -239,7 +239,7 @@ export const componentTestUtils = {
     const results = [];
 
     for (const [propName, errorMessage] of Object.entries(errorProps)) {
-      const Component = component.type as React.ComponentType<any>;
+      const Component = component.type as React.ComponentType<Record<string, unknown>>;
       const props = { ...component.props, [propName]: errorMessage };
 
       const { container } = renderWithProviders(<Component {...props} />);
@@ -360,7 +360,7 @@ export const mockUtils = {
   /**
    * Create mock function with tracking
    */
-  createMockFunction<T extends(...args: any[]) => any>(
+  createMockFunction<T extends(...args: unknown[]) => unknown>(
     name: string,
     implementation?: T,
   ): jest.MockedFunction<T> {
@@ -372,7 +372,7 @@ export const mockUtils = {
   /**
    * Mock API responses
    */
-  mockApiResponse(data: any, delay = 0) {
+  mockApiResponse(data: unknown, delay = 0) {
     return new Promise(resolve => {
       setTimeout(() => resolve(data), delay);
     });
@@ -381,7 +381,7 @@ export const mockUtils = {
   /**
    * Mock component with test ID
    */
-  mockComponent(name: string, props: Record<string, any> = {}) {
+  mockComponent(name: string, props: Record<string, unknown> = {}) {
     return jest.fn(() => <div data-testid={`mock-${name}`} {...props} />);
   },
 
@@ -444,7 +444,7 @@ export const performanceUtils = {
    * Test component with large datasets
    */
   async testWithLargeData(
-    Component: React.ComponentType<any>,
+    Component: React.ComponentType<Record<string, unknown>>,
     dataGenerator: (size: number) => any,
     sizes = [100, 1000, 5000],
   ) {

@@ -198,7 +198,7 @@ export function createPaginatedResponse<T>(
 /**
  * Wraps an async API handler with standard error handling
  */
-export function withErrorHandling<T extends any[], R>(
+export function withErrorHandling<T extends unknown[], R>(
   handler: (...args: T) => Promise<NextResponse<ApiSuccess<R>>>,
 ) {
   return async (
