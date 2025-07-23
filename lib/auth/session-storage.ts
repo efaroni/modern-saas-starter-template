@@ -57,9 +57,9 @@ export class LocalSessionStorage implements SessionStorage {
     }
   }
 
-  async setSession(session: SessionData): Promise<void> {
+  setSession(session: SessionData): Promise<void> {
     if (!this.isAvailable()) {
-      return;
+      return Promise.resolve();
     }
 
     try {
@@ -67,20 +67,24 @@ export class LocalSessionStorage implements SessionStorage {
       const sessionData = JSON.stringify(session);
       const encryptedSessionData = encrypt(sessionData);
       localStorage.setItem(this.key, encryptedSessionData);
+      return Promise.resolve();
     } catch {
       // Storage might be full or disabled, fail silently
+      return Promise.resolve();
     }
   }
 
-  async removeSession(): Promise<void> {
+  removeSession(): Promise<void> {
     if (!this.isAvailable()) {
-      return;
+      return Promise.resolve();
     }
 
     try {
       localStorage.removeItem(this.key);
+      return Promise.resolve();
     } catch {
       // Fail silently
+      return Promise.resolve();
     }
   }
 }
@@ -92,25 +96,27 @@ export class MemorySessionStorage implements SessionStorage {
     return true;
   }
 
-  async getSession(): Promise<SessionData | null> {
+  getSession(): Promise<SessionData | null> {
     // Check if session is expired
     if (
       this.session?.expires &&
       new Date(this.session.expires).getTime() < Date.now()
     ) {
       this.session = null;
-      return null;
+      return Promise.resolve(null);
     }
 
-    return this.session;
+    return Promise.resolve(this.session);
   }
 
-  async setSession(session: SessionData): Promise<void> {
+  setSession(session: SessionData): Promise<void> {
     this.session = session;
+    return Promise.resolve();
   }
 
-  async removeSession(): Promise<void> {
+  removeSession(): Promise<void> {
     this.session = null;
+    return Promise.resolve();
   }
 }
 

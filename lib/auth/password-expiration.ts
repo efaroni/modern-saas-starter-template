@@ -138,10 +138,7 @@ export class PasswordExpirationService {
     try {
       const warningDate = new Date(
         Date.now() -
-          (this.config.maxAge - this.config.warningDays) * 24 * 60 * 60 * 1000,
-      );
-      const _expirationDate = new Date(
-        Date.now() - this.config.maxAge * 24 * 60 * 60 * 1000,
+          ((this.config.maxAge - this.config.warningDays) * 24 * 60 * 60 * 1000),
       );
 
       return await this.database
@@ -178,7 +175,7 @@ export class PasswordExpirationService {
 
     try {
       const expirationDate = new Date(
-        Date.now() - this.config.maxAge * 24 * 60 * 60 * 1000,
+        Date.now() - (this.config.maxAge * 24 * 60 * 60 * 1000),
       );
 
       return await this.database

@@ -75,7 +75,7 @@ export class SessionManager {
         userAgent,
       );
 
-      const expires = new Date(Date.now() + this.config.maxAge * 1000);
+      const expires = new Date(Date.now() + (this.config.maxAge * 1000));
 
       return {
         sessionToken,

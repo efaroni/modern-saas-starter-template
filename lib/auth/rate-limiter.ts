@@ -111,7 +111,7 @@ export class RateLimiter {
       const remaining = Math.max(0, config.maxAttempts - recentAttempts.length);
       const resetTime = new Date(
         Math.max(...recentAttempts.map(a => a.createdAt.getTime())) +
-          config.windowMinutes * 60 * 1000,
+          (config.windowMinutes * 60 * 1000),
       );
 
       return {
@@ -126,7 +126,7 @@ export class RateLimiter {
       return {
         allowed: true,
         remaining: 999,
-        resetTime: new Date(Date.now() + 60 * 60 * 1000),
+        resetTime: new Date(Date.now() + (60 * 60 * 1000)),
         locked: false,
       };
     }
@@ -179,8 +179,6 @@ export class RateLimiter {
    */
   clearAttempts(_identifier: string, _type: string): Promise<void> {
     try {
-      const _windowStart = new Date(Date.now() - 60 * 60 * 1000); // 1 hour ago
-
       // We don't actually delete the records for audit purposes,
       // but we could mark them as cleared or similar
       // For now, just let them naturally expire
@@ -199,19 +197,9 @@ export class RateLimiter {
     hours: number = 24,
   ): Promise<unknown[]> {
     try {
-      const windowStart = new Date(Date.now() - hours * 60 * 60 * 1000);
+      const windowStart = new Date(Date.now() - (hours * 60 * 60 * 1000));
 
-      const _query = db
-        .select()
-        .from(authAttempts)
-        .where(
-          and(
-            eq(authAttempts.success, false),
-            gte(authAttempts.createdAt, windowStart),
-          ),
-        );
-
-      // Add additional filters if provided
+      // Add filters for the query
       const conditions = [
         eq(authAttempts.success, false),
         gte(authAttempts.createdAt, windowStart),
@@ -239,25 +227,21 @@ export class RateLimiter {
   /**
    * Check if IP should be blocked (multiple failed attempts from same IP)
    */
-  async checkIPRateLimit(
+  checkIPRateLimit(
     ipAddress: string,
     type: string,
   ): Promise<RateLimitResult> {
     if (!ipAddress) {
-      return {
+      return Promise.resolve({
         allowed: true,
         remaining: 999,
-        resetTime: new Date(Date.now() + 60 * 60 * 1000),
+        resetTime: new Date(Date.now() + (60 * 60 * 1000)),
         locked: false,
-      };
+      });
     }
 
     // Use more restrictive limits for IP-based rate limiting
-    const _ipConfig = {
-      maxAttempts: 10,
-      windowMinutes: 60,
-      lockoutMinutes: 60,
-    };
+    // Note: Using standard checkRateLimit with IP-specific type
 
     return this.checkRateLimit(ipAddress, `ip_${type}`, ipAddress);
   }
