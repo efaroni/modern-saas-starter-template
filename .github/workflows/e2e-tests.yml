@@ -1,6 +1,17 @@
 name: E2E Tests
 
 on:
+  # Direct trigger on push to main branches
+  push:
+    branches: [main, develop]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'tests/e2e/**'
+      - 'playwright.config.ts'
+      - '.github/workflows/**'
+
   # Manual trigger for on-demand testing
   workflow_dispatch:
     inputs:
@@ -31,7 +42,7 @@ on:
 
   # Trigger after successful CI completion
   workflow_run:
-    workflows: ['CI']
+    workflows: ['Continuous Integration']
     types: [completed]
     branches: [main, develop]
 

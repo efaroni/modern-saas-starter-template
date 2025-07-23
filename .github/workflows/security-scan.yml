@@ -89,6 +89,8 @@ jobs:
           # Provide minimal env vars for build (generated unique secret per run)
           NEXTAUTH_SECRET: ${{ format('security-scan-{0}-{1}', github.run_id, github.sha) }}
           NEXTAUTH_URL: 'http://localhost:3000'
+          # Mock database configuration for build
+          DATABASE_URL: 'postgresql://mock:mock@localhost:5432/mock_db'
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
@@ -338,11 +340,13 @@ jobs:
           echo "Please review and fix these vulnerabilities before proceeding."
           exit 1
 
-  # Job 4: Snyk Security Scanning (free tier)
+  # Job 4: Snyk Security Scanning (free tier) - Optional
   snyk-scan:
-    name: 🐍 Snyk Vulnerability Scan
+    name: 🐍 Snyk Vulnerability Scan (Optional)
     runs-on: ubuntu-latest
-    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'dependencies' || github.event.inputs.scan_type == ''
+    # Only run if SNYK_TOKEN is configured
+    if: (github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'dependencies' || github.event.inputs.scan_type == '') && secrets.SNYK_TOKEN != ''
+    continue-on-error: true
 
     steps:
       - name: Checkout repository

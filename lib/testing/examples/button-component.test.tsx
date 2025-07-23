@@ -6,7 +6,7 @@ import {
   renderWithProviders,
   componentTestUtils,
   mockUtils,
-} from '../component-utils.tsx';
+} from '../component-utils';
 import { testTemplates } from '../test-templates';
 
 // Example Button component for testing
@@ -39,7 +39,7 @@ describe('Button Component - Example Tests', () => {
   let mockOnClick: jest.MockedFunction<() => void>;
 
   beforeEach(() => {
-    mockOnClick = mockUtils.createMockFunction('onClick');
+    mockOnClick = mockUtils.createMockFunction<() => void>('onClick');
   });
 
   afterEach(() => {
