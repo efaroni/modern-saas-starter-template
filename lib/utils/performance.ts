@@ -237,7 +237,7 @@ export function measurePerformance<T extends(...args: unknown[]) => unknown>(
       if (result instanceof Promise) {
         return result.finally(() => {
           const end = performance.now();
-          console.log(`${functionName} executed in ${end - start}ms`);
+          console.warn(`${functionName} executed in ${end - start}ms`);
         }) as ReturnType<T>;
       } else {
         const end = performance.now();
@@ -246,7 +246,7 @@ export function measurePerformance<T extends(...args: unknown[]) => unknown>(
       }
     } catch (error) {
       const end = performance.now();
-      console.log(`${functionName} failed after ${end - start}ms`);
+      console.error(`${functionName} failed after ${end - start}ms`);
       throw error;
     }
   }) as T;

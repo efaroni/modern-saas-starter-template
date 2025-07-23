@@ -43,6 +43,7 @@ export class MockAuthProvider implements AuthProvider {
   ]);
 
   async authenticateUser(email: string, password: string): Promise<AuthResult> {
+    await Promise.resolve(); // Ensure async compliance
     // Find user by email
     const user = Array.from(this.mockUsers.values()).find(
       u => u.email === email,
@@ -65,6 +66,7 @@ export class MockAuthProvider implements AuthProvider {
   }
 
   async createUser(userData: SignUpRequest): Promise<AuthResult> {
+    await Promise.resolve(); // Ensure async compliance
     const { email, password, name } = userData;
 
     // Validate email format
@@ -116,6 +118,7 @@ export class MockAuthProvider implements AuthProvider {
   }
 
   async getUserById(id: string): Promise<AuthResult> {
+    await Promise.resolve(); // Ensure async compliance
     const user = this.mockUsers.get(id);
     if (user) {
       const { password: _, ...authUser } = user;
@@ -131,6 +134,7 @@ export class MockAuthProvider implements AuthProvider {
   }
 
   async getUserByEmail(email: string): Promise<AuthResult> {
+    await Promise.resolve(); // Ensure async compliance
     const user = Array.from(this.mockUsers.values()).find(
       u => u.email === email,
     );
@@ -276,6 +280,7 @@ export class MockAuthProvider implements AuthProvider {
   }
 
   async deleteUser(id: string): Promise<AuthResult> {
+    await Promise.resolve(); // Ensure async compliance
     const user = this.mockUsers.get(id);
 
     if (!user) {

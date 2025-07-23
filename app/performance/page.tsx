@@ -354,8 +354,8 @@ export default function PerformancePage() {
               <AlertDescription>
                 <strong>Budget Violations:</strong>
                 <ul className='mt-1 space-y-1'>
-                  {data.budgetStatus.violations.map((violation, index) => (
-                    <li key={index} className='text-sm'>
+                  {data.budgetStatus.violations.map((violation) => (
+                    <li key={violation} className='text-sm'>
                       • {violation}
                     </li>
                   ))}
@@ -370,8 +370,8 @@ export default function PerformancePage() {
               <AlertDescription>
                 <strong>Warnings:</strong>
                 <ul className='mt-1 space-y-1'>
-                  {data.budgetStatus.warnings.map((warning, index) => (
-                    <li key={index} className='text-sm'>
+                  {data.budgetStatus.warnings.map((warning) => (
+                    <li key={warning} className='text-sm'>
                       • {warning}
                     </li>
                   ))}
@@ -629,8 +629,8 @@ export default function PerformancePage() {
             </CardHeader>
             <CardContent>
               <div className='space-y-4'>
-                {data.resourceTimings.map((resource, index) => (
-                  <div key={index} className='rounded-lg border p-4'>
+                {data.resourceTimings.map((resource) => (
+                  <div key={resource.name} className='rounded-lg border p-4'>
                     <div className='mb-2 flex items-center justify-between'>
                       <div className='flex items-center gap-2'>
                         <Badge variant='outline'>{resource.type}</Badge>
