@@ -141,7 +141,7 @@ export class PasswordExpirationService {
           ((this.config.maxAge - this.config.warningDays) * 24 * 60 * 60 * 1000),
       );
 
-      return await this.database
+      return this.database
         .select({
           id: users.id,
           email: users.email,
@@ -178,7 +178,7 @@ export class PasswordExpirationService {
         Date.now() - (this.config.maxAge * 24 * 60 * 60 * 1000),
       );
 
-      return await this.database
+      return this.database
         .select({
           id: users.id,
           email: users.email,

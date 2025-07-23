@@ -140,7 +140,7 @@ export class AuthService {
       try {
         await this.sessionStorage.setSession(this.currentSession);
         this.hasStorageWriteFailure = false;
-      } catch (error) {
+      } catch {
         // Storage write failed, but we keep the session in memory
         this.hasStorageWriteFailure = true;
         authLogger.logAuthEvent({
@@ -173,7 +173,7 @@ export class AuthService {
       // Store session (fail silently if storage fails)
       try {
         await this.sessionStorage.setSession(this.currentSession);
-      } catch (error) {
+      } catch {
         // Storage write failed, but we keep the session in memory
         authLogger.logAuthEvent({
           type: 'session_storage_failure',
@@ -292,11 +292,11 @@ export class AuthService {
     return this.provider.getConfiguration();
   }
 
-  async getUserProfile(id: string): Promise<AuthResult> {
+  getUserProfile(id: string): Promise<AuthResult> {
     return this.provider.getUserById(id);
   }
 
-  async getCurrentUserProfile(): Promise<AuthResult> {
+  getCurrentUserProfile(): Promise<AuthResult> {
     return this.getUser();
   }
 
@@ -347,7 +347,7 @@ export class AuthService {
     return result;
   }
 
-  async changePassword(
+  changePassword(
     id: string,
     passwordData: ChangePasswordRequest,
   ): Promise<AuthResult> {
@@ -591,7 +591,7 @@ export class AuthService {
         success: true,
         user: userResult.user,
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Invalid or expired reset token',
@@ -656,7 +656,7 @@ export class AuthService {
       }
 
       return result;
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: 'Invalid or expired reset token',
@@ -734,26 +734,26 @@ export class AuthService {
   async sendEmailVerification(
     email: string,
   ): Promise<{ success: boolean; error?: string }> {
-    return await this.provider.sendEmailVerification(email);
+    return this.provider.sendEmailVerification(email);
   }
 
   async verifyEmailWithToken(
     token: string,
   ): Promise<{ success: boolean; error?: string }> {
-    return await this.provider.verifyEmailWithToken(token);
+    return this.provider.verifyEmailWithToken(token);
   }
 
   // New password reset methods
   async sendPasswordReset(
     email: string,
   ): Promise<{ success: boolean; error?: string }> {
-    return await this.provider.sendPasswordReset(email);
+    return this.provider.sendPasswordReset(email);
   }
 
   async resetPasswordWithToken(
     token: string,
     newPassword: string,
   ): Promise<{ success: boolean; error?: string }> {
-    return await this.provider.resetPasswordWithToken(token, newPassword);
+    return this.provider.resetPasswordWithToken(token, newPassword);
   }
 }
