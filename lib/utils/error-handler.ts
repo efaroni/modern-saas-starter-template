@@ -327,11 +327,11 @@ export class ErrorHandler {
   /**
    * Log structured error
    */
-  private async logError(
+  private logError(
     error: StructuredError,
     request: NextRequest,
     context: { userId?: string; endpoint?: string; method?: string },
-  ): Promise<void> {
+  ): void {
     const logData = {
       error: {
         message: error.message,
@@ -408,7 +408,7 @@ export class ErrorHandler {
   /**
    * Send alert for critical errors
    */
-  private async sendAlert(
+  private sendAlert(
     error: StructuredError,
     request: NextRequest,
     context: { userId?: string; endpoint?: string; method?: string },
@@ -472,7 +472,7 @@ export async function withErrorHandling<T>(
     return await handler();
   } catch (error) {
     const errorHandler = ErrorHandler.getInstance();
-    return await errorHandler.handleError(error, request, context);
+    return errorHandler.handleError(error, request, context);
   }
 }
 

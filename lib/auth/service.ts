@@ -731,26 +731,26 @@ export class AuthService {
   }
 
   // New email verification methods
-  async sendEmailVerification(
+  sendEmailVerification(
     email: string,
   ): Promise<{ success: boolean; error?: string }> {
     return this.provider.sendEmailVerification(email);
   }
 
-  async verifyEmailWithToken(
+  verifyEmailWithToken(
     token: string,
   ): Promise<{ success: boolean; error?: string }> {
     return this.provider.verifyEmailWithToken(token);
   }
 
   // New password reset methods
-  async sendPasswordReset(
+  sendPasswordReset(
     email: string,
   ): Promise<{ success: boolean; error?: string }> {
     return this.provider.sendPasswordReset(email);
   }
 
-  async resetPasswordWithToken(
+  resetPasswordWithToken(
     token: string,
     newPassword: string,
   ): Promise<{ success: boolean; error?: string }> {

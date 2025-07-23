@@ -197,7 +197,7 @@ export class DatabaseMigrator {
     `;
   }
 
-  private async getAvailableMigrations(): Promise<string[]> {
+  private getAvailableMigrations(): string[] {
     const files = fs.readdirSync(this.migrationsPath);
     return files
       .filter(file => file.endsWith('.sql') && !file.includes('.rollback.'))

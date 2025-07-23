@@ -135,7 +135,7 @@ export class SessionManager {
       }
 
       // Session is valid, refresh it
-      const refreshedExpires = new Date(Date.now() + this.config.maxAge * 1000);
+      const refreshedExpires = new Date(Date.now() + (this.config.maxAge * 1000));
       await this.storage.setSession({
         ...sessionData,
         expires: refreshedExpires.toISOString(),
@@ -275,6 +275,7 @@ export class SessionManager {
     try {
       // The cleanup is handled internally by DatabaseSessionStorage
       // We could add more sophisticated cleanup logic here
+      await this.storage.cleanupExpiredSessions();
     } catch (error) {
       console.error('Failed to cleanup expired sessions:', error);
     }

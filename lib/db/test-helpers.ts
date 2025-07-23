@@ -10,6 +10,7 @@ import {
   accounts,
   sessions,
   verificationTokens,
+  type InsertUserApiKey,
 } from './schema';
 import {
   testDb,
@@ -17,8 +18,6 @@ import {
   initializeTestDatabase,
   clearWorkerTestData,
 } from './test';
-
-import type { InsertUserApiKey } from './schema';
 
 // Define InsertUser type based on the users table
 type InsertUser = typeof users.$inferInsert;
@@ -307,7 +306,7 @@ export const testHelpers = {
   },
 
   // Helper for testing complete CRUD workflows
-  async testCRUDWorkflow<T>(
+  async testCRUDWorkflow(
     createFn: (data: unknown) => Promise<unknown>,
     readFn: (id: string) => Promise<unknown>,
     updateFn: (id: string, data: unknown) => Promise<unknown>,
@@ -374,15 +373,15 @@ export const authTestHelpers = {
     }
 
     const users = await Promise.all(userPromises);
-    return await testDb.insert(users).values(users).returning();
+    return testDb.insert(users).values(users).returning();
   },
 
   // Verify password hashing
-  async verifyPasswordHash(
+  verifyPasswordHash(
     plainPassword: string,
     hashedPassword: string,
-  ): Promise<boolean> {
-    return await bcrypt.verify(plainPassword, hashedPassword);
+  ): boolean {
+    return bcrypt.verifySync(plainPassword, hashedPassword);
   },
 
   // Test data for auth scenarios

@@ -3,7 +3,6 @@ import { type ReactElement } from 'react';
 import {
   componentTestUtils,
   formTestUtils,
-  mockUtils,
 } from './component-utils';
 
 // Base component test template
@@ -173,8 +172,8 @@ export const createFormTest = (
     formData = {},
     validationTests = [],
     submitButtonText = 'Submit',
-    expectedSuccessMessage = 'Success',
-    expectedErrorMessage = 'Error',
+    expectedSuccessMessage: _expectedSuccessMessage = 'Success',
+    expectedErrorMessage: _expectedErrorMessage = 'Error',
   } = options;
 
   return {
@@ -441,10 +440,10 @@ export const createIntegrationTest = (
         ? [
             {
               name: 'should facilitate component communication',
-              test: async () => {
+              test: () => {
                 // This would need to be customized based on the components being tested
-                components.forEach(async component => {
-                  await componentTestUtils.shouldRender(component);
+                components.forEach(component => {
+                  componentTestUtils.shouldRender(component);
                 });
               },
             },

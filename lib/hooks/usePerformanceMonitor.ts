@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
-import { useRouter } from 'next/navigation';
-
 export interface PerformanceMetrics {
   // Core Web Vitals
   lcp?: number; // Largest Contentful Paint
@@ -61,7 +59,6 @@ const defaultConfig: PerformanceConfig = {
 
 export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
   const finalConfig = { ...defaultConfig, ...config };
-  const router = useRouter();
   const [metrics, setMetrics] = useState<PerformanceMetrics>({});
   const [isMonitoring, setIsMonitoring] = useState(false);
 
@@ -256,7 +253,7 @@ export const usePerformanceMonitor = (config: PerformanceConfig = {}) => {
   }, []);
 
   // Error tracking
-  const trackError = useCallback((error: Error) => {
+  const trackError = useCallback((_error: Error) => {
     setMetrics(prev => ({
       ...prev,
       errorCount: (prev.errorCount || 0) + 1,

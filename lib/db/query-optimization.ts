@@ -232,9 +232,9 @@ export class QueryOptimizer {
     return this.executeQuery(
       'getRecentAuthAttempts',
       async () => {
-        const timeWindow = new Date(Date.now() - timeWindowMinutes * 60 * 1000);
+        const timeWindow = new Date(Date.now() - (timeWindowMinutes * 60 * 1000));
 
-        return await db
+        return db
           .select()
           .from(authAttempts)
           .where(
@@ -257,7 +257,7 @@ export class QueryOptimizer {
     limit: number = 5,
   ): Promise<(typeof passwordHistory.$inferSelect)[]> {
     return this.executeQuery('getRecentPasswordHistory', async () => {
-      return await db
+      return db
         .select()
         .from(passwordHistory)
         .where(eq(passwordHistory.userId, userId))
@@ -293,7 +293,7 @@ export class QueryOptimizer {
       async () => {
         const now = new Date();
 
-        return await db
+        return db
           .select()
           .from(userSessions)
           .where(
@@ -323,7 +323,7 @@ export class QueryOptimizer {
       'getAuthAttemptStats',
       async () => {
         const timeWindow = new Date(
-          Date.now() - timeWindowHours * 60 * 60 * 1000,
+          Date.now() - (timeWindowHours * 60 * 60 * 1000),
         );
 
         // Get basic stats
@@ -378,7 +378,7 @@ export class QueryOptimizer {
         .where(
           lte(
             authAttempts.createdAt,
-            new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+            new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000)),
           ),
         ); // 90 days ago
 
@@ -430,7 +430,7 @@ export class QueryOptimizer {
   // Get database connection health
   async getDatabaseHealth() {
     const dbPool = getDatabasePool();
-    return await dbPool.getHealth();
+    return dbPool.getHealth();
   }
 }
 

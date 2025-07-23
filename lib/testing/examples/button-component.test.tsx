@@ -134,7 +134,7 @@ describe('Button Component - Example Tests', () => {
   });
 
   describe('Using Test Templates', () => {
-    it('should pass component template tests', async () => {
+    it('should pass component template tests', () => {
       const buttonComponent = <Button>Template Test</Button>;
 
       const testConfig = testTemplates.component('Button', buttonComponent, {

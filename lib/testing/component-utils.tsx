@@ -27,7 +27,7 @@ export interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
 // Mock providers for testing
 const MockAuthProvider = ({
   children,
-  mockAuth,
+  mockAuth: _mockAuth,
 }: {
   children: ReactNode;
   mockAuth?: {
@@ -42,7 +42,7 @@ const MockAuthProvider = ({
 
 const MockRouterProvider = ({
   children,
-  initialUrl,
+  initialUrl: _initialUrl,
 }: {
   children: ReactNode;
   initialUrl?: string;
@@ -66,7 +66,7 @@ export const renderWithProviders = (
     withRouter = false,
     withQueryClient = false,
     initialUrl = '/',
-    mockAuth,
+    mockAuth: _mockAuth,
     ...renderOptions
   } = options;
 
@@ -105,7 +105,7 @@ export const componentTestUtils = {
   /**
    * Test if a component renders without crashing
    */
-  async shouldRender(component: ReactElement) {
+  shouldRender(component: ReactElement) {
     const { container } = renderWithProviders(component);
     expect(container.firstChild).toBeInTheDocument();
     return container;
@@ -114,7 +114,7 @@ export const componentTestUtils = {
   /**
    * Test component with different props
    */
-  async testWithProps<T extends Record<string, unknown>>(
+  testWithProps<T extends Record<string, unknown>>(
     Component: React.ComponentType<T>,
     propVariations: T[],
   ) {
@@ -135,7 +135,7 @@ export const componentTestUtils = {
   /**
    * Test component accessibility
    */
-  async testAccessibility(component: ReactElement) {
+  testAccessibility(component: ReactElement) {
     const { container } = renderWithProviders(component);
 
     // Check for basic accessibility attributes
@@ -197,7 +197,7 @@ export const componentTestUtils = {
   /**
    * Test component loading states
    */
-  async testLoadingStates(
+  testLoadingStates(
     component: ReactElement,
     loadingProps: Record<string, boolean>,
   ) {
@@ -238,7 +238,7 @@ export const componentTestUtils = {
   /**
    * Test component error states
    */
-  async testErrorStates(
+  testErrorStates(
     component: ReactElement,
     errorProps: Record<string, string | null>,
   ) {
@@ -428,7 +428,7 @@ export const performanceUtils = {
   /**
    * Measure component render time
    */
-  async measureRenderTime(component: ReactElement, iterations = 10) {
+  measureRenderTime(component: ReactElement, iterations = 10) {
     const times = [];
 
     for (let i = 0; i < iterations; i++) {
@@ -451,7 +451,7 @@ export const performanceUtils = {
   /**
    * Test component with large datasets
    */
-  async testWithLargeData(
+  testWithLargeData(
     Component: React.ComponentType<Record<string, unknown>>,
     dataGenerator: (size: number) => any,
     sizes = [100, 1000, 5000],

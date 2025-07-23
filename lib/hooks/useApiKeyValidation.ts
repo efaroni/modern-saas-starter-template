@@ -57,7 +57,7 @@ export function useApiKeyValidation({
     }
   };
 
-  const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     // Set paste flag to prevent timeout validation
     setIsPasteValidating(true);
 
