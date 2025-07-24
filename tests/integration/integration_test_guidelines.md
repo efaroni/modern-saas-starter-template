@@ -4,6 +4,28 @@
 
 This document outlines our team's approach to integration testing. Integration tests verify that different components of our system work correctly together, bridging the gap between unit tests (which test individual functions) and E2E tests (which test complete user workflows). Following these guidelines helps us catch integration issues early, maintain confidence in our API contracts, and ship quality code quickly.
 
+Integration tests should:
+
+Verify interactions between multiple components or modules (e.g., service + database, controller + external API).
+
+Test how real systems work together, such as databases, external APIs, file systems, or internal services.
+
+Confirm correct data flow, request/response handling, and side effects across integrated parts.
+
+Use real dependencies when stable, or reliable mocks/stubs when needed to simulate integration points.
+
+Ensure components behave correctly when combined, not just individually.
+
+Integration tests should NOT:
+
+Re-test internal logic of a single function or method (covered in unit tests).
+
+Attempt full user workflows or end-to-end scenarios (reserved for E2E tests).
+
+Include UI or browser-specific interactions.
+
+Combine unrelated components in ways that don’t reflect real integrations.
+
 ## Integration Test Guidelines
 
 ### 1. Test Real Interactions, Mock External Dependencies
