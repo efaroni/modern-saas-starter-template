@@ -252,12 +252,13 @@ jobs:
           # Run tests with simple configuration
           npx playwright test \
             --project=chromium \
-            --reporter=html,junit,line \
-            --output-dir=test-results
+            --reporter=html \
+            --reporter=junit \
+            --reporter=line
         env:
           # E2E test environment
           PLAYWRIGHT_HTML_REPORT: playwright-report
-          PLAYWRIGHT_JUNIT_OUTPUT_NAME: test-results/junit.xml
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: results.xml
 
       # Accessibility testing with axe-playwright
       - name: Run accessibility tests
@@ -306,7 +307,7 @@ jobs:
         if: success() || failure()
         with:
           name: E2E Tests
-          path: test-results/junit.xml
+          path: results.xml
           reporter: java-junit
           fail-on-error: 'false'
 
@@ -330,9 +331,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Count test results
-          if [ -f "test-results/junit.xml" ]; then
-            TOTAL_TESTS=$(grep -c 'testcase' test-results/junit.xml || echo "0")
-            FAILED_TESTS=$(grep -c 'failure\|error' test-results/junit.xml || echo "0")
+          if [ -f "test-results/results.xml" ]; then
+            TOTAL_TESTS=$(grep -c 'testcase' test-results/results.xml || echo "0")
+            FAILED_TESTS=$(grep -c 'failure\|error' test-results/results.xml || echo "0")
             PASSED_TESTS=$((TOTAL_TESTS - FAILED_TESTS))
           else
             TOTAL_TESTS="0"
