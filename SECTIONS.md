@@ -38,59 +38,175 @@
 
 **Database Tables:** `users`, `accounts`, `sessions`, `verification_tokens`
 
-## Section 3: Payments & Billing
+## Section 3: Payments & Billing (Stripe-First Approach)
 
-**Purpose:** Stripe + payment database tables + subscription management
-**Route:** `/dev/payments`
-**Features:**
+**Purpose:** Minimal Stripe integration leveraging Stripe's built-in features
+**Route:** `/payments`
 
-- Stripe implementation with abstracted payment service layer
-- Core payment database tables (customers, subscriptions, payments, invoices)
-- Test mode integration (uses Stripe test keys, no real charges)
-- Real payment testing (1¢ transactions when live keys configured)
-- Subscription creation and management
-- One-time payment testing
-- Webhook handling and validation (updates local database)
-- Payment history and invoice tracking
-- Customer portal integration
-- Payment status verification (success/failure flows)
+**Database Tables:**
 
-**Database Tables:** `customers`, `subscriptions`, `payments`, `invoices`
+- Users table: Add `stripe_customer_id` field
+- Subscriptions table: Just `user_id`, `stripe_subscription_id`, `status`, `current_period_end`
+- Plans table: `name`, `stripe_price_id`, `features` (JSON for feature flags)
+
+### Core Implementation:
+
+**Stripe Setup:**
+
+- Environment-based keys (test/live)
+- Webhook endpoint configuration
+- Product & price creation (via Stripe Dashboard)
+
+**Minimal Flows:**
+
+1. **Checkout:** Redirect to Stripe Checkout (one line of code)
+2. **Portal:** Redirect to Customer Portal (one line of code)
+3. **Subscription Status:** Check via webhook or Stripe API
+
+**Webhook Handlers (the only complex part):**
+
+- `checkout.session.completed` - Create user account/subscription record
+- `customer.subscription.updated` - Update local subscription status
+- `customer.subscription.deleted` - Mark subscription as cancelled
+
+**Webhook Security:**
+
+- Use `stripe.webhooks.constructEvent()` to verify the Stripe signature.
+- Ensure handlers are idempotent (avoid duplicate processing).
+- Only respond to known `event.type` values.
+- Always return `200 OK` after successful processing to prevent retries.
+
+**Feature Access:**
+
+- Simple middleware: Check subscription status + plan features
+- Plan-based feature flags from your plans table
+
+**UI Components:**
+
+- Pricing cards with "Subscribe" buttons → Stripe Checkout
+- "Manage Billing" button → Customer Portal
+- Current plan badge (from local subscription status)
+
+### What We're NOT Building:
+
+- ❌ Payment forms (use Stripe Checkout)
+- ❌ Invoice pages (use Customer Portal)
+- ❌ Subscription management UI (use Customer Portal)
+- ❌ Payment method management (use Customer Portal)
+- ❌ Email notifications (Stripe sends these)
 
 ## Section 4: Email System
 
-**Purpose:** Resend + React Email templates + transactional email testing
-**Route:** `/dev/emails`
-**Features:**
+**Purpose:** Resend + React Email templates + transactional email flows  
+**Route:** `/emails`
 
-- Resend implementation with abstracted email service layer
-- React Email templates (welcome, password reset, billing)
-- Transactional email testing (account, billing, security emails)
-- Email delivery status tracking
-- Template rendering and preview
-- Unsubscribe management and email preferences
-- Email triggering patterns (auth events, payment webhooks, user actions)
-- Integration with other sections (auth signup, payment confirmations)
+### Core Features:
 
-**Database Tables:** `email_logs`, `email_preferences`
+**Email Service:**
+
+- Resend implementation with abstracted service layer (e.g. `sendEmail(to, template, data)`)
+- Environment-based API keys (`RESEND_API_KEY`) for dev and prod
+
+**Supported Emails:**
+
+- Welcome email (on signup)
+- Email verification (with token link)
+- Password reset (with token link)
+- Subscription confirmation (on successful payment)
+- Subscription ending notice (on cancelation/failed payment)
+- Marketing unsubscribe/resubscribe
+
+**React Email Templates:**
+
+- Welcome
+- Verification
+- Password reset
+- Subscription confirmation
+- Subscription ending
+
+**Email Triggers:**
+
+- On signup → send welcome + verification
+- On password reset request → send reset email
+- On Stripe webhook → send subscription confirmation or cancelation email
+- Manual test sends in `/emails`
+
+**Notes:**
+
+- Verification & reset emails use short-lived, secure tokens from your auth system
+- Resend handles delivery, open tracking, bounce handling, and logs — do not rebuild these
+- Transactional emails are always sent; marketing emails are optional and depend on `marketing_emails` opt-in
+- Use an idempotency key (e.g., `stripe_event_id + template_type`) for webhook-driven emails to prevent duplicate sends (store in `email_logs`)
+
+**Database Tables (optional):**
+
+- `email_logs` (
+  id,  
+   to_email,  
+   template_type,  
+   status, -- "sent", "failed"  
+   sent_at,  
+   resend_id -- for lookup in Resend dashboard  
+   event_id -- for idempotency (optional)
+  )
+- `email_preferences` (
+  user_id,  
+   marketing_emails BOOLEAN DEFAULT true  
+   -- Transactional emails are not affected by this setting
+  )
 
 ## Section 5: AI Styling System
 
-**Purpose:** Screenshot analysis + 3-file code generator (STYLE_GUIDE.md, tailwind.config.js, globals.css)
-**Route:** `/dev/styling`
-**Features:**
+**Purpose:** Screenshot analysis → AI-optimized style system for custom UI generation and to avoid the generic ShadCN look that most AI apps have
+**Route:** `/styling`
 
-- Screenshot upload interface (1-3 reference images)
-- OpenAI Vision with Vercel AI SDK analysis of design patterns and preferences
-- Three-file code generator with copy/paste outputs:
-  1. STYLE_GUIDE.md - AI-readable design patterns and brand guidelines
-  2. tailwind.config.js - Custom theme configuration with extracted colors/styles
-  3. app/globals.css - CSS variables and custom styling
-- Clear file modification instructions (exactly where to paste each code block)
-- Live preview of generated styling on sample components
-- Instant custom branding - escape generic ShadCN look
+### Core Features:
 
-**Database Tables:** `style_configs` (for saving user preferences)
+**Input & Analysis:**
+
+- Screenshot upload (1-3 inspiration images)
+- Hybrid analysis approach:
+- OpenAI Vision API for design patterns, typography, spacing, component styles
+- Color.js library for precise color palette extraction
+- Combines AI understanding with accurate hex values
+
+**Analysis Extracts:**
+
+- Exact color palettes (6-8 dominant colors with hex values)
+- Typography patterns (font families, sizes, weights, line heights)
+- Spacing/sizing patterns (padding, margins, gaps)
+- Border radius preferences (none, sm, md, lg, full)
+- Shadow styles (none, subtle, strong, layered)
+- Component patterns (buttons, cards, inputs, navigation)
+- Special effects (gradients, glassmorphism, animations)
+
+**Three-File Output System:**
+
+- Should play off of Tailwind CSS and other modern UI mentioned in the tech stack markdown file
+
+1. **STYLE_GUIDE.md** - AI instruction manual with brand personality, color usage rules, component patterns, and code snippets
+2. **tailwind.config.js** - Extended theme with custom colors, fonts, animations
+3. **globals.css** - CSS variables and utility classes
+
+**Developer Experience:**
+
+- Copy buttons for each file
+- "Apply to Demo" button - instantly preview on sample components
+- Cost estimate display (~$0.03 per analysis)
+
+**AI Optimization Features:**
+
+- Include specific className examples in STYLE_GUIDE.md
+- Add "common patterns" section for AI to reference
+- Include "avoid these" anti-patterns
+- Component-specific guidance (forms, navigation, cards)
+- Exact measurements and values (no ambiguity)
+
+**Implementation:**
+
+- OpenAI Vision API for design understanding
+- Color.js for accurate palette extraction
+- Merge results for comprehensive style system
 
 ## Section 6: AI Site Assistant
 

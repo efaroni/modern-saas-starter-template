@@ -69,3 +69,61 @@ The pre-commit hook will:
 - Run all unit tests with `npm test`
 - Block the commit if any tests fail
 - Show a success message if all tests pass
+
+Potential wishlist for this app:
+
+Core Infrastructure
+
+- Authentication & Authorization: Email/password, OAuth providers (Google, GitHub), JWT tokens, refresh token rotation, role-based access control (RBAC)
+- Multi-tenancy: Organization/workspace management, user invitations, team member roles
+- Database setup: PostgreSQL with migrations, connection pooling, and ORM configuration
+- API structure: RESTful endpoints with consistent error handling, rate limiting, and API versioning
+  User Management
+- User profiles: Avatar uploads, profile settings, email verification
+- Password management: Secure reset flows, password strength requirements
+- Session management: Device tracking, "remember me" functionality, session invalidation
+  Billing & Payments
+- Stripe integration: Subscription management, payment method handling, webhooks
+- Pricing tiers: Free/trial/paid plans with feature flags
+- Usage tracking: Metering for usage-based billing
+- Invoice generation: Downloadable receipts and billing history
+  Developer Experience
+- TypeScript: Full type safety across frontend and backend
+- Environment management: .env files with validation, separate configs for dev/staging/prod
+- Error tracking: Sentry or similar integration with proper error boundaries
+- Logging: Structured logging with correlation IDs for request tracing
+  Frontend Foundation
+- Component library: Shadcn/ui or similar for consistent UI components
+- Form handling: React Hook Form with Zod validation
+- State management: Zustand or Context API for global state
+- Data fetching: TanStack Query with optimistic updates
+  Backend Essentials
+- Background jobs: Queue system for email sending, data processing
+- Email service: Transactional emails with templates (welcome, password reset, notifications)
+- File uploads: S3 or similar with presigned URLs
+- Webhooks: Outgoing webhook system for integrations
+  DevOps & Deployment
+- Docker setup: Containerized development environment
+- CI/CD pipeline: GitHub Actions for testing and deployment
+- Database migrations: Automated migration running
+- Health checks: Monitoring endpoints for uptime tracking
+  Security
+- CORS configuration: Proper cross-origin settings
+- CSP headers: Content Security Policy setup
+- Input sanitization: XSS and SQL injection prevention
+- 2FA support: TOTP-based two-factor authentication
+  Analytics & Monitoring
+- User analytics: Basic event tracking (page views, feature usage)
+- Performance monitoring: Web vitals tracking
+- A/B testing: Feature flag system for gradual rollouts
+  Legal & Compliance
+- GDPR tools: Data export, account deletion
+- Cookie consent: Banner and preference management
+- Terms & Privacy: Basic legal page templates
+  Nice-to-Haves (Consider Based on Needs)
+- Admin dashboard: User management, metrics viewing
+- API documentation: Auto-generated API docs
+- Notification system: In-app notifications with bell icon
+- Search functionality: Basic full-text search
+- Internationalization: i18n setup for multi-language support
+- Dark mode: Theme switching capability
