@@ -225,6 +225,14 @@ jobs:
         env:
           # Ensure build uses test environment configuration
           NODE_ENV: production
+          # Mock database configuration for build process
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/mock_build_db'
+          # Or use component-based configuration
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: mock_build_db
 
       # Start the application server in background
       - name: Start application server
