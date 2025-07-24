@@ -4,13 +4,25 @@ import {
   type PasswordResetEmailData,
   type EmailVerificationData,
   type WelcomeEmailData,
+  type SubscriptionConfirmationEmailData,
+  type SubscriptionEndingEmailData,
 } from './types';
 
 export class MockEmailService implements EmailService {
   private sentEmails: Array<{
     to: string;
-    type: 'password_reset' | 'verification' | 'welcome';
-    data: PasswordResetEmailData | EmailVerificationData | WelcomeEmailData;
+    type:
+      | 'password_reset'
+      | 'verification'
+      | 'welcome'
+      | 'subscription_confirmation'
+      | 'subscription_ending';
+    data:
+      | PasswordResetEmailData
+      | EmailVerificationData
+      | WelcomeEmailData
+      | SubscriptionConfirmationEmailData
+      | SubscriptionEndingEmailData;
     sentAt: Date;
   }> = [];
   private shouldFail = false;
@@ -92,6 +104,64 @@ export class MockEmailService implements EmailService {
     this.sentEmails.push({
       to: email,
       type: 'welcome',
+      data,
+      sentAt: new Date(),
+    });
+
+    // Mock success
+    return {
+      success: true,
+    };
+  }
+
+  async sendSubscriptionConfirmationEmail(
+    email: string,
+    data: SubscriptionConfirmationEmailData,
+  ): Promise<EmailResult> {
+    // Simulate email sending delay
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Check if we should fail
+    if (this.shouldFail) {
+      return {
+        success: false,
+        error: 'Email service failed',
+      };
+    }
+
+    // Store the email for testing purposes
+    this.sentEmails.push({
+      to: email,
+      type: 'subscription_confirmation',
+      data,
+      sentAt: new Date(),
+    });
+
+    // Mock success
+    return {
+      success: true,
+    };
+  }
+
+  async sendSubscriptionEndingEmail(
+    email: string,
+    data: SubscriptionEndingEmailData,
+  ): Promise<EmailResult> {
+    // Simulate email sending delay
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Check if we should fail
+    if (this.shouldFail) {
+      return {
+        success: false,
+        error: 'Email service failed',
+      };
+    }
+
+    // Store the email for testing purposes
+    this.sentEmails.push({
+      to: email,
+      type: 'subscription_ending',
       data,
       sentAt: new Date(),
     });
