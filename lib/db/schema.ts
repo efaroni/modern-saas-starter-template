@@ -21,6 +21,7 @@ export const users = pgTable('users', {
   name: text('name'),
   password: text('password'), // Hashed password for email/password auth
   image: text('image'), // Avatar URL
+  stripeCustomerId: text('stripe_customer_id'), // Stripe customer ID for payments
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -156,6 +157,53 @@ export const sessionActivity = pgTable('session_activity', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Subscription Plans table
+export const plans = pgTable('plans', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull(),
+  stripePriceId: text('stripe_price_id').notNull().unique(),
+  features: jsonb('features').$type<Record<string, boolean>>().default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// User Subscriptions table
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  stripeSubscriptionId: text('stripe_subscription_id').notNull().unique(),
+  status: text('status').notNull(), // 'active', 'canceled', 'past_due', etc.
+  currentPeriodEnd: timestamp('current_period_end', { mode: 'date' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Email logs table for tracking sent emails
+export const emailLogs = pgTable('email_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  toEmail: text('to_email').notNull(),
+  templateType: text('template_type').notNull(),
+  status: text('status').notNull(), // 'sent', 'failed'
+  sentAt: timestamp('sent_at').defaultNow().notNull(),
+  resendId: text('resend_id'),
+  eventId: text('event_id'), // For idempotency in webhook events
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
+});
+
+// Email preferences table for user email settings
+export const emailPreferences = pgTable('email_preferences', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull()
+    .unique(), // One preference record per user
+  marketingEmails: boolean('marketing_emails').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
@@ -181,6 +229,16 @@ export const insertUserSessionSchema = createInsertSchema(userSessions);
 export const selectUserSessionSchema = createSelectSchema(userSessions);
 export const insertSessionActivitySchema = createInsertSchema(sessionActivity);
 export const selectSessionActivitySchema = createSelectSchema(sessionActivity);
+export const insertPlanSchema = createInsertSchema(plans);
+export const selectPlanSchema = createSelectSchema(plans);
+export const insertSubscriptionSchema = createInsertSchema(subscriptions);
+export const selectSubscriptionSchema = createSelectSchema(subscriptions);
+export const insertEmailLogSchema = createInsertSchema(emailLogs);
+export const selectEmailLogSchema = createSelectSchema(emailLogs);
+export const insertEmailPreferencesSchema =
+  createInsertSchema(emailPreferences);
+export const selectEmailPreferencesSchema =
+  createSelectSchema(emailPreferences);
 
 // Export types using the table structure
 export type User = typeof users.$inferSelect;
@@ -203,3 +261,11 @@ export type UserSession = typeof userSessions.$inferSelect;
 export type NewUserSession = typeof userSessions.$inferInsert;
 export type SessionActivity = typeof sessionActivity.$inferSelect;
 export type NewSessionActivity = typeof sessionActivity.$inferInsert;
+export type Plan = typeof plans.$inferSelect;
+export type NewPlan = typeof plans.$inferInsert;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type NewSubscription = typeof subscriptions.$inferInsert;
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type NewEmailLog = typeof emailLogs.$inferInsert;
+export type EmailPreferences = typeof emailPreferences.$inferSelect;
+export type NewEmailPreferences = typeof emailPreferences.$inferInsert;

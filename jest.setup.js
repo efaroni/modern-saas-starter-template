@@ -6,6 +6,68 @@ global.setImmediate =
 global.clearImmediate =
   global.clearImmediate || (id => global.clearTimeout(id));
 
+// Add Web API polyfills for Next.js API routes
+if (typeof global.Request === 'undefined') {
+  global.Request = class Request {
+    constructor(url, options = {}) {
+      this.url = url;
+      this.method = options.method || 'GET';
+      this.headers = new Map(Object.entries(options.headers || {}));
+      this.body = options.body;
+    }
+
+    async json() {
+      return JSON.parse(this.body);
+    }
+
+    async text() {
+      return this.body;
+    }
+  };
+}
+
+if (typeof global.Response === 'undefined') {
+  global.Response = class Response {
+    constructor(body, options = {}) {
+      this.body = body;
+      this.status = options.status || 200;
+      this.headers = new Map(Object.entries(options.headers || {}));
+    }
+
+    async json() {
+      return JSON.parse(this.body);
+    }
+
+    async text() {
+      return this.body;
+    }
+
+    static json(data, init = {}) {
+      return new Response(JSON.stringify(data), {
+        ...init,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(init.headers || {}),
+        },
+      });
+    }
+  };
+}
+
+if (typeof global.Headers === 'undefined') {
+  global.Headers = Map;
+}
+
+if (typeof global.URL === 'undefined') {
+  global.URL = class URL {
+    constructor(url) {
+      const [baseUrl, search = ''] = url.split('?');
+      this.href = url;
+      this.searchParams = new URLSearchParams(search);
+    }
+  };
+}
+
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test';
 

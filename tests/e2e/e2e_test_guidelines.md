@@ -4,6 +4,28 @@
 
 This document defines our End-to-End (E2E) testing strategy for critical user journeys. E2E tests validate complete workflows from the user's perspective, ensuring our SaaS application delivers value reliably. These tests complement our unit and integration tests by focusing on real user scenarios rather than technical implementation details.
 
+E2E tests should:
+
+Simulate real user workflows across the full system, including UI interactions, API requests, and database updates.
+
+Test the entire application stack from the user's perspective: frontend ↔ backend ↔ persistence layer.
+
+Cover critical business paths (e.g., login, signup, checkout, search).
+
+Validate the system’s behavior in a real or staging-like environment, with all major dependencies active.
+
+Ensure cross-browser compatibility and real-world scenarios.
+
+E2E tests should NOT:
+
+Re-test individual functions, business logic, or module integrations already covered in unit/integration tests.
+
+Attempt to cover every possible UI path or non-critical edge case (E2E tests should be high-value and minimal).
+
+Include overly granular tests that are fragile or slow.
+
+Focus on internal logic or implementation details.
+
 **Scope**: E2E tests cover 5-10% of our testing pyramid, focusing on business-critical paths that directly impact revenue, user retention, and core functionality.
 
 ## Test Setup

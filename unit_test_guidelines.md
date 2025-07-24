@@ -3,6 +3,29 @@
 Introduction
 This document outlines our approach to unit testing for rapid, high-quality development. Unit tests form the foundation of our testing pyramid (70-80% of all tests), focusing on individual functions, methods, and components in isolation. By following these guidelines, we ensure fast feedback loops, maintainable code, and confidence in our business logic.
 Key Principle: Test behavior, not implementation. Focus on what the code does for users, not how it achieves it.
+
+Unit tests should:
+
+Focus on individual functions or methods in complete isolation.
+
+Validate business logic, data transformations, and edge case handling.
+
+Test error handling, including invalid inputs and boundary conditions.
+
+Be deterministic and fast, with consistent results on every run.
+
+Use mocks or stubs for external dependencies (e.g., database, network, file system, API calls, UI interactions).
+
+Unit tests should NOT:
+
+Test multiple components or modules together (that’s for integration or E2E tests).
+
+Make real calls to external systems like databases, APIs, the filesystem, or network.
+
+Include UI behavior or interaction flows.
+
+Depend on environment state or shared resources.
+
 File Structure
 Default: Colocation Pattern (Use This)
 Claude Code will use this pattern by default. Keep test files next to the code they test for better maintainability and easier navigation:
