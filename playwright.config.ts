@@ -6,10 +6,11 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  outputDir: 'test-results',
   reporter: process.env.CI
     ? [
         ['html', { outputFolder: 'playwright-report' }],
-        ['junit', { outputFile: 'test-results/results.xml' }],
+        ['junit', { outputFile: 'test-results/junit.xml' }],
         ['line'],
       ]
     : 'html',

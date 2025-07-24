@@ -249,28 +249,13 @@ jobs:
       # Run E2E tests with specific configuration
       - name: Run Playwright E2E tests
         run: |
-          # Create test results directory
-          mkdir -p test-results
-
           # Run tests (reporter configuration is in playwright.config.ts)
-          npx playwright test --project=chromium || true
-
-          # Create a minimal JUnit XML if none exists (fallback)
-          if [ ! -f test-results/results.xml ]; then
-            echo '<?xml version="1.0" encoding="UTF-8"?>' > test-results/results.xml
-            echo '<testsuites>' >> test-results/results.xml
-            echo '  <testsuite name="E2E Tests" tests="1" failures="0" errors="0" time="0">' >> test-results/results.xml
-            echo '    <testcase name="E2E tests completed" classname="E2E" time="0" />' >> test-results/results.xml
-            echo '  </testsuite>' >> test-results/results.xml
-            echo '</testsuites>' >> test-results/results.xml
-          fi
+          npx playwright test --project=chromium
+        continue-on-error: true
 
       # Accessibility testing with axe-playwright
       - name: Run accessibility tests
         run: |
-          # Ensure test results directory exists
-          mkdir -p test-results
-
           npx playwright test \
             --project=chromium \
             --grep="@accessibility"
@@ -290,10 +275,14 @@ jobs:
       - name: List test results
         if: always()
         run: |
+          echo "=== Current directory ==="
+          pwd
           echo "=== Listing test-results directory ==="
-          ls -la test-results/ || echo "test-results directory not found"
-          echo "=== Checking for XML files ==="
-          find . -name "*.xml" -type f | head -20 || echo "No XML files found"
+          ls -la test-results/ 2>/dev/null || echo "test-results directory not found"
+          echo "=== Checking for XML files in workspace ==="
+          find . -name "*.xml" -type f 2>/dev/null | grep -v node_modules | head -20 || echo "No XML files found"
+          echo "=== Playwright report directory ==="
+          ls -la playwright-report/ 2>/dev/null || echo "playwright-report directory not found"
 
       # Upload test results and artifacts
       - name: Upload test results
@@ -318,15 +307,20 @@ jobs:
             videos/
           retention-days: 14
 
+      # Wait for file system sync
+      - name: Wait for test results
+        if: always()
+        run: |
+          echo "Waiting for test results to be written..."
+          sleep 3
+
       # Publish test results to PR
       - name: Publish test results
         uses: dorny/test-reporter@v1
         if: always()
         with:
           name: E2E Tests
-          path: |
-            test-results/results.xml
-            test-results/*.xml
+          path: 'test-results/**/*.xml'
           reporter: java-junit
           fail-on-error: 'false'
           path-replace-backslashes: 'false'
