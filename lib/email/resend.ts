@@ -6,6 +6,8 @@ import {
   type PasswordResetEmailData,
   type EmailVerificationData,
   type WelcomeEmailData,
+  type SubscriptionConfirmationEmailData,
+  type SubscriptionEndingEmailData,
 } from './types';
 
 export class ResendEmailService implements EmailService {
@@ -131,6 +133,88 @@ export class ResendEmailService implements EmailService {
       return {
         success: false,
         error: 'Failed to send welcome email',
+      };
+    }
+  }
+
+  async sendSubscriptionConfirmationEmail(
+    email: string,
+    data: SubscriptionConfirmationEmailData,
+  ): Promise<EmailResult> {
+    try {
+      await this.resend.emails.send({
+        from: this.from,
+        to: email,
+        subject: 'Subscription Confirmed - Welcome!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Subscription Confirmed!</h2>
+            <p style="color: #666; margin-bottom: 20px;">Hello ${data.user.name || 'there'},</p>
+            <p style="color: #666; margin-bottom: 20px;">
+              Thank you for subscribing to our <strong>${data.planName}</strong> plan! Your subscription is now active.
+            </p>
+            <p style="color: #666; margin-bottom: 20px;">
+              You now have access to all the features included in your plan.
+            </p>
+            <a href="${data.dashboardUrl}" 
+               style="display: inline-block; padding: 12px 24px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px; margin: 16px 0;">
+              Access Your Dashboard
+            </a>
+            <p style="color: #666; margin-top: 20px; font-size: 14px;">
+              If you have any questions about your subscription, feel free to reach out to our support team.
+            </p>
+          </div>
+        `,
+      });
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to send subscription confirmation email',
+      };
+    }
+  }
+
+  async sendSubscriptionEndingEmail(
+    email: string,
+    data: SubscriptionEndingEmailData,
+  ): Promise<EmailResult> {
+    try {
+      const reasonText = {
+        cancelled: 'was cancelled',
+        expired: 'has expired',
+        failed_payment: 'payment failed',
+      }[data.reason];
+
+      await this.resend.emails.send({
+        from: this.from,
+        to: email,
+        subject: 'Your Subscription Has Ended',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Subscription Ended</h2>
+            <p style="color: #666; margin-bottom: 20px;">Hello ${data.user.name || 'there'},</p>
+            <p style="color: #666; margin-bottom: 20px;">
+              Your <strong>${data.planName}</strong> subscription ${reasonText}.
+            </p>
+            <p style="color: #666; margin-bottom: 20px;">
+              You can reactivate your subscription at any time to continue enjoying all the premium features.
+            </p>
+            <a href="${data.dashboardUrl}" 
+               style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; margin: 16px 0;">
+              Reactivate Subscription
+            </a>
+            <p style="color: #666; margin-top: 20px; font-size: 14px;">
+              Thank you for being a valued customer. We hope to see you again soon!
+            </p>
+          </div>
+        `,
+      });
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: 'Failed to send subscription ending email',
       };
     }
   }
