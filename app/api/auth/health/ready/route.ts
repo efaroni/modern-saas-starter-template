@@ -1,9 +1,10 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { authHealthChecker } from '@/lib/auth/health-check';
-
 export async function GET(_request: NextRequest) {
   try {
+    // Dynamically import to avoid build-time initialization
+    const { authHealthChecker } = await import('@/lib/auth/health-check');
+
     // Readiness probe checks if the service is ready to handle requests
     // This includes checking critical dependencies like database
     const healthStatus = await authHealthChecker.checkOverallHealth();

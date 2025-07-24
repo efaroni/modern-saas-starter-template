@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { authHealthChecker } from '@/lib/auth/health-check';
-
 export async function GET(request: NextRequest) {
   try {
+    // Dynamically import to avoid build-time initialization
+    const { authHealthChecker } = await import('@/lib/auth/health-check');
     const { searchParams } = new URL(request.url);
     const component = searchParams.get('component');
 

@@ -44,7 +44,7 @@ export async function initializeTestDatabase() {
     } catch (connectionError) {
       console.error(
         'Cannot connect to test database:',
-        connectionError.message,
+        (connectionError as Error).message,
       );
       console.error('Please ensure the test database exists and is accessible');
       return false;
@@ -104,7 +104,7 @@ export async function initializeTestDatabase() {
         console.error('Migration failed:', migrationError);
 
         // If it's a timeout, be more explicit
-        if (migrationError.code === 'TIMEOUT') {
+        if ((migrationError as { code?: string }).code === 'TIMEOUT') {
           console.error(
             'Migration timed out after 30 seconds - this may indicate a database connection issue',
           );
@@ -117,7 +117,7 @@ export async function initializeTestDatabase() {
     }
 
     return true;
-  } catch {
+  } catch (error) {
     console.error('Test database initialization failed:', error);
     return false;
   }
@@ -128,7 +128,7 @@ export async function resetTestDatabase() {
   try {
     await initializeTestDatabase();
     await clearTestDatabase();
-  } catch {
+  } catch (error) {
     console.warn('Database reset failed:', error);
   }
 }
@@ -227,7 +227,7 @@ export async function clearWorkerTestData() {
     // Clear verification tokens and users with worker prefix
     await testClient`DELETE FROM verification_tokens WHERE identifier LIKE ${workerPrefix}`;
     await testClient`DELETE FROM users WHERE email LIKE ${workerPrefix}`;
-  } catch {
+  } catch (error) {
     console.warn('Worker test data cleanup failed:', error);
   }
 }
@@ -238,7 +238,7 @@ export async function closeTestDatabase() {
     console.warn('Closing test database connection...');
     await testClient.end();
     console.warn('Test database connection closed successfully');
-  } catch {
+  } catch (error) {
     console.error('Error closing test database:', error);
   }
 
@@ -253,7 +253,8 @@ export function withTestTransaction<T>(
   // Use actual database transactions for test isolation
   return testDb
     .transaction(async tx => {
-      const result = await fn(tx);
+      // Type assertion needed due to transaction type differences
+      const result = await fn(tx as unknown as typeof testDb);
       // Throw an error to force rollback and maintain test isolation
       throw new TestTransactionRollback(result);
     })
