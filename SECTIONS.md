@@ -250,6 +250,59 @@
 3. **Advanced Features:** Email → AI Styling → AI Assistant
 4. **Production:** Deployment setup and testing
 
+## Parallel Development Guidelines
+
+When developing sections 3, 4, and 5 in parallel across different branches:
+
+### Branch Strategy
+
+- **Section 3 (Payments):** `section-3-payments` branch
+- **Section 4 (Emails):** `section-4-emails` branch
+- **Section 5 (AI Styling):** `section-5-styling` branch
+
+### Independence Strategy
+
+1. **Section 5 (AI Styling)** - Fully independent, no dependencies
+2. **Section 4 (Emails)** - Mock subscription events from Section 3 initially
+3. **Section 3 (Payments)** - May require schema changes to users table
+
+### Merge Order
+
+Recommended merge sequence to minimize conflicts:
+
+1. First: Section 5 (AI Styling) - no dependencies
+2. Second: Section 4 (Emails) - update mocks with real Section 3 integration
+3. Last: Section 3 (Payments) - most complex with database changes
+
+### Mock Interfaces
+
+#### Section 3 → Section 4 Interface
+
+Section 4 (Emails) needs these mock payment events:
+
+```typescript
+// Mock payment events for email testing
+interface MockPaymentEvent {
+  type: 'checkout.completed' | 'subscription.updated' | 'subscription.deleted';
+  userId: string;
+  subscriptionId?: string;
+  planName?: string;
+}
+```
+
+#### Database Isolation
+
+- Each section uses independent migrations
+- Section 3 adds `stripe_customer_id` to users table via migration
+- Section 4 adds `email_logs` and `email_preferences` tables
+- No direct database dependencies between sections
+
+#### Service Layer Mocking
+
+- **Email Service:** Already has mock implementation in `lib/email/mock.ts`
+- **Payment Service:** Section 4 creates temporary mock until Section 3 is merged
+- **AI Service:** Section 5 is completely independent
+
 ## Mock-First Approach
 
 Every section works immediately without API keys:
@@ -266,13 +319,13 @@ app/
 ├── dev/
 │   ├── config/          # Section 1
 │   ├── auth/            # Section 2
-│   ├── payments/        # Section 3
-│   ├── emails/          # Section 4
-│   ├── styling/         # Section 5
 │   ├── ai/              # Section 6
 │   └── deployment/      # Section 7
-├── (dashboard)/         # Main app area
-├── (auth)/              # Auth flow pages
+├── payments/            # Section 3
+├── emails/              # Section 4
+├── styling/             # Section 5
+├── dashboard/           # Main app area
+├── auth/                # Auth flow pages
 └── api/                 # API routes
 ```
 
