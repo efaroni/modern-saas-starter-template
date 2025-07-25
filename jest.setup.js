@@ -6,6 +6,10 @@ global.setImmediate =
 global.clearImmediate =
   global.clearImmediate || (id => global.clearTimeout(id));
 
+// Add TextDecoder/TextEncoder polyfills for React Email
+global.TextDecoder = global.TextDecoder || require('util').TextDecoder;
+global.TextEncoder = global.TextEncoder || require('util').TextEncoder;
+
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test';
 
