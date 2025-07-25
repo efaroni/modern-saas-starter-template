@@ -6,14 +6,6 @@ This test plan focuses ONLY on what you need to implement for a minimal SaaS bil
 
 **Important**: The implementation should include a thin abstraction layer so that switching from Stripe to another payment processor (Paddle, LemonSqueezy, etc.) requires minimal refactoring.
 
-## Tech Stack & Architecture Notes
-
-- **Framework**: Next.js 15 (App Router)
-- **Database**: PostgreSQL with Drizzle ORM
-- **TypeScript**: Strict mode enabled
-- **Service Pattern**: Interface-based abstraction with factory functions
-- **Testing**: Jest with mock-first approach
-
 ## What You Actually Need to Build
 
 1. **Initial Setup Flow**

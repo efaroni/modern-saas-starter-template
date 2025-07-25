@@ -40,37 +40,11 @@
 
 ## Section 3: Payments & Billing
 
-**Purpose:** Stripe + payment database tables + subscription management
-**Route:** `/dev/payments`
-**Features:**
-
-- Stripe implementation with abstracted payment service layer
-- Core payment database tables (customers, subscriptions, payments, invoices)
-- Test mode integration (uses Stripe test keys, no real charges)
-- Real payment testing (1¢ transactions when live keys configured)
-- Subscription creation and management
-- One-time payment testing
-- Webhook handling and validation (updates local database)
-- Payment history and invoice tracking
-- Customer portal integration
-- Payment status verification (success/failure flows)
-
-**Database Tables:** `customers`, `subscriptions`, `payments`, `invoices`
+See Section_3_TODOS.md
 
 ## Section 4: Email System
 
-**Purpose:** Resend + React Email templates + transactional email testing
-**Route:** `/dev/emails`
-**Features:**
-
-- Resend implementation with abstracted email service layer
-- React Email templates (welcome, password reset, billing)
-- Transactional email testing (account, billing, security emails)
-- Email delivery status tracking
-- Template rendering and preview
-- Unsubscribe management and email preferences
-- Email triggering patterns (auth events, payment webhooks, user actions)
-- Integration with other sections (auth signup, payment confirmations)
+See Section_4_TODOS.md
 
 **Database Tables:** `email_logs`, `email_preferences`
 
