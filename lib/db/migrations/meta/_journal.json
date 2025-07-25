@@ -57,6 +57,13 @@
       "when": 1753111552677,
       "tag": "0007_reflective_arachne",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1753379566581,
+      "tag": "0008_busy_quentin_quire",
+      "breakpoints": true
     }
   ]
 }
