@@ -34,6 +34,7 @@
     "@node-rs/argon2": "^2.0.2",
     "@node-rs/bcrypt": "^1.10.7",
     "@types/pg": "^8.15.4",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "dotenv": "^17.0.1",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.2",
@@ -46,7 +47,9 @@
     "postgres": "^3.4.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.59.0",
+    "react-syntax-highlighter": "^15.6.1",
     "resend": "^4.6.0",
     "stripe": "^18.3.0",
     "zod": "^3.25.70"
