@@ -21,6 +21,21 @@ export const users = pgTable('users', {
   name: text('name'),
   password: text('password'), // Hashed password for email/password auth
   image: text('image'), // Avatar URL
+
+  // Email preferences
+  emailPreferences: jsonb('email_preferences')
+    .$type<{
+      marketing: boolean;
+      productUpdates: boolean;
+      securityAlerts: boolean;
+    }>()
+    .default({
+      marketing: true,
+      productUpdates: true,
+      securityAlerts: true,
+    }),
+  unsubscribeToken: text('unsubscribe_token').unique(),
+
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

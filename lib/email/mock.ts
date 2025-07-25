@@ -4,13 +4,29 @@ import {
   type PasswordResetEmailData,
   type EmailVerificationData,
   type WelcomeEmailData,
+  type PaymentEmailData,
+  type SubscriptionChangeEmailData,
+  type MarketingEmailData,
 } from './types';
 
 export class MockEmailService implements EmailService {
   private sentEmails: Array<{
     to: string;
-    type: 'password_reset' | 'verification' | 'welcome';
-    data: PasswordResetEmailData | EmailVerificationData | WelcomeEmailData;
+    type:
+      | 'password_reset'
+      | 'verification'
+      | 'welcome'
+      | 'payment_success'
+      | 'payment_failed'
+      | 'subscription_change'
+      | 'marketing';
+    data:
+      | PasswordResetEmailData
+      | EmailVerificationData
+      | WelcomeEmailData
+      | PaymentEmailData
+      | SubscriptionChangeEmailData
+      | MarketingEmailData;
     sentAt: Date;
   }> = [];
   private shouldFail = false;
@@ -100,6 +116,102 @@ export class MockEmailService implements EmailService {
     return {
       success: true,
     };
+  }
+
+  // NEW billing email methods
+  async sendPaymentSuccessEmail(
+    email: string,
+    data: PaymentEmailData,
+  ): Promise<EmailResult> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (this.shouldFail) {
+      return {
+        success: false,
+        error: 'Email service failed',
+      };
+    }
+
+    this.sentEmails.push({
+      to: email,
+      type: 'payment_success',
+      data,
+      sentAt: new Date(),
+    });
+
+    return { success: true };
+  }
+
+  async sendPaymentFailedEmail(
+    email: string,
+    data: PaymentEmailData,
+  ): Promise<EmailResult> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (this.shouldFail) {
+      return {
+        success: false,
+        error: 'Email service failed',
+      };
+    }
+
+    this.sentEmails.push({
+      to: email,
+      type: 'payment_failed',
+      data,
+      sentAt: new Date(),
+    });
+
+    return { success: true };
+  }
+
+  async sendSubscriptionChangeEmail(
+    email: string,
+    data: SubscriptionChangeEmailData,
+  ): Promise<EmailResult> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (this.shouldFail) {
+      return {
+        success: false,
+        error: 'Email service failed',
+      };
+    }
+
+    this.sentEmails.push({
+      to: email,
+      type: 'subscription_change',
+      data,
+      sentAt: new Date(),
+    });
+
+    return { success: true };
+  }
+
+  async sendMarketingEmail(
+    emails: string[],
+    data: MarketingEmailData,
+  ): Promise<EmailResult> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (this.shouldFail) {
+      return {
+        success: false,
+        error: 'Email service failed',
+      };
+    }
+
+    // Store each email separately for testing
+    emails.forEach(email => {
+      this.sentEmails.push({
+        to: email,
+        type: 'marketing',
+        data,
+        sentAt: new Date(),
+      });
+    });
+
+    return { success: true };
   }
 
   // Helper methods for testing

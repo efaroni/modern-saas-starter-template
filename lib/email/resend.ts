@@ -1,4 +1,14 @@
+import { render } from '@react-email/render';
 import { Resend } from 'resend';
+
+// React Email template imports
+import { WelcomeEmail } from '@/emails/account/welcome';
+import { PasswordResetEmail } from '@/emails/auth/password-reset';
+import { VerifyEmail } from '@/emails/auth/verify-email';
+import { PaymentFailedEmail } from '@/emails/billing/payment-failed';
+import { PaymentSuccessEmail } from '@/emails/billing/payment-success';
+import { SubscriptionChangeEmail } from '@/emails/billing/subscription-change';
+import { MarketingEmail } from '@/emails/marketing/newsletter';
 
 import {
   type EmailService,
@@ -6,17 +16,22 @@ import {
   type PasswordResetEmailData,
   type EmailVerificationData,
   type WelcomeEmailData,
+  type PaymentEmailData,
+  type SubscriptionChangeEmailData,
+  type MarketingEmailData,
 } from './types';
 
 export class ResendEmailService implements EmailService {
   private resend: Resend;
   private from: string;
   private baseUrl: string;
+  private fromName: string;
 
   constructor(apiKey: string, from: string, baseUrl: string) {
     this.resend = new Resend(apiKey);
     this.from = from;
     this.baseUrl = baseUrl;
+    this.fromName = process.env.RESEND_FROM_NAME || 'Your SaaS';
   }
 
   async sendPasswordResetEmail(
@@ -24,30 +39,20 @@ export class ResendEmailService implements EmailService {
     data: PasswordResetEmailData,
   ): Promise<EmailResult> {
     try {
+      const html = await render(
+        PasswordResetEmail({
+          resetUrl: data.resetUrl,
+          userName: data.user.name,
+        }),
+      );
+
       await this.resend.emails.send({
-        from: this.from,
+        from: `${this.fromName} <${this.from}>`,
         to: email,
         subject: 'Reset your password',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #333; margin-bottom: 20px;">Reset Your Password</h2>
-            <p style="color: #666; margin-bottom: 20px;">Hello ${data.user.name || 'there'},</p>
-            <p style="color: #666; margin-bottom: 20px;">
-              You requested to reset your password. Click the link below to set a new password:
-            </p>
-            <a href="${data.resetUrl}" 
-               style="display: inline-block; padding: 12px 24px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px; margin: 16px 0;">
-              Reset Password
-            </a>
-            <p style="color: #666; margin-top: 20px; font-size: 14px;">
-              If you didn't request this, you can safely ignore this email.
-            </p>
-            <p style="color: #666; font-size: 14px;">
-              This link will expire in 1 hour.
-            </p>
-          </div>
-        `,
+        html,
       });
+
       return { success: true };
     } catch (error) {
       console.error('Failed to send password reset email:', error);
@@ -63,30 +68,20 @@ export class ResendEmailService implements EmailService {
     data: EmailVerificationData,
   ): Promise<EmailResult> {
     try {
+      const html = await render(
+        VerifyEmail({
+          verificationUrl: data.verificationUrl,
+          userName: data.user.name,
+        }),
+      );
+
       await this.resend.emails.send({
-        from: this.from,
+        from: `${this.fromName} <${this.from}>`,
         to: email,
         subject: 'Verify your email address',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #333; margin-bottom: 20px;">Verify Your Email Address</h2>
-            <p style="color: #666; margin-bottom: 20px;">Hello ${data.user.name || 'there'},</p>
-            <p style="color: #666; margin-bottom: 20px;">
-              Thank you for signing up! Please click the link below to verify your email address:
-            </p>
-            <a href="${data.verificationUrl}" 
-               style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; margin: 16px 0;">
-              Verify Email
-            </a>
-            <p style="color: #666; margin-top: 20px; font-size: 14px;">
-              If you didn't create an account, you can safely ignore this email.
-            </p>
-            <p style="color: #666; font-size: 14px;">
-              This link will expire in 24 hours.
-            </p>
-          </div>
-        `,
+        html,
       });
+
       return { success: true };
     } catch (error) {
       console.error('Failed to send verification email:', error);
@@ -102,35 +97,159 @@ export class ResendEmailService implements EmailService {
     data: WelcomeEmailData,
   ): Promise<EmailResult> {
     try {
+      const html = await render(
+        WelcomeEmail({
+          dashboardUrl: data.dashboardUrl,
+          userName: data.user.name,
+        }),
+      );
+
       await this.resend.emails.send({
-        from: this.from,
+        from: `${this.fromName} <${this.from}>`,
         to: email,
         subject: 'Welcome to our platform!',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #333; margin-bottom: 20px;">Welcome ${data.user.name || 'there'}!</h2>
-            <p style="color: #666; margin-bottom: 20px;">
-              Your account has been successfully created and verified.
-            </p>
-            <p style="color: #666; margin-bottom: 20px;">
-              You can now start using all the features of our platform.
-            </p>
-            <a href="${data.dashboardUrl}" 
-               style="display: inline-block; padding: 12px 24px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px; margin: 16px 0;">
-              Go to Dashboard
-            </a>
-            <p style="color: #666; margin-top: 20px; font-size: 14px;">
-              If you have any questions, feel free to reach out to our support team.
-            </p>
-          </div>
-        `,
+        html,
       });
+
       return { success: true };
     } catch (error) {
       console.error('Failed to send welcome email:', error);
       return {
         success: false,
         error: 'Failed to send welcome email',
+      };
+    }
+  }
+
+  // NEW billing email methods
+  async sendPaymentSuccessEmail(
+    email: string,
+    data: PaymentEmailData,
+  ): Promise<EmailResult> {
+    try {
+      const html = await render(
+        PaymentSuccessEmail({
+          userName: data.user.name,
+          amount: data.amount,
+          currency: data.currency,
+          invoiceUrl: data.invoiceUrl,
+          billingDetails: data.billingDetails,
+        }),
+      );
+
+      await this.resend.emails.send({
+        from: `${this.fromName} <${this.from}>`,
+        to: email,
+        subject: 'Payment Successful',
+        html,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to send payment success email:', error);
+      return {
+        success: false,
+        error: 'Failed to send payment success email',
+      };
+    }
+  }
+
+  async sendPaymentFailedEmail(
+    email: string,
+    data: PaymentEmailData,
+  ): Promise<EmailResult> {
+    try {
+      const html = await render(
+        PaymentFailedEmail({
+          userName: data.user.name,
+          amount: data.amount,
+          currency: data.currency,
+          billingDetails: data.billingDetails,
+        }),
+      );
+
+      await this.resend.emails.send({
+        from: `${this.fromName} <${this.from}>`,
+        to: email,
+        subject: 'Payment Failed',
+        html,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to send payment failed email:', error);
+      return {
+        success: false,
+        error: 'Failed to send payment failed email',
+      };
+    }
+  }
+
+  async sendSubscriptionChangeEmail(
+    email: string,
+    data: SubscriptionChangeEmailData,
+  ): Promise<EmailResult> {
+    try {
+      const html = await render(
+        SubscriptionChangeEmail({
+          userName: data.user.name,
+          previousPlan: data.previousPlan,
+          newPlan: data.newPlan,
+          effectiveDate: data.effectiveDate,
+        }),
+      );
+
+      await this.resend.emails.send({
+        from: `${this.fromName} <${this.from}>`,
+        to: email,
+        subject: 'Subscription Updated',
+        html,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to send subscription change email:', error);
+      return {
+        success: false,
+        error: 'Failed to send subscription change email',
+      };
+    }
+  }
+
+  async sendMarketingEmail(
+    emails: string[],
+    data: MarketingEmailData,
+  ): Promise<EmailResult> {
+    try {
+      // Generate unsubscribe URLs for each email (simplified for now)
+      const sendPromises = emails.map(async email => {
+        const unsubscribeUrl = `${this.baseUrl}/unsubscribe?email=${encodeURIComponent(email)}`;
+
+        const html = await render(
+          MarketingEmail({
+            subject: data.subject,
+            content: data.content,
+            ctaText: data.ctaText,
+            ctaUrl: data.ctaUrl,
+            unsubscribeUrl,
+          }),
+        );
+
+        return this.resend.emails.send({
+          from: `${this.fromName} <${this.from}>`,
+          to: email,
+          subject: data.subject,
+          html,
+        });
+      });
+
+      await Promise.all(sendPromises);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to send marketing email:', error);
+      return {
+        success: false,
+        error: 'Failed to send marketing email',
       };
     }
   }

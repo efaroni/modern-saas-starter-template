@@ -57,6 +57,13 @@
       "when": 1753111552677,
       "tag": "0007_reflective_arachne",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1753478641008,
+      "tag": "0008_ancient_power_pack",
+      "breakpoints": true
     }
   ]
 }
