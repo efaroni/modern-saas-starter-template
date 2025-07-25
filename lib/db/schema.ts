@@ -23,6 +23,14 @@ export const users = pgTable('users', {
   image: text('image'), // Avatar URL
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+
+  // Billing fields (temporarily commented out until migration is ready)
+  // billingCustomerId: text('billing_customer_id').unique(),
+  // subscriptionId: text('subscription_id'),
+  // subscriptionStatus: text('subscription_status'), // 'active', 'trialing', 'past_due', 'canceled', etc.
+  // subscriptionCurrentPeriodEnd: timestamp('subscription_current_period_end', {
+  //   mode: 'date',
+  // }),
 });
 
 // OAuth accounts table
@@ -156,6 +164,28 @@ export const sessionActivity = pgTable('session_activity', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// New table for one-time purchases (temporarily commented out until migration is ready)
+// export const purchases = pgTable('purchases', {
+//   id: uuid('id').defaultRandom().primaryKey(),
+//   userId: uuid('user_id')
+//     .references(() => users.id, { onDelete: 'cascade' })
+//     .notNull(),
+//   billingSessionId: text('billing_session_id').unique(),
+//   amount: integer('amount').notNull(), // in cents
+//   currency: text('currency').default('USD').notNull(),
+//   status: text('status').notNull(), // 'pending', 'completed', 'failed'
+//   purchaseType: text('purchase_type'), // 'credits', 'feature', etc.
+//   metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
+//   createdAt: timestamp('created_at').defaultNow().notNull(),
+// });
+
+// // Track webhook events for idempotency
+// export const webhookEvents = pgTable('webhook_events', {
+//   id: text('id').primaryKey(), // Provider event ID
+//   provider: text('provider').default('stripe').notNull(),
+//   processedAt: timestamp('processed_at').defaultNow().notNull(),
+// });
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
@@ -181,6 +211,10 @@ export const insertUserSessionSchema = createInsertSchema(userSessions);
 export const selectUserSessionSchema = createSelectSchema(userSessions);
 export const insertSessionActivitySchema = createInsertSchema(sessionActivity);
 export const selectSessionActivitySchema = createSelectSchema(sessionActivity);
+// export const insertPurchaseSchema = createInsertSchema(purchases);
+// export const selectPurchaseSchema = createSelectSchema(purchases);
+// export const insertWebhookEventSchema = createInsertSchema(webhookEvents);
+// export const selectWebhookEventSchema = createSelectSchema(webhookEvents);
 
 // Export types using the table structure
 export type User = typeof users.$inferSelect;
@@ -203,3 +237,7 @@ export type UserSession = typeof userSessions.$inferSelect;
 export type NewUserSession = typeof userSessions.$inferInsert;
 export type SessionActivity = typeof sessionActivity.$inferSelect;
 export type NewSessionActivity = typeof sessionActivity.$inferInsert;
+// export type Purchase = typeof purchases.$inferSelect;
+// export type NewPurchase = typeof purchases.$inferInsert;
+// export type WebhookEvent = typeof webhookEvents.$inferSelect;
+// export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
