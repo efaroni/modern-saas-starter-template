@@ -7,6 +7,7 @@ Build a feature that analyzes uploaded design screenshots using OpenAI Vision AP
 ## Current State
 
 The codebase already has:
+
 - **OpenAI Integration**: Package installed (`openai: ^5.8.2`)
 - **Service Pattern**: Interface-based abstraction used throughout (email, auth, upload services)
 - **Upload Service**: Existing upload service pattern with interface and mock implementation
@@ -76,10 +77,14 @@ import { z } from 'zod';
 // Input validation schemas
 export const analyzeDesignSchema = z.object({
   images: z.array(z.instanceof(File)).min(1).max(5),
-  options: z.object({
-    includeAnimations: z.boolean().optional(),
-    targetFramework: z.enum(['tailwind', 'css-modules', 'styled-components']).optional(),
-  }).optional(),
+  options: z
+    .object({
+      includeAnimations: z.boolean().optional(),
+      targetFramework: z
+        .enum(['tailwind', 'css-modules', 'styled-components'])
+        .optional(),
+    })
+    .optional(),
 });
 
 export type AnalyzeDesignInput = z.infer<typeof analyzeDesignSchema>;
@@ -102,13 +107,15 @@ export interface VisionError {
   message: string;
 }
 
-export type VisionResult<T> = 
+export type VisionResult<T> =
   | { success: true; data: T }
   | { success: false; error: VisionError };
 
 // Service interface
 export interface VisionService {
-  analyzeDesign(input: AnalyzeDesignInput): Promise<VisionResult<DesignAnalysisResult>>;
+  analyzeDesign(
+    input: AnalyzeDesignInput,
+  ): Promise<VisionResult<DesignAnalysisResult>>;
   validateImage(file: File): Promise<boolean>;
 }
 ```
@@ -117,17 +124,24 @@ export interface VisionService {
 
 ```typescript
 import { OpenAI } from 'openai';
-import { VisionService, AnalyzeDesignInput, VisionResult, DesignAnalysisResult } from './types';
+import {
+  VisionService,
+  AnalyzeDesignInput,
+  VisionResult,
+  DesignAnalysisResult,
+} from './types';
 import { designAnalyzerPrompt } from '../prompts/design-analyzer';
 
 export class OpenAIVisionService implements VisionService {
   private client: OpenAI;
-  
+
   constructor(apiKey: string) {
     this.client = new OpenAI({ apiKey });
   }
 
-  async analyzeDesign(input: AnalyzeDesignInput): Promise<VisionResult<DesignAnalysisResult>> {
+  async analyzeDesign(
+    input: AnalyzeDesignInput,
+  ): Promise<VisionResult<DesignAnalysisResult>> {
     try {
       // Validate images
       for (const image of input.images) {
@@ -145,11 +159,11 @@ export class OpenAIVisionService implements VisionService {
 
       // Convert images to base64
       const imageUrls = await Promise.all(
-        input.images.map(async (image) => {
+        input.images.map(async image => {
           const bytes = await image.arrayBuffer();
           const buffer = Buffer.from(bytes);
           return `data:${image.type};base64,${buffer.toString('base64')}`;
-        })
+        }),
       );
 
       // Call OpenAI Vision API
@@ -163,9 +177,9 @@ export class OpenAIVisionService implements VisionService {
           {
             role: 'user',
             content: [
-              { 
-                type: 'text', 
-                text: 'Analyze these design screenshots and extract the design system:' 
+              {
+                type: 'text',
+                text: 'Analyze these design screenshots and extract the design system:',
               },
               ...imageUrls.map(url => ({
                 type: 'image_url' as const,
@@ -190,11 +204,11 @@ export class OpenAIVisionService implements VisionService {
       }
 
       const result = JSON.parse(content) as DesignAnalysisResult;
-      
+
       return { success: true, data: result };
     } catch (error) {
       console.error('Vision analysis error:', error);
-      
+
       if (error instanceof OpenAI.APIError) {
         if (error.status === 429) {
           return {
@@ -206,12 +220,13 @@ export class OpenAIVisionService implements VisionService {
           };
         }
       }
-      
+
       return {
         success: false,
         error: {
           code: 'API_ERROR',
-          message: error instanceof Error ? error.message : 'Failed to analyze design',
+          message:
+            error instanceof Error ? error.message : 'Failed to analyze design',
         },
       };
     }
@@ -220,7 +235,7 @@ export class OpenAIVisionService implements VisionService {
   async validateImage(file: File): Promise<boolean> {
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
     const maxSize = 20 * 1024 * 1024; // 20MB
-    
+
     return validTypes.includes(file.type) && file.size <= maxSize;
   }
 }
@@ -229,14 +244,21 @@ export class OpenAIVisionService implements VisionService {
 #### Mock Implementation (`lib/ai/vision/mock.ts`):
 
 ```typescript
-import { VisionService, AnalyzeDesignInput, VisionResult, DesignAnalysisResult } from './types';
+import {
+  VisionService,
+  AnalyzeDesignInput,
+  VisionResult,
+  DesignAnalysisResult,
+} from './types';
 import { mockDesignAnalysisResult } from './mock-data';
 
 export class MockVisionService implements VisionService {
-  async analyzeDesign(input: AnalyzeDesignInput): Promise<VisionResult<DesignAnalysisResult>> {
+  async analyzeDesign(
+    input: AnalyzeDesignInput,
+  ): Promise<VisionResult<DesignAnalysisResult>> {
     // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
+
     // Validate images
     for (const image of input.images) {
       const isValid = await this.validateImage(image);
@@ -250,7 +272,7 @@ export class MockVisionService implements VisionService {
         };
       }
     }
-    
+
     return {
       success: true,
       data: mockDesignAnalysisResult,
@@ -260,7 +282,7 @@ export class MockVisionService implements VisionService {
   async validateImage(file: File): Promise<boolean> {
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
     const maxSize = 20 * 1024 * 1024; // 20MB
-    
+
     return validTypes.includes(file.type) && file.size <= maxSize;
   }
 }
@@ -274,11 +296,13 @@ import { OpenAIVisionService } from './openai';
 import { MockVisionService } from './mock';
 import { userApiKeyService } from '@/lib/user-api-keys/service';
 
-export async function createVisionService(userId?: string): Promise<VisionService> {
+export async function createVisionService(
+  userId?: string,
+): Promise<VisionService> {
   if (process.env.NODE_ENV === 'test') {
     return new MockVisionService();
   }
-  
+
   // Use user's stored API key if userId provided
   if (userId) {
     const userApiKey = await userApiKeyService.getApiKey(userId, 'openai');
@@ -286,13 +310,13 @@ export async function createVisionService(userId?: string): Promise<VisionServic
       return new OpenAIVisionService(userApiKey.key);
     }
   }
-  
+
   // Fallback to environment variable
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return new MockVisionService();
   }
-  
+
   return new OpenAIVisionService(apiKey);
 }
 ```
@@ -313,10 +337,7 @@ export async function POST(request: NextRequest) {
     // Check authentication
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Rate limiting
@@ -326,26 +347,26 @@ export async function POST(request: NextRequest) {
       {
         limit: 10,
         window: '1h',
-      }
+      },
     );
 
     if (!rateLimitResult.success) {
       return NextResponse.json(
         { error: 'Rate limit exceeded' },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
     // Parse form data
     const formData = await request.formData();
     const images = formData.getAll('images') as File[];
-    
+
     // Validate input
     const validation = analyzeDesignSchema.safeParse({ images });
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Invalid input', details: validation.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -354,11 +375,11 @@ export async function POST(request: NextRequest) {
 
     // Analyze design
     const result = await visionService.analyzeDesign(validation.data);
-    
+
     if (!result.success) {
       return NextResponse.json(
         { error: result.error.message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -370,7 +391,7 @@ export async function POST(request: NextRequest) {
     console.error('Design analysis error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -399,7 +420,7 @@ export default function StylingPage() {
             Upload screenshots to generate custom styling files that help you escape the generic AI look.
           </p>
         </div>
-        
+
         <DesignAnalyzer />
       </div>
     </div>
@@ -484,11 +505,11 @@ export function DesignAnalyzer() {
       {!result && (
         <>
           <UploadZone onFilesSelected={handleFilesSelected} />
-          
+
           {images.length > 0 && (
             <>
               <ImagePreview images={images} />
-              
+
               <div className="flex gap-4">
                 <Button
                   onClick={handleAnalyze}
@@ -498,7 +519,7 @@ export function DesignAnalyzer() {
                   {analyzing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {analyzing ? 'Analyzing...' : 'Analyze Design'}
                 </Button>
-                
+
                 <Button
                   onClick={handleReset}
                   variant="outline"
@@ -521,7 +542,7 @@ export function DesignAnalyzer() {
       {result && (
         <>
           <ResultTabs result={result} />
-          
+
           <Button onClick={handleReset} variant="outline">
             Analyze New Design
           </Button>
@@ -545,9 +566,9 @@ describe('MockVisionService', () => {
   it('should return mock analysis result', async () => {
     const service = new MockVisionService();
     const file = new File([''], 'test.png', { type: 'image/png' });
-    
+
     const result = await service.analyzeDesign({ images: [file] });
-    
+
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.styleGuide).toBeDefined();
@@ -624,21 +645,29 @@ test.describe('Design Analyzer', () => {
 
     // Navigate to design analyzer
     await page.goto('/styling');
-    
+
     // Upload test image
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles(['tests/fixtures/test-design.png']);
 
     // Analyze
     await page.click('button:has-text("Analyze Design")');
-    
+
     // Wait for results
-    await expect(page.locator('text=Generated Files')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('text=Generated Files')).toBeVisible({
+      timeout: 30000,
+    });
 
     // Verify all three tabs are present
-    await expect(page.locator('button:has-text("STYLE_GUIDE.md")')).toBeVisible();
-    await expect(page.locator('button:has-text("tailwind.config.js")')).toBeVisible();
-    await expect(page.locator('button:has-text("app/globals.css")')).toBeVisible();
+    await expect(
+      page.locator('button:has-text("STYLE_GUIDE.md")'),
+    ).toBeVisible();
+    await expect(
+      page.locator('button:has-text("tailwind.config.js")'),
+    ).toBeVisible();
+    await expect(
+      page.locator('button:has-text("app/globals.css")'),
+    ).toBeVisible();
   });
 });
 ```
@@ -670,6 +699,7 @@ npm run test:e2e tests/e2e/design-analyzer.test.ts
 ### Test Fixtures
 
 Create a simple test image:
+
 ```bash
 # Create test fixtures directory
 mkdir -p tests/fixtures
@@ -702,7 +732,7 @@ cp any-screenshot.png tests/fixtures/test-design.png
 ## Implementation Checklist
 
 - [ ] Implement VisionService interface and types
-- [ ] Create OpenAIVisionService implementation  
+- [ ] Create OpenAIVisionService implementation
 - [ ] Create MockVisionService with good sample data
 - [ ] Build service factory with user API key support
 - [ ] Implement API route with auth and rate limiting
