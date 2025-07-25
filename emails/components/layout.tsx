@@ -1,6 +1,7 @@
 import { Body, Container, Head, Html, Preview } from '@react-email/components';
-import { Header } from './header';
+
 import { Footer } from './footer';
+import { Header } from './header';
 
 interface EmailLayoutProps {
   preview: string;

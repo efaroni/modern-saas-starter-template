@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { testHelpers, authTestHelpers } from '@/lib/db/test-helpers';
-import { emailService } from '@/lib/email/service';
+
+import { testHelpers } from '@/lib/db/test-helpers';
 import { MockEmailService } from '@/lib/email/mock';
+import { emailService } from '@/lib/email/service';
 
 describe('Billing Email Integration', () => {
   beforeEach(async () => {
@@ -40,7 +41,11 @@ describe('Billing Email Integration', () => {
         expect(sentEmail.type).toBe('payment_success');
         expect(sentEmail.to).toBe('customer@example.com');
 
-        const emailData = sentEmail.data as any;
+        const emailData = sentEmail.data as {
+          amount: number;
+          currency: string;
+          user: { name: string };
+        };
         expect(emailData.amount).toBe(2999);
         expect(emailData.currency).toBe('usd');
         expect(emailData.user.name).toBe('John Doe');
@@ -109,7 +114,11 @@ describe('Billing Email Integration', () => {
         expect(sentEmail.type).toBe('subscription_change');
         expect(sentEmail.to).toBe('subscriber@example.com');
 
-        const emailData = sentEmail.data as any;
+        const emailData = sentEmail.data as {
+          previousPlan: string;
+          newPlan: string;
+          effectiveDate: Date;
+        };
         expect(emailData.previousPlan).toBe('Free');
         expect(emailData.newPlan).toBe('Pro');
         expect(emailData.effectiveDate).toEqual(effectiveDate);

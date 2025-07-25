@@ -1,4 +1,5 @@
-import { Button, Link, Section, Text } from '@react-email/components';
+import { Button, Section, Text } from '@react-email/components';
+
 import { EmailLayout, emailStyles } from '../components/layout';
 
 interface PaymentSuccessEmailProps {
@@ -37,7 +38,7 @@ export function PaymentSuccessEmail({
         <Text style={emailStyles.heading}>Payment Successful</Text>
         <Text style={emailStyles.paragraph}>Hello {userName || 'there'},</Text>
         <Text style={emailStyles.paragraph}>
-          We've successfully processed your payment of{' '}
+          We&apos;ve successfully processed your payment of{' '}
           <strong>{formatAmount(amount, currency)}</strong>.
         </Text>
         {billingDetails && (
@@ -53,7 +54,7 @@ export function PaymentSuccessEmail({
         )}
         <Text style={emailStyles.footnote}>
           Thank you for your business! If you have any questions about this
-          payment, please don't hesitate to contact our support team.
+          payment, please don&apos;t hesitate to contact our support team.
         </Text>
       </Section>
     </EmailLayout>
