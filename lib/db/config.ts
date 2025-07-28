@@ -22,34 +22,31 @@ export interface DatabaseConnectionComponents {
 
 /**
  * Environment-specific database connection settings
- * Uses separate environment variables for each environment to prevent accidental cross-connections
+ * Uses explicit environment variables for each environment - no fallbacks for cleaner config
  */
 const DATABASE_ENVIRONMENTS = {
   development: {
-    // Use LOCAL_DB_* variables for development, fallback to DB_* for backward compatibility
-    host: process.env.LOCAL_DB_HOST || process.env.DB_HOST || 'localhost',
-    port: parseEnvInt('LOCAL_DB_PORT', parseEnvInt('DB_PORT', 5432)),
-    username: process.env.LOCAL_DB_USER || process.env.DB_USER || 'efaroni',
-    password: process.env.LOCAL_DB_PASSWORD || process.env.DB_PASSWORD || '',
-    database:
-      process.env.LOCAL_DB_NAME || process.env.DB_NAME || 'saas_template_dev',
+    host: process.env.LOCAL_DB_HOST || 'localhost', // Only essential fallback
+    port: parseEnvInt('LOCAL_DB_PORT', 5432), // Standard port fallback
+    username: process.env.LOCAL_DB_USER, // No fallback - must be explicit
+    password: process.env.LOCAL_DB_PASSWORD || '', // Empty password is valid
+    database: process.env.LOCAL_DB_NAME, // No fallback - must be explicit
     ssl: false,
   },
   test: {
-    host: process.env.TEST_DB_HOST || 'localhost',
-    port: parseEnvInt('TEST_DB_PORT', 5432), // Keep 5432 for now to not break tests
-    username: process.env.TEST_DB_USER || 'efaroni',
-    password: process.env.TEST_DB_PASSWORD || '',
-    database: process.env.TEST_DB_NAME || 'saas_template_test',
+    host: process.env.TEST_DB_HOST || 'localhost', // Only essential fallback
+    port: parseEnvInt('TEST_DB_PORT', 5432), // Standard port fallback
+    username: process.env.TEST_DB_USER, // No fallback - must be explicit
+    password: process.env.TEST_DB_PASSWORD || '', // Empty password is valid
+    database: process.env.TEST_DB_NAME, // No fallback - must be explicit
     ssl: false,
   },
   production: {
-    // Use PROD_DB_* variables for production - no fallback for safety
-    host: process.env.PROD_DB_HOST || '',
-    port: parseEnvInt('PROD_DB_PORT', 5432),
-    username: process.env.PROD_DB_USER || '',
-    password: process.env.PROD_DB_PASSWORD || '',
-    database: process.env.PROD_DB_NAME || '',
+    host: process.env.PROD_DB_HOST, // No fallback - fail fast
+    port: parseEnvInt('PROD_DB_PORT', 5432), // Standard port only
+    username: process.env.PROD_DB_USER, // No fallback - fail fast
+    password: process.env.PROD_DB_PASSWORD, // No fallback - fail fast
+    database: process.env.PROD_DB_NAME, // No fallback - fail fast
     ssl: true,
   },
 } as const;

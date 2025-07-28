@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom';
+import { config } from 'dotenv';
+
+// Load test environment variables from .env.test
+config({ path: '.env.test' });
 
 // Fix setImmediate not defined error
 global.setImmediate =
@@ -6,20 +10,8 @@ global.setImmediate =
 global.clearImmediate =
   global.clearImmediate || (id => global.clearTimeout(id));
 
-// Mock environment variables for testing
+// Ensure NODE_ENV is set to test
 process.env.NODE_ENV = 'test';
-
-// Set component-based test database configuration to use existing database
-process.env.TEST_DB_HOST = 'localhost';
-process.env.TEST_DB_PORT = '5432'; // Changed from 5433 to match your PostgreSQL
-process.env.TEST_DB_USER = 'efaroni'; // Changed from test_user to match your user
-process.env.TEST_DB_PASSWORD = ''; // Empty password like your main database
-process.env.TEST_DB_NAME = 'saas_template_test';
-
-// Also set TEST_DATABASE_URL for backwards compatibility
-process.env.TEST_DATABASE_URL =
-  'postgresql://efaroni@localhost:5432/saas_template_test';
-process.env.ENCRYPTION_KEY = 'test-encryption-key-32-characters!!';
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
