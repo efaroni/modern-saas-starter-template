@@ -22,31 +22,34 @@ export interface DatabaseConnectionComponents {
 
 /**
  * Environment-specific database connection settings
- * Centralized place to configure database credentials for each environment
+ * Uses separate environment variables for each environment to prevent accidental cross-connections
  */
 const DATABASE_ENVIRONMENTS = {
   development: {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseEnvInt('DB_PORT', 5432),
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'saas_template',
+    // Use LOCAL_DB_* variables for development, fallback to DB_* for backward compatibility
+    host: process.env.LOCAL_DB_HOST || process.env.DB_HOST || 'localhost',
+    port: parseEnvInt('LOCAL_DB_PORT', parseEnvInt('DB_PORT', 5432)),
+    username: process.env.LOCAL_DB_USER || process.env.DB_USER || 'efaroni',
+    password: process.env.LOCAL_DB_PASSWORD || process.env.DB_PASSWORD || '',
+    database:
+      process.env.LOCAL_DB_NAME || process.env.DB_NAME || 'saas_template_dev',
     ssl: false,
   },
   test: {
     host: process.env.TEST_DB_HOST || 'localhost',
-    port: parseEnvInt('TEST_DB_PORT', 5432),
+    port: parseEnvInt('TEST_DB_PORT', 5432), // Keep 5432 for now to not break tests
     username: process.env.TEST_DB_USER || 'efaroni',
     password: process.env.TEST_DB_PASSWORD || '',
     database: process.env.TEST_DB_NAME || 'saas_template_test',
     ssl: false,
   },
   production: {
-    host: process.env.DB_HOST || '',
-    port: parseEnvInt('DB_PORT', 5432),
-    username: process.env.DB_USER || '',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || '',
+    // Use PROD_DB_* variables for production - no fallback for safety
+    host: process.env.PROD_DB_HOST || '',
+    port: parseEnvInt('PROD_DB_PORT', 5432),
+    username: process.env.PROD_DB_USER || '',
+    password: process.env.PROD_DB_PASSWORD || '',
+    database: process.env.PROD_DB_NAME || '',
     ssl: true,
   },
 } as const;
@@ -113,8 +116,8 @@ export interface DatabaseConfig {
  * @example
  * ```typescript
  * // Component-based (preferred)
- * process.env.DB_HOST = 'localhost'
- * process.env.DB_USER = 'postgres'
+ * process.env.LOCAL_DB_HOST = 'localhost'
+ * process.env.LOCAL_DB_USER = 'postgres'
  * const url = getDatabaseUrl() // Builds from components
  *
  * // Fallback to full URL
@@ -124,6 +127,35 @@ export interface DatabaseConfig {
  */
 export function getDatabaseUrl(): string {
   const env = process.env.NODE_ENV || 'development';
+
+  // Safety check: Prevent production database access in non-production environments
+  if (
+    env !== 'production' &&
+    (process.env.PROD_DB_HOST || process.env.PROD_DB_USER)
+  ) {
+    throw new Error(
+      '⚠️  SECURITY ERROR: Production database credentials detected in non-production environment! ' +
+        'Refusing to continue to prevent accidental production data access.',
+    );
+  }
+
+  // Safety check: Require explicit production configuration
+  if (env === 'production') {
+    const required = [
+      'PROD_DB_HOST',
+      'PROD_DB_USER',
+      'PROD_DB_PASSWORD',
+      'PROD_DB_NAME',
+    ];
+    const missing = required.filter(key => !process.env[key]);
+
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required production database configuration: ${missing.join(', ')}. ` +
+          'Production requires explicit database credentials for safety.',
+      );
+    }
+  }
 
   try {
     // Try component-based URL building first
