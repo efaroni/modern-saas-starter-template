@@ -51,8 +51,8 @@ const sections = [
   {
     number: 5,
     name: 'AI Styling System',
-    href: '/ai-styling',
-    status: 'coming-soon',
+    href: '/styling',
+    status: 'active',
     description: 'Screenshot to design generation',
     features: [
       'Image upload',
