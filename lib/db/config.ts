@@ -20,36 +20,61 @@ export interface DatabaseConnectionComponents {
   ssl?: boolean;
 }
 
+interface EnvironmentDatabaseConfig {
+  host: string | undefined;
+  port: number;
+  username: string | undefined;
+  password: string | undefined;
+  database: string | undefined;
+  ssl: boolean;
+}
+
 /**
- * Environment-specific database connection settings
- * Centralized place to configure database credentials for each environment
+ * Get environment-specific database connection settings
+ * Uses explicit environment variables for each environment - no fallbacks for cleaner config
+ * Returns a function to ensure env vars are evaluated when needed, not at module load time
  */
-const DATABASE_ENVIRONMENTS = {
-  development: {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseEnvInt('DB_PORT', 5432),
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'saas_template',
-    ssl: false,
-  },
-  test: {
-    host: process.env.TEST_DB_HOST || 'localhost',
-    port: parseEnvInt('TEST_DB_PORT', 5432),
-    username: process.env.TEST_DB_USER || 'efaroni',
-    password: process.env.TEST_DB_PASSWORD || '',
-    database: process.env.TEST_DB_NAME || 'saas_template_test',
-    ssl: false,
-  },
-  production: {
-    host: process.env.DB_HOST || '',
-    port: parseEnvInt('DB_PORT', 5432),
-    username: process.env.DB_USER || '',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || '',
-    ssl: true,
-  },
-} as const;
+function getDatabaseEnvironment(env: string): EnvironmentDatabaseConfig {
+  switch (env) {
+    case 'development':
+      return {
+        host: process.env.LOCAL_DB_HOST || 'localhost',
+        port: parseEnvInt('LOCAL_DB_PORT', 5432),
+        username: process.env.LOCAL_DB_USER,
+        password: process.env.LOCAL_DB_PASSWORD || '',
+        database: process.env.LOCAL_DB_NAME,
+        ssl: false,
+      };
+    case 'test':
+      return {
+        host: process.env.TEST_DB_HOST || 'localhost',
+        port: parseEnvInt('TEST_DB_PORT', 5432),
+        username: process.env.TEST_DB_USER,
+        password: process.env.TEST_DB_PASSWORD || '',
+        database: process.env.TEST_DB_NAME,
+        ssl: false,
+      };
+    case 'production':
+      return {
+        host: process.env.PROD_DB_HOST,
+        port: parseEnvInt('PROD_DB_PORT', 5432),
+        username: process.env.PROD_DB_USER,
+        password: process.env.PROD_DB_PASSWORD,
+        database: process.env.PROD_DB_NAME,
+        ssl: true,
+      };
+    default:
+      // Default to development
+      return {
+        host: process.env.LOCAL_DB_HOST || 'localhost',
+        port: parseEnvInt('LOCAL_DB_PORT', 5432),
+        username: process.env.LOCAL_DB_USER,
+        password: process.env.LOCAL_DB_PASSWORD || '',
+        database: process.env.LOCAL_DB_NAME,
+        ssl: false,
+      };
+  }
+}
 
 /**
  * Build a PostgreSQL connection URL from components
@@ -113,8 +138,8 @@ export interface DatabaseConfig {
  * @example
  * ```typescript
  * // Component-based (preferred)
- * process.env.DB_HOST = 'localhost'
- * process.env.DB_USER = 'postgres'
+ * process.env.LOCAL_DB_HOST = 'localhost'
+ * process.env.LOCAL_DB_USER = 'postgres'
  * const url = getDatabaseUrl() // Builds from components
  *
  * // Fallback to full URL
@@ -125,20 +150,49 @@ export interface DatabaseConfig {
 export function getDatabaseUrl(): string {
   const env = process.env.NODE_ENV || 'development';
 
+  // Safety check: Prevent production database access in non-production environments
+  if (
+    env !== 'production' &&
+    (process.env.PROD_DB_HOST || process.env.PROD_DB_USER)
+  ) {
+    throw new Error(
+      '⚠️  SECURITY ERROR: Production database credentials detected in non-production environment! ' +
+        'Refusing to continue to prevent accidental production data access.',
+    );
+  }
+
+  // Safety check: Require explicit production configuration
+  if (env === 'production') {
+    const required = [
+      'PROD_DB_HOST',
+      'PROD_DB_USER',
+      'PROD_DB_PASSWORD',
+      'PROD_DB_NAME',
+    ];
+    const missing = required.filter(key => !process.env[key]);
+
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required production database configuration: ${missing.join(', ')}. ` +
+          'Production requires explicit database credentials for safety.',
+      );
+    }
+  }
+
   try {
     // Try component-based URL building first
-    let envConfig: DatabaseConnectionComponents;
-
-    if (env === 'test') {
-      envConfig = DATABASE_ENVIRONMENTS.test;
-    } else if (env === 'production') {
-      envConfig = DATABASE_ENVIRONMENTS.production;
-    } else {
-      envConfig = DATABASE_ENVIRONMENTS.development;
-    }
+    const rawConfig = getDatabaseEnvironment(env);
 
     // If we have all required components, build the URL (password can be empty)
-    if (envConfig.host && envConfig.username && envConfig.database) {
+    if (rawConfig.host && rawConfig.username && rawConfig.database) {
+      const envConfig: DatabaseConnectionComponents = {
+        host: rawConfig.host,
+        port: rawConfig.port,
+        username: rawConfig.username,
+        password: rawConfig.password || '',
+        database: rawConfig.database,
+        ssl: rawConfig.ssl,
+      };
       return buildDatabaseUrl(envConfig);
     }
   } catch {
@@ -297,13 +351,24 @@ export function getDatabaseName(): string {
 export function getDatabaseConnectionComponents(): DatabaseConnectionComponents {
   const env = process.env.NODE_ENV || 'development';
 
+  let rawConfig: EnvironmentDatabaseConfig;
   if (env === 'test') {
-    return DATABASE_ENVIRONMENTS.test;
+    rawConfig = DATABASE_ENVIRONMENTS.test;
   } else if (env === 'production') {
-    return DATABASE_ENVIRONMENTS.production;
+    rawConfig = DATABASE_ENVIRONMENTS.production;
   } else {
-    return DATABASE_ENVIRONMENTS.development;
+    rawConfig = DATABASE_ENVIRONMENTS.development;
   }
+
+  // Convert to properly typed components, with fallbacks for required fields
+  return {
+    host: rawConfig.host || 'localhost',
+    port: rawConfig.port,
+    username: rawConfig.username || '',
+    password: rawConfig.password || '',
+    database: rawConfig.database || '',
+    ssl: rawConfig.ssl,
+  };
 }
 
 /**

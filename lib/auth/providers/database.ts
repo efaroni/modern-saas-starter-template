@@ -1,4 +1,4 @@
-import bcrypt from '@node-rs/bcrypt';
+import bcrypt from 'bcryptjs';
 import { eq, desc, and, sql } from 'drizzle-orm';
 
 import { AUTH_CONFIG } from '@/lib/config/app-config';
@@ -150,7 +150,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         }
 
         // Verify password
-        const isPasswordValid = await bcrypt.verify(password, user.password);
+        const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
           await this.rateLimiter.recordAttempt(
@@ -741,7 +741,7 @@ export class DatabaseAuthProvider implements AuthProvider {
       }
 
       // Verify current password
-      const isCurrentPasswordValid = await bcrypt.verify(
+      const isCurrentPasswordValid = await bcrypt.compare(
         currentPassword,
         user.password,
       );
@@ -773,7 +773,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         .limit(this.passwordHistoryLimit);
 
       for (const oldPassword of recentPasswords) {
-        const isReusedPassword = await bcrypt.verify(
+        const isReusedPassword = await bcrypt.compare(
           newPassword,
           oldPassword.passwordHash,
         );
@@ -909,7 +909,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         .limit(this.passwordHistoryLimit);
 
       for (const oldPassword of recentPasswords) {
-        const isReusedPassword = await bcrypt.verify(
+        const isReusedPassword = await bcrypt.compare(
           newPassword,
           oldPassword.passwordHash,
         );
@@ -1319,7 +1319,7 @@ export class DatabaseAuthProvider implements AuthProvider {
         .limit(this.passwordHistoryLimit);
 
       for (const oldPassword of recentPasswords) {
-        const isReusedPassword = await bcrypt.verify(
+        const isReusedPassword = await bcrypt.compare(
           newPassword,
           oldPassword.passwordHash,
         );

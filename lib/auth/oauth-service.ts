@@ -1,8 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 
 import { signIn as nextAuthSignIn } from '@/lib/auth/auth';
-import { users, accounts } from '@/lib/db/schema';
-import { db } from '@/lib/db/server';
+import { authDb, users, accounts } from '@/lib/auth/db.server';
 
 import { type AuthUser, type OAuthResult } from './types';
 
@@ -34,7 +33,7 @@ export class OAuthService {
    */
   async getUserFromOAuth(userId: string): Promise<AuthUser | null> {
     try {
-      const [user] = await db
+      const [user] = await authDb
         .select()
         .from(users)
         .where(eq(users.id, userId))
@@ -69,7 +68,7 @@ export class OAuthService {
   ): Promise<boolean> {
     try {
       // Check if account is already linked
-      const [existingAccount] = await db
+      const [existingAccount] = await authDb
         .select()
         .from(accounts)
         .where(eq(accounts.providerAccountId, providerAccountId))
@@ -80,7 +79,7 @@ export class OAuthService {
       }
 
       // Link the account
-      await db.insert(accounts).values({
+      await authDb.insert(accounts).values({
         userId,
         type: 'oauth',
         provider,
@@ -101,7 +100,7 @@ export class OAuthService {
    */
   async unlinkAccount(userId: string, provider: string): Promise<boolean> {
     try {
-      await db
+      await authDb
         .delete(accounts)
         .where(
           and(eq(accounts.userId, userId), eq(accounts.provider, provider)),
@@ -121,7 +120,7 @@ export class OAuthService {
     userId: string,
   ): Promise<(typeof accounts.$inferSelect)[]> {
     try {
-      return await db
+      return await authDb
         .select()
         .from(accounts)
         .where(eq(accounts.userId, userId));
@@ -140,7 +139,7 @@ export class OAuthService {
         ? and(eq(accounts.userId, userId), eq(accounts.provider, provider))
         : eq(accounts.userId, userId);
 
-      const results = await db
+      const results = await authDb
         .select()
         .from(accounts)
         .where(whereConditions)
@@ -166,7 +165,7 @@ export class OAuthService {
   }> {
     try {
       // Check if user with this email already exists
-      const [existingUser] = await db
+      const [existingUser] = await authDb
         .select()
         .from(users)
         .where(eq(users.email, email))
@@ -180,7 +179,7 @@ export class OAuthService {
       }
 
       // Check if this OAuth account is already linked
-      const [existingAccount] = await db
+      const [existingAccount] = await authDb
         .select()
         .from(accounts)
         .where(

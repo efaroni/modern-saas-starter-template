@@ -6,7 +6,12 @@ import {
   type SelectUserApiKey,
   type InsertUserApiKey,
 } from '@/lib/db/schema';
-import { encrypt, decrypt, maskApiKey } from '@/lib/encryption';
+import {
+  encrypt,
+  decrypt,
+  maskApiKey,
+  maskApiKeyForDisplay,
+} from '@/lib/encryption';
 
 // Lazy load db to avoid connection issues during import
 const getDb = async () => {
@@ -84,13 +89,14 @@ export const userApiKeyService = {
 
   async create(
     data: Omit<InsertUserApiKey, 'id' | 'createdAt' | 'updatedAt' | 'userId'>,
+    userId?: string,
   ): Promise<SelectUserApiKey> {
-    const userId = MOCK_USER_ID; // Will be replaced with actual user ID from auth
+    const currentUserId = userId || MOCK_USER_ID;
 
     if (shouldUseMock()) {
       const newKey: SelectUserApiKey = {
         id: Date.now().toString(),
-        userId,
+        userId: currentUserId,
         provider: data.provider,
         publicKey: data.publicKey || null,
         privateKeyEncrypted: data.privateKeyEncrypted, // Store unencrypted in mock
@@ -116,7 +122,7 @@ export const userApiKeyService = {
         .insert(userApiKeys)
         .values({
           ...data,
-          userId,
+          userId: currentUserId,
           privateKeyEncrypted: encryptedPrivateKey,
         })
         .returning();
@@ -278,6 +284,44 @@ export const userApiKeyService = {
       return result.publicKey;
     } catch (error) {
       console.error('Failed to get public key:', error);
+      return null;
+    }
+  },
+
+  // Get display-safe masked version of the private key
+  async getDisplayMaskedKey(
+    provider: string,
+    userId?: string,
+  ): Promise<string | null> {
+    const currentUserId = userId || MOCK_USER_ID;
+
+    if (shouldUseMock()) {
+      const key = mockUserApiKeys.find(
+        k => k.provider === provider && k.userId === currentUserId,
+      );
+      return key ? maskApiKeyForDisplay(key.privateKeyEncrypted) : null;
+    }
+
+    try {
+      const db = await getDb();
+      const [result] = await db
+        .select({ privateKeyEncrypted: userApiKeys.privateKeyEncrypted })
+        .from(userApiKeys)
+        .where(
+          and(
+            eq(userApiKeys.provider, provider),
+            eq(userApiKeys.userId, currentUserId),
+          ),
+        )
+        .limit(1);
+
+      if (!result) return null;
+
+      // Decrypt and then mask for display
+      const decryptedKey = decrypt(result.privateKeyEncrypted);
+      return maskApiKeyForDisplay(decryptedKey);
+    } catch (error) {
+      console.error('Failed to get display masked key:', error);
       return null;
     }
   },
