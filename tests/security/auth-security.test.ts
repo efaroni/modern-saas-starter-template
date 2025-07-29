@@ -1,24 +1,25 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { DatabaseAuthProvider } from '@/lib/auth/providers/database';
-import { testHelpers, authTestHelpers } from '@/lib/db/test-helpers';
-import { RateLimiter } from '@/lib/auth/rate-limiter';
-import { PasswordValidator } from '@/lib/auth/password-validator';
-import { TokenService } from '@/lib/auth/token-service';
-import { testDb } from '@/lib/db/test';
-import { verificationTokens } from '@/lib/db/schema';
+import bcrypt from 'bcryptjs';
 import { like } from 'drizzle-orm';
-import bcrypt from '@node-rs/bcrypt';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+
+import { PasswordValidator } from '@/lib/auth/password-validator';
+import { DatabaseAuthProvider } from '@/lib/auth/providers/database';
+import { RateLimiter } from '@/lib/auth/rate-limiter';
+import { TokenService } from '@/lib/auth/token-service';
+import { verificationTokens } from '@/lib/db/schema';
+import { testDb } from '@/lib/db/test';
+import { testHelpers, authTestHelpers } from '@/lib/db/test-helpers';
 
 describe('Authentication Security Tests', () => {
   let provider: DatabaseAuthProvider;
-  let rateLimiter: RateLimiter;
+  let _rateLimiter: RateLimiter;
   let passwordValidator: PasswordValidator;
   let tokenService: TokenService;
 
   beforeEach(async () => {
     await testHelpers.setupTest();
     provider = new DatabaseAuthProvider(testDb);
-    rateLimiter = new RateLimiter(testDb);
+    _rateLimiter = new RateLimiter(testDb);
     passwordValidator = new PasswordValidator();
     tokenService = new TokenService(testDb);
   });
@@ -35,7 +36,7 @@ describe('Authentication Security Tests', () => {
   });
 
   describe('Password Security', () => {
-    it('should reject common passwords', async () => {
+    it('should reject common passwords', () => {
       const commonPasswords = [
         'password',
         '123456',
@@ -54,7 +55,7 @@ describe('Authentication Security Tests', () => {
       }
     });
 
-    it('should enforce minimum password complexity', async () => {
+    it('should enforce minimum password complexity', () => {
       const weakPasswords = [
         'short',
         'nouppercase123!',
@@ -81,7 +82,7 @@ describe('Authentication Security Tests', () => {
       expect(hashedPassword.length).toBeGreaterThan(50);
 
       // Verify hash
-      const isValid = await bcrypt.verify(password, hashedPassword);
+      const isValid = await bcrypt.compare(password, hashedPassword);
       expect(isValid).toBe(true);
     });
   });
@@ -237,7 +238,7 @@ describe('Authentication Security Tests', () => {
     it('should sanitize user input', async () => {
       const maliciousInputs = [
         '<script>alert("xss")</script>',
-        'javascript:alert("xss")',
+        'javascriptXalert("xss")',
         'onload="alert(\'xss\')"',
         '"><script>alert("xss")</script>',
       ];

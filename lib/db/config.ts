@@ -20,36 +20,61 @@ export interface DatabaseConnectionComponents {
   ssl?: boolean;
 }
 
+interface EnvironmentDatabaseConfig {
+  host: string | undefined;
+  port: number;
+  username: string | undefined;
+  password: string | undefined;
+  database: string | undefined;
+  ssl: boolean;
+}
+
 /**
- * Environment-specific database connection settings
+ * Get environment-specific database connection settings
  * Uses explicit environment variables for each environment - no fallbacks for cleaner config
+ * Returns a function to ensure env vars are evaluated when needed, not at module load time
  */
-const DATABASE_ENVIRONMENTS = {
-  development: {
-    host: process.env.LOCAL_DB_HOST || 'localhost', // Only essential fallback
-    port: parseEnvInt('LOCAL_DB_PORT', 5432), // Standard port fallback
-    username: process.env.LOCAL_DB_USER, // No fallback - must be explicit
-    password: process.env.LOCAL_DB_PASSWORD || '', // Empty password is valid
-    database: process.env.LOCAL_DB_NAME, // No fallback - must be explicit
-    ssl: false,
-  },
-  test: {
-    host: process.env.TEST_DB_HOST || 'localhost', // Only essential fallback
-    port: parseEnvInt('TEST_DB_PORT', 5432), // Standard port fallback
-    username: process.env.TEST_DB_USER, // No fallback - must be explicit
-    password: process.env.TEST_DB_PASSWORD || '', // Empty password is valid
-    database: process.env.TEST_DB_NAME, // No fallback - must be explicit
-    ssl: false,
-  },
-  production: {
-    host: process.env.PROD_DB_HOST, // No fallback - fail fast
-    port: parseEnvInt('PROD_DB_PORT', 5432), // Standard port only
-    username: process.env.PROD_DB_USER, // No fallback - fail fast
-    password: process.env.PROD_DB_PASSWORD, // No fallback - fail fast
-    database: process.env.PROD_DB_NAME, // No fallback - fail fast
-    ssl: true,
-  },
-} as const;
+function getDatabaseEnvironment(env: string): EnvironmentDatabaseConfig {
+  switch (env) {
+    case 'development':
+      return {
+        host: process.env.LOCAL_DB_HOST || 'localhost',
+        port: parseEnvInt('LOCAL_DB_PORT', 5432),
+        username: process.env.LOCAL_DB_USER,
+        password: process.env.LOCAL_DB_PASSWORD || '',
+        database: process.env.LOCAL_DB_NAME,
+        ssl: false,
+      };
+    case 'test':
+      return {
+        host: process.env.TEST_DB_HOST || 'localhost',
+        port: parseEnvInt('TEST_DB_PORT', 5432),
+        username: process.env.TEST_DB_USER,
+        password: process.env.TEST_DB_PASSWORD || '',
+        database: process.env.TEST_DB_NAME,
+        ssl: false,
+      };
+    case 'production':
+      return {
+        host: process.env.PROD_DB_HOST,
+        port: parseEnvInt('PROD_DB_PORT', 5432),
+        username: process.env.PROD_DB_USER,
+        password: process.env.PROD_DB_PASSWORD,
+        database: process.env.PROD_DB_NAME,
+        ssl: true,
+      };
+    default:
+      // Default to development
+      return {
+        host: process.env.LOCAL_DB_HOST || 'localhost',
+        port: parseEnvInt('LOCAL_DB_PORT', 5432),
+        username: process.env.LOCAL_DB_USER,
+        password: process.env.LOCAL_DB_PASSWORD || '',
+        database: process.env.LOCAL_DB_NAME,
+        ssl: false,
+      };
+  }
+}
 
 /**
  * Build a PostgreSQL connection URL from components
@@ -156,18 +181,18 @@ export function getDatabaseUrl(): string {
 
   try {
     // Try component-based URL building first
-    let envConfig: DatabaseConnectionComponents;
-
-    if (env === 'test') {
-      envConfig = DATABASE_ENVIRONMENTS.test;
-    } else if (env === 'production') {
-      envConfig = DATABASE_ENVIRONMENTS.production;
-    } else {
-      envConfig = DATABASE_ENVIRONMENTS.development;
-    }
+    const rawConfig = getDatabaseEnvironment(env);
 
     // If we have all required components, build the URL (password can be empty)
-    if (envConfig.host && envConfig.username && envConfig.database) {
+    if (rawConfig.host && rawConfig.username && rawConfig.database) {
+      const envConfig: DatabaseConnectionComponents = {
+        host: rawConfig.host,
+        port: rawConfig.port,
+        username: rawConfig.username,
+        password: rawConfig.password || '',
+        database: rawConfig.database,
+        ssl: rawConfig.ssl,
+      };
       return buildDatabaseUrl(envConfig);
     }
   } catch {
@@ -326,13 +351,24 @@ export function getDatabaseName(): string {
 export function getDatabaseConnectionComponents(): DatabaseConnectionComponents {
   const env = process.env.NODE_ENV || 'development';
 
+  let rawConfig: EnvironmentDatabaseConfig;
   if (env === 'test') {
-    return DATABASE_ENVIRONMENTS.test;
+    rawConfig = DATABASE_ENVIRONMENTS.test;
   } else if (env === 'production') {
-    return DATABASE_ENVIRONMENTS.production;
+    rawConfig = DATABASE_ENVIRONMENTS.production;
   } else {
-    return DATABASE_ENVIRONMENTS.development;
+    rawConfig = DATABASE_ENVIRONMENTS.development;
   }
+
+  // Convert to properly typed components, with fallbacks for required fields
+  return {
+    host: rawConfig.host || 'localhost',
+    port: rawConfig.port,
+    username: rawConfig.username || '',
+    password: rawConfig.password || '',
+    database: rawConfig.database || '',
+    ssl: rawConfig.ssl,
+  };
 }
 
 /**

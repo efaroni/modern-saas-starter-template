@@ -116,12 +116,12 @@ CREATE INDEX IF NOT EXISTS idx_session_activity_session_time ON session_activity
 CREATE INDEX IF NOT EXISTS idx_users_unverified ON users (email, created_at) WHERE email_verified IS NULL;
 
 -- Index for recent failed auth attempts (for security monitoring)
-CREATE INDEX IF NOT EXISTS idx_auth_attempts_recent_failed ON auth_attempts (identifier, ip_address, created_at DESC) 
-WHERE success = false AND created_at > NOW() - INTERVAL '1 hour';
+-- Note: Removed time-based predicate as NOW() is not immutable
+CREATE INDEX IF NOT EXISTS idx_auth_attempts_recent_failed ON auth_attempts (identifier, ip_address, created_at DESC, success);
 
--- Index for active sessions with recent activity
-CREATE INDEX IF NOT EXISTS idx_user_sessions_active_recent ON user_sessions (user_id, last_activity DESC) 
-WHERE is_active = true AND last_activity > NOW() - INTERVAL '24 hours';
+-- Index for active sessions with recent activity  
+-- Note: Removed time-based predicate as NOW() is not immutable
+CREATE INDEX IF NOT EXISTS idx_user_sessions_active_recent ON user_sessions (user_id, last_activity DESC, is_active);
 
 -- ===== FOREIGN KEY CONSTRAINT INDEXES =====
 -- These indexes support foreign key constraints and improve join performance
@@ -138,13 +138,16 @@ WHERE is_active = true AND last_activity > NOW() - INTERVAL '24 hours';
 -- These help with maintenance queries
 
 -- Index for finding old verification tokens to cleanup
-CREATE INDEX IF NOT EXISTS idx_verification_tokens_cleanup ON verification_tokens (expires) WHERE expires < NOW();
+-- Note: Removed NOW() predicate as it's not immutable - application handles cleanup
+CREATE INDEX IF NOT EXISTS idx_verification_tokens_cleanup ON verification_tokens (expires);
 
--- Index for finding expired sessions to cleanup
-CREATE INDEX IF NOT EXISTS idx_sessions_cleanup ON sessions (expires) WHERE expires < NOW();
+-- Index for finding expired sessions to cleanup  
+-- Note: Removed NOW() predicate as it's not immutable - application handles cleanup
+CREATE INDEX IF NOT EXISTS idx_sessions_cleanup ON sessions (expires);
 
 -- Index for finding old auth attempts to cleanup
-CREATE INDEX IF NOT EXISTS idx_auth_attempts_cleanup ON auth_attempts (created_at) WHERE created_at < NOW() - INTERVAL '90 days';
+-- Note: Removed NOW() predicate as it's not immutable - application handles cleanup
+CREATE INDEX IF NOT EXISTS idx_auth_attempts_cleanup ON auth_attempts (created_at);
 
 -- ===== ANALYZE TABLES =====
 -- Update table statistics for the query planner

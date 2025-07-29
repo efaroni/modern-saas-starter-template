@@ -1,7 +1,6 @@
 import { emailService } from '@/lib/email/service';
 import { uploadService } from '@/lib/upload/service';
 
-import { MockAuthProvider } from './providers/mock';
 import { AuthService } from './service';
 import { createSessionStorage } from './session-storage';
 import { type AuthProvider } from './types';
@@ -15,6 +14,7 @@ export async function createAuthService(): Promise<AuthService> {
 
   if (isClientSide) {
     // Use mock provider for client-side
+    const { MockAuthProvider } = await import('./providers/mock');
     provider = new MockAuthProvider();
   } else if (isTestEnvironment) {
     // Use test database provider for server-side tests

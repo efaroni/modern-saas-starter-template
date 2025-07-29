@@ -138,18 +138,39 @@ export async function clearTestDatabase() {
   try {
     // Clear in dependency order (foreign keys)
     // Child tables first, then parent tables
+
+    // Session and activity related tables
     await testClient`DELETE FROM session_activity`;
     await testClient`DELETE FROM user_sessions`;
+
+    // Auth related tables
     await testClient`DELETE FROM auth_attempts`;
     await testClient`DELETE FROM password_history`;
+    await testClient`DELETE FROM password_reset_tokens`;
+
+    // User account related tables
     await testClient`DELETE FROM accounts`;
     await testClient`DELETE FROM sessions`;
     await testClient`DELETE FROM verification_tokens`;
     await testClient`DELETE FROM user_api_keys`;
+
+    // Email and communication tables
+    await testClient`DELETE FROM email_logs`;
+    await testClient`DELETE FROM email_preferences`;
+
+    // Subscription tables (but keep plans as it's reference data)
+    await testClient`DELETE FROM subscriptions`;
+
+    // Core user table (delete last due to foreign key dependencies)
     await testClient`DELETE FROM users`;
-  } catch {
+
+    console.warn('Test database cleared successfully');
+  } catch (error) {
     // Ignore errors if tables don't exist
-    console.warn('Some tables not found during cleanup, continuing...');
+    console.warn(
+      'Some tables not found during cleanup, continuing...',
+      error.message,
+    );
     // Try to clear just the core tables that should exist
     try {
       await testClient`DELETE FROM user_api_keys`;
@@ -221,7 +242,32 @@ export async function clearWorkerTestData() {
         } catch {
           /* Table may not exist */
         }
+
+        try {
+          await testClient`DELETE FROM email_preferences WHERE user_id = ${userId}`;
+        } catch {
+          /* Table may not exist */
+        }
+
+        try {
+          await testClient`DELETE FROM password_reset_tokens WHERE user_id = ${userId}`;
+        } catch {
+          /* Table may not exist */
+        }
+
+        try {
+          await testClient`DELETE FROM subscriptions WHERE user_id = ${userId}`;
+        } catch {
+          /* Table may not exist */
+        }
       }
+    }
+
+    // Clear email logs by worker email pattern (no user_id column)
+    try {
+      await testClient`DELETE FROM email_logs WHERE to_email LIKE ${workerPrefix}`;
+    } catch {
+      /* Table may not exist */
     }
 
     // Clear verification tokens and users with worker prefix

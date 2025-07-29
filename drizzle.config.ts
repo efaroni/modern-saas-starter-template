@@ -1,8 +1,9 @@
-import { defineConfig } from 'drizzle-kit';
 import { config } from 'dotenv';
+import { defineConfig } from 'drizzle-kit';
 
-// Load .env.local file
-config({ path: '.env.local' });
+// Load environment-specific configuration
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env.local';
+config({ path: envFile });
 
 // Import centralized database configuration
 import { getDatabaseUrl } from './lib/db/config';

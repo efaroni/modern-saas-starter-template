@@ -31,3 +31,17 @@ export async function createVisionService(
 
   return new OpenAIVisionService(apiKey);
 }
+
+export async function hasValidOpenAIKey(userId: string): Promise<boolean> {
+  // Check if user has a stored API key
+  const userApiKey = await userApiKeyService.getDecryptedPrivateKey(
+    'openai',
+    userId,
+  );
+  if (userApiKey) {
+    return true;
+  }
+
+  // Check if there's a fallback environment variable
+  return !!process.env.OPENAI_API_KEY;
+}

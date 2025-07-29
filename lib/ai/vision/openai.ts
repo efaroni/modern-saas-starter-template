@@ -45,7 +45,7 @@ export class OpenAIVisionService implements VisionService {
 
       // Call OpenAI Vision API
       const response = await this.client.chat.completions.create({
-        model: 'gpt-4-vision-preview',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -80,7 +80,79 @@ export class OpenAIVisionService implements VisionService {
         };
       }
 
-      const result = JSON.parse(content) as DesignAnalysisResult;
+      // Clean the response - remove markdown code blocks if present
+      let cleanedContent = content.trim();
+
+      // More robust markdown cleaning
+      // Handle various markdown code block formats
+      const codeBlockRegex = /^```(?:json)?\s*\n?([\s\S]*?)\n?```$/;
+      const match = cleanedContent.match(codeBlockRegex);
+
+      if (match) {
+        cleanedContent = match[1].trim();
+      } else {
+        // Fallback: Remove ```json or ``` from start
+        if (cleanedContent.startsWith('```json\n')) {
+          cleanedContent = cleanedContent.substring(8);
+        } else if (cleanedContent.startsWith('```json')) {
+          cleanedContent = cleanedContent.substring(7);
+        } else if (cleanedContent.startsWith('```\n')) {
+          cleanedContent = cleanedContent.substring(4);
+        } else if (cleanedContent.startsWith('```')) {
+          cleanedContent = cleanedContent.substring(3);
+        }
+
+        // Remove ``` from end
+        if (cleanedContent.endsWith('\n```')) {
+          cleanedContent = cleanedContent.substring(
+            0,
+            cleanedContent.length - 4,
+          );
+        } else if (cleanedContent.endsWith('```')) {
+          cleanedContent = cleanedContent.substring(
+            0,
+            cleanedContent.length - 3,
+          );
+        }
+      }
+
+      cleanedContent = cleanedContent.trim();
+
+      let result: DesignAnalysisResult;
+      try {
+        result = JSON.parse(cleanedContent) as DesignAnalysisResult;
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Raw content:', content);
+        console.error('Cleaned content:', cleanedContent);
+
+        // Last resort: try to extract JSON from the content
+        const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            result = JSON.parse(jsonMatch[0]) as DesignAnalysisResult;
+          } catch (extractError) {
+            console.error('Failed to extract JSON:', extractError);
+            return {
+              success: false,
+              error: {
+                code: 'PARSE_ERROR',
+                message:
+                  'Failed to parse AI response. The AI returned an invalid format.',
+              },
+            };
+          }
+        } else {
+          return {
+            success: false,
+            error: {
+              code: 'PARSE_ERROR',
+              message:
+                'Failed to parse AI response. The AI returned an invalid format.',
+            },
+          };
+        }
+      }
 
       return { success: true, data: result };
     } catch (error) {

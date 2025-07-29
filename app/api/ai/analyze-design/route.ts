@@ -47,6 +47,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The vision service will handle API key validation and fallback to mock if needed
+    // We don't need to check for API keys here since the service can use mock data
+
     // Get vision service with user's API key
     const visionService = await createVisionService(session.user.id);
 
@@ -54,8 +57,59 @@ export async function POST(request: NextRequest) {
     const result = await visionService.analyzeDesign(validation.data);
 
     if (!result.success) {
+      // Provide more specific error messages based on error codes
+      let errorMessage = result.error.message;
+      let actionDetails = null;
+      let details = null;
+
+      if (result.error.code === 'API_ERROR') {
+        if (
+          result.error.message.includes('401') ||
+          result.error.message.includes('Unauthorized') ||
+          result.error.message.includes('authentication')
+        ) {
+          errorMessage = 'Invalid or missing OpenAI API key';
+          details =
+            'To use the Design System Analyzer with real AI analysis, you need a valid OpenAI API key. You can either add your API key or use the demo mode with mock data.';
+          actionDetails = {
+            text: 'Configure API Key',
+            url: '/configuration',
+          };
+        } else if (
+          result.error.message.includes('insufficient') ||
+          result.error.message.includes('quota')
+        ) {
+          errorMessage = 'Insufficient OpenAI API credits';
+          details =
+            'Your OpenAI account has insufficient credits or has exceeded the quota. Please check your billing settings.';
+          actionDetails = {
+            text: 'Check OpenAI Billing',
+            url: 'https://platform.openai.com/account/billing',
+          };
+        } else if (
+          result.error.message.includes('model') ||
+          result.error.message.includes('vision')
+        ) {
+          errorMessage = 'OpenAI Vision API unavailable';
+          details =
+            'The OpenAI Vision model may be temporarily unavailable or your API key may not have access to vision models.';
+        }
+      } else if (result.error.code === 'RATE_LIMIT') {
+        errorMessage = 'Rate limit exceeded';
+        details =
+          'OpenAI API rate limit exceeded. Please try again later or upgrade your OpenAI plan for higher limits.';
+      } else if (result.error.code === 'PARSE_ERROR') {
+        errorMessage = 'Failed to process AI response';
+        details =
+          'The AI returned an unexpected format. This can happen if the model is not following instructions properly. Please try again.';
+      }
+
       return NextResponse.json(
-        { error: result.error.message },
+        {
+          error: errorMessage,
+          ...(details && { details }),
+          ...(actionDetails && { action: actionDetails }),
+        },
         { status: 400 },
       );
     }

@@ -1,4 +1,4 @@
-import bcrypt from '@node-rs/bcrypt';
+import bcrypt from 'bcryptjs';
 import { eq, desc, and } from 'drizzle-orm';
 
 import { users, passwordHistory } from '@/lib/db/schema';
@@ -135,7 +135,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
         }
 
         // Verify password
-        const isPasswordValid = await bcrypt.verify(password, user.password);
+        const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
           await this.rateLimiter.recordAttempt(
@@ -611,7 +611,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
       }
 
       // Verify current password
-      const isCurrentPasswordValid = await bcrypt.verify(
+      const isCurrentPasswordValid = await bcrypt.compare(
         currentPassword,
         user.password,
       );
@@ -644,7 +644,7 @@ export class DatabaseTestAuthProvider implements AuthProvider {
 
       // Check if new password matches any recent password
       for (const historyEntry of recentPasswords) {
-        const isReused = await bcrypt.verify(
+        const isReused = await bcrypt.compare(
           newPassword,
           historyEntry.passwordHash,
         );
