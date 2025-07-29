@@ -19,6 +19,9 @@ describe('Login Redirect Integration', () => {
   let mockSignIn: jest.MockedFunction<any>;
 
   beforeEach(async () => {
+    // Setup test environment
+    await testHelpers.setupTest();
+    
     // Get the mocked signIn function
     const { signIn } = await import('@/lib/auth/auth');
     mockSignIn = signIn as jest.MockedFunction<any>;
@@ -34,9 +37,9 @@ describe('Login Redirect Integration', () => {
   });
 
   afterEach(async () => {
-    // Clean up test user (using testHelpers generic cleanup)
+    // Clean up test user
     if (testUser?.id) {
-      await authTestHelpers.cleanupUser(testUser.id);
+      await testHelpers.teardownTest();
     }
   });
 

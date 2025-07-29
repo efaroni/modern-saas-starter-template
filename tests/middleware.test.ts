@@ -1,5 +1,12 @@
 import { NextRequest } from 'next/server';
 
+// Add global Request mock for middleware tests
+global.Request = class Request {
+  constructor(input: any, init?: any) {
+    return input;
+  }
+} as any;
+
 import { auth } from '@/lib/auth/auth';
 import { middleware } from '@/middleware';
 

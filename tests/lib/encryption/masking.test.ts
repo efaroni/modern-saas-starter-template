@@ -48,7 +48,7 @@ describe('API Key Masking', () => {
       // Using a modified live key format for testing (not a real key)
       const key = 'sk_live_4eC39HqLyjWDarjtT1zdp7dc_FAKE';
       const masked = maskApiKeyForDisplay(key);
-      expect(masked).toBe('sk_live_' + '*'.repeat(24) + 'FAKE');
+      expect(masked).toBe('sk_live_' + '*'.repeat(25) + 'FAKE');
     });
 
     it('should mask Resend keys appropriately', () => {

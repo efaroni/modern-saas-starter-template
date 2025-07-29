@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+// Import will be mocked below
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -47,7 +47,7 @@ describe('Homepage Authentication Flow', () => {
         '/rate-limiting',
       ];
 
-      for (const path of protectedPaths) {
+      for (const _path of protectedPaths) {
         // In real middleware, this would redirect
         const session = await auth();
         if (!session?.user) {
@@ -93,7 +93,7 @@ describe('Homepage Authentication Flow', () => {
         '/sections',
       ];
 
-      for (const path of protectedPaths) {
+      for (const _path of protectedPaths) {
         const session = await auth();
         expect(session?.user).toBeDefined();
         expect(session?.user?.email).toBe('test@example.com');
