@@ -3,11 +3,17 @@
 import { revalidatePath } from 'next/cache';
 
 import { validateApiKey } from '@/lib/api-keys/validators';
+import { auth } from '@/lib/auth/auth';
 import { userApiKeyService } from '@/lib/user-api-keys/service';
 
 export async function getUserApiKeys() {
   try {
-    const apiKeys = await userApiKeyService.list();
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const apiKeys = await userApiKeyService.list(session.user.id);
     return { success: true, data: apiKeys };
   } catch {
     return { success: false, error: 'Failed to fetch API keys' };
@@ -21,6 +27,11 @@ export async function createUserApiKey(data: {
   metadata?: Record<string, unknown>;
 }) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
     if (data.provider === 'openai' && !data.privateKey.startsWith('sk-')) {
       return { success: false, error: 'OpenAI keys must start with sk-' };
     }
@@ -50,7 +61,10 @@ export async function createUserApiKey(data: {
       }
     }
 
-    const existing = await userApiKeyService.getByProvider(data.provider);
+    const existing = await userApiKeyService.getByProvider(
+      data.provider,
+      session.user.id,
+    );
     if (existing) {
       return {
         success: false,
@@ -59,12 +73,15 @@ export async function createUserApiKey(data: {
       };
     }
 
-    const created = await userApiKeyService.create({
-      provider: data.provider,
-      privateKeyEncrypted: data.privateKey,
-      publicKey: data.publicKey || null,
-      metadata: data.metadata || {},
-    });
+    const created = await userApiKeyService.create(
+      {
+        provider: data.provider,
+        privateKeyEncrypted: data.privateKey,
+        publicKey: data.publicKey || null,
+        metadata: data.metadata || {},
+      },
+      session.user.id,
+    );
 
     revalidatePath('/configuration');
     return { success: true, data: created };
@@ -81,9 +98,36 @@ export async function createUserApiKey(data: {
   }
 }
 
-export async function deleteUserApiKey(id: string) {
+export async function deleteUserApiKey(idOrProvider: string) {
   try {
-    await userApiKeyService.delete(id);
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Check if this is a provider name or an ID
+    const isProvider = [
+      'openai',
+      'stripe',
+      'resend',
+      'github',
+      'google',
+    ].includes(idOrProvider);
+
+    if (isProvider) {
+      // Get the key by provider first
+      const existingKey = await userApiKeyService.getByProvider(
+        idOrProvider,
+        session.user.id,
+      );
+      if (existingKey) {
+        await userApiKeyService.delete(existingKey.id, session.user.id);
+      }
+    } else {
+      // It's an ID
+      await userApiKeyService.delete(idOrProvider, session.user.id);
+    }
+
     revalidatePath('/configuration');
     return { success: true };
   } catch {
@@ -91,9 +135,48 @@ export async function deleteUserApiKey(id: string) {
   }
 }
 
-export async function testUserApiKey(provider: string, privateKey: string) {
+export async function getDisplayMaskedApiKey(provider: string) {
   try {
-    const isMockKey = privateKey.includes('mock');
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const maskedKey = await userApiKeyService.getDisplayMaskedKey(
+      provider,
+      session.user.id,
+    );
+    if (!maskedKey) {
+      return { success: false, error: 'No API key found for this provider' };
+    }
+
+    return { success: true, maskedKey };
+  } catch {
+    return { success: false, error: 'Failed to get API key' };
+  }
+}
+
+export async function testUserApiKey(provider: string, privateKey?: string) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    let keyToTest = privateKey;
+
+    // If no key provided, try to get the existing key for this provider
+    if (!keyToTest) {
+      keyToTest = await userApiKeyService.getDecryptedPrivateKey(
+        provider,
+        session.user.id,
+      );
+      if (!keyToTest) {
+        return { success: false, error: 'No API key found for this provider' };
+      }
+    }
+
+    const isMockKey = keyToTest.includes('mock');
     const isProductionEnvironment =
       process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test';
 
@@ -112,7 +195,7 @@ export async function testUserApiKey(provider: string, privateKey: string) {
       };
     }
 
-    const validation = await validateApiKey(provider, privateKey);
+    const validation = await validateApiKey(provider, keyToTest);
 
     if (!validation.isValid) {
       return {

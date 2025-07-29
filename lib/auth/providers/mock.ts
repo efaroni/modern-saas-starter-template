@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 
-import { hashSync, compareSync } from '@node-rs/bcrypt';
+import { hashSync, compareSync } from 'bcryptjs';
 
 import { validateEmail } from '@/lib/utils/validators';
 
