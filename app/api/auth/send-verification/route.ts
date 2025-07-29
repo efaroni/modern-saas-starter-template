@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { z } from 'zod';
 
-import { authService } from '@/lib/auth/factory';
+import { authService } from '@/lib/auth/factory.server';
 
 const sendVerificationSchema = z.object({
   email: z.string().email('Invalid email address'),

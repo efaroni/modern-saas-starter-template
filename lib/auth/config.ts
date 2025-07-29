@@ -1,21 +1,51 @@
-import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { type NextAuthConfig } from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
 import GitHub from 'next-auth/providers/github';
 import Google from 'next-auth/providers/google';
 
 import { authLogger } from '@/lib/auth/logger';
 import { AUTH_CONFIG } from '@/lib/config/app-config';
-import { accounts, sessions, users, verificationTokens } from '@/lib/db/schema';
-import { db } from '@/lib/db/server';
 
 export const authConfig = {
-  adapter: DrizzleAdapter(db, {
-    usersTable: users,
-    accountsTable: accounts,
-    sessionsTable: sessions,
-    verificationTokensTable: verificationTokens,
-  }),
   providers: [
+    Credentials({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        try {
+          // Import minimal credentials auth to avoid server module chain
+          const { authenticateCredentials } = await import(
+            './credentials-auth.server'
+          );
+
+          const result = await authenticateCredentials(
+            credentials.email as string,
+            credentials.password as string,
+          );
+
+          if (result.success && result.user) {
+            return {
+              id: result.user.id,
+              email: result.user.email,
+              name: result.user.name,
+              image: result.user.image,
+            };
+          }
+
+          return null;
+        } catch (error) {
+          console.error('Credentials auth error:', error);
+          return null;
+        }
+      },
+    }),
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
@@ -30,16 +60,18 @@ export const authConfig = {
     }),
   ],
   pages: {
-    signIn: '/auth',
-    error: '/auth',
+    signIn: '/',
+    error: '/',
   },
   callbacks: {
     async signIn({ user, account, profile: _profile }) {
       // Allow OAuth sign-ins
       if (account?.type === 'oauth') {
         try {
-          // Import here to avoid circular dependencies
-          const { oauthIntegration } = await import('./oauth-integration');
+          // Import server-only OAuth callback handler
+          const { handleOAuthCallback } = await import(
+            './oauth-callback.server'
+          );
 
           // Validate and map user data to our OAuthUser interface
           if (!user.id || !user.email || !user.name) {
@@ -57,7 +89,7 @@ export const authConfig = {
           };
 
           // Handle OAuth callback
-          const result = await oauthIntegration.handleOAuthCallback(
+          const result = await handleOAuthCallback(
             account.provider,
             oauthUser,
             account,
@@ -70,8 +102,9 @@ export const authConfig = {
         }
       }
 
-      // For email/password sign-ins, we'll handle this through our custom auth
-      return false;
+      // For email/password sign-ins, allow them to proceed
+      // The credentials provider has already authenticated the user
+      return true;
     },
     session({ token, session }) {
       if (token.sub && session.user) {
@@ -86,16 +119,21 @@ export const authConfig = {
       return token;
     },
     redirect({ url, baseUrl }) {
-      // Redirect to our auth page after OAuth success
+      // Redirect to configuration page after OAuth success
       if (url.includes('/api/auth/callback/')) {
-        return `${baseUrl}/auth?oauth=success`;
+        return `${baseUrl}/configuration`;
+      }
+
+      // Default redirect to configuration page
+      if (url === baseUrl || url === `${baseUrl}/`) {
+        return `${baseUrl}/configuration`;
       }
 
       // Allows relative callback URLs
       if (url.startsWith('/')) return `${baseUrl}${url}`;
       // Allows callback URLs on the same origin
       else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
+      return `${baseUrl}/configuration`;
     },
   },
   events: {

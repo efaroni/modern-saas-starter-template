@@ -1,199 +1,170 @@
-import Link from 'next/link';
+'use client';
 
-const sections = [
-  {
-    number: 1,
-    name: 'Configuration & API Management',
-    href: '/configuration',
-    status: 'active',
-    description: 'Manage API keys with mock fallback support',
-    features: [
-      'API key CRUD',
-      'Service validation',
-      'Mock mode',
-      'Database storage',
-    ],
-  },
-  {
-    number: 2,
-    name: 'Authentication & User Management',
-    href: '/auth',
-    status: 'active',
-    description: 'Auth.js v5 with user CRUD operations',
-    features: [
-      'Email/password auth',
-      'OAuth providers',
-      'User profiles',
-      'Session management',
-    ],
-  },
-  {
-    number: 3,
-    name: 'Payments & Billing',
-    href: '/payments',
-    status: 'coming-soon',
-    description: 'Stripe integration with subscriptions',
-    features: [
-      'Checkout flow',
-      'Subscription management',
-      'Webhooks',
-      'Invoice history',
-    ],
-  },
-  {
-    number: 4,
-    name: 'Email System',
-    href: '/email',
-    status: 'coming-soon',
-    description: 'Resend + React Email templates',
-    features: ['Template gallery', 'Preview UI', 'Send testing', 'Email logs'],
-  },
-  {
-    number: 5,
-    name: 'AI Styling System',
-    href: '/ai-styling',
-    status: 'coming-soon',
-    description: 'Screenshot to design generation',
-    features: [
-      'Image upload',
-      'Style extraction',
-      'Theme generation',
-      'Code export',
-    ],
-  },
-  {
-    number: 6,
-    name: 'AI Site Assistant',
-    href: '/ai-assistant',
-    status: 'coming-soon',
-    description: 'Contextual help system',
-    features: [
-      'Chat interface',
-      'Context awareness',
-      'Help articles',
-      'User feedback',
-    ],
-  },
-  {
-    number: 7,
-    name: 'Code Generators',
-    href: '/generators',
-    status: 'active',
-    description: 'Developer productivity tools',
-    features: [
-      'Component templates',
-      'API endpoints',
-      'Database models',
-      'Test scaffolding',
-    ],
-  },
-  {
-    number: 8,
-    name: 'Rate Limiting Dashboard',
-    href: '/rate-limiting',
-    status: 'active',
-    description: 'Monitor and manage API rate limiting',
-    features: [
-      'Live statistics',
-      'Algorithm monitoring',
-      'Active limits',
-      'Alert system',
-    ],
-  },
-  {
-    number: 9,
-    name: 'Performance Monitor',
-    href: '/performance',
-    status: 'active',
-    description: 'Monitor and optimize application performance',
-    features: [
-      'Core Web Vitals',
-      'Runtime metrics',
-      'Resource timings',
-      'Performance insights',
-    ],
-  },
-  {
-    number: 10,
-    name: 'Deployment & CI/CD',
-    href: '/deployment',
-    status: 'coming-soon',
-    description: 'GitHub Actions and Vercel setup',
-    features: [
-      'Auto-deploy',
-      'Environment config',
-      'Health checks',
-      'Monitoring',
-    ],
-  },
-];
+import { useState, useEffect } from 'react';
+
+import { useRouter, useSearchParams } from 'next/navigation';
+
+import { LoginForm } from '@/app/(auth)/auth/components/login-form';
+import { SignupForm } from '@/app/(auth)/auth/components/signup-form';
+import type { AuthUser } from '@/lib/auth/types';
 
 export default function HomePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  const [message, setMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+
+  // Check for any messages in search params (e.g., after logout)
+  useEffect(() => {
+    const msg = searchParams.get('message');
+    if (msg === 'logged-out') {
+      setMessage({
+        type: 'success',
+        text: 'You have been successfully logged out.',
+      });
+    }
+  }, [searchParams]);
+
+  const handleLoginSuccess = (_user: AuthUser) => {
+    setMessage({
+      type: 'success',
+      text: 'Successfully signed in! Redirecting...',
+    });
+
+    // Redirect to configuration page (API keys) after successful login
+    setTimeout(() => {
+      router.push('/configuration');
+    }, 500);
+  };
+
+  const handleSignupSuccess = (_user: AuthUser) => {
+    setMessage({
+      type: 'success',
+      text: 'Account created successfully! Redirecting...',
+    });
+
+    // TODO: Implement email verification
+    // For now, users can access the app immediately after signup
+    // When implementing:
+    // 1. Send verification email on signup
+    // 2. Restrict certain features until verified
+    // 3. Add /verify-email route handler
+    // 4. Check emailVerified status in middleware
+
+    // Redirect to configuration page after signup
+    setTimeout(() => {
+      router.push('/configuration');
+    }, 500);
+  };
+
+  const handleError = (error: string) => {
+    setMessage({
+      type: 'error',
+      text: error,
+    });
+  };
+
+  const handleForgotPassword = () => {
+    router.push('/reset-password');
+  };
+
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <div className='mx-auto max-w-6xl px-4 py-12'>
-        <div className='mb-12 text-center'>
-          <h1 className='mb-4 text-4xl font-bold text-gray-900'>
-            Modern SaaS Starter Template
+    <div className='flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8'>
+      <div className='w-full max-w-md space-y-8'>
+        {/* Header */}
+        <div className='text-center'>
+          <h1 className='text-3xl font-bold text-gray-900'>
+            Modern SaaS Starter
           </h1>
-          <p className='text-xl text-gray-600'>
-            Test and explore each feature of the modern SaaS template
+          <p className='mt-2 text-sm text-gray-600'>
+            Sign in to access your dashboard
           </p>
         </div>
 
-        <div className='grid gap-6 md:grid-cols-2'>
-          {sections.map(section => (
-            <Link
-              key={section.number}
-              href={section.status === 'active' ? section.href : '#'}
-              className={`block rounded-lg border-2 bg-white p-6 transition-all ${
-                section.status === 'active'
-                  ? 'cursor-pointer border-blue-500 hover:border-blue-600 hover:shadow-lg'
-                  : 'cursor-not-allowed border-gray-200 opacity-60'
+        {/* Main Card */}
+        <div className='rounded-lg bg-white px-4 py-8 shadow-lg sm:px-10'>
+          {/* Success/Error Messages */}
+          {message && (
+            <div
+              className={`mb-4 rounded-md p-3 text-sm ${
+                message.type === 'success'
+                  ? 'bg-green-50 text-green-800'
+                  : 'bg-red-50 text-red-800'
               }`}
             >
-              <div className='mb-4 flex items-start justify-between'>
-                <div>
-                  <span className='text-sm font-medium text-gray-500'>
-                    Section {section.number}
-                  </span>
-                  <h2 className='mt-1 text-xl font-semibold text-gray-900'>
-                    {section.name}
-                  </h2>
-                </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-sm font-medium ${
-                    section.status === 'active'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}
-                >
-                  {section.status === 'active' ? 'Ready' : 'Coming Soon'}
-                </span>
-              </div>
+              {message.text}
+            </div>
+          )}
 
-              <p className='mb-4 text-gray-600'>{section.description}</p>
+          {/* Tabs */}
+          <div className='mb-6 flex border-b border-gray-200'>
+            <button
+              onClick={() => {
+                setActiveTab('login');
+                setMessage(null);
+              }}
+              className={`flex-1 border-b-2 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'login'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('signup');
+                setMessage(null);
+              }}
+              className={`flex-1 border-b-2 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'signup'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
 
-              <div className='space-y-1'>
-                {section.features.map(feature => (
-                  <div
-                    key={feature}
-                    className='flex items-center text-sm text-gray-500'
-                  >
-                    <span className='mr-2'>•</span>
-                    {feature}
-                  </div>
-                ))}
-              </div>
-            </Link>
-          ))}
+          {/* Forms */}
+          {activeTab === 'login' ? (
+            <LoginForm
+              onSuccess={handleLoginSuccess}
+              onError={handleError}
+              onForgotPassword={handleForgotPassword}
+            />
+          ) : (
+            <SignupForm onSuccess={handleSignupSuccess} onError={handleError} />
+          )}
+
+          {/* Footer */}
+          <div className='mt-6 text-center text-sm text-gray-600'>
+            <p>
+              By signing in, you agree to our{' '}
+              <a href='#' className='text-blue-600 hover:text-blue-500'>
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a href='#' className='text-blue-600 hover:text-blue-500'>
+                Privacy Policy
+              </a>
+            </p>
+          </div>
         </div>
 
-        <div className='mt-12 text-center text-gray-500'>
-          <p className='text-sm'>
-            Click on any &ldquo;Ready&rdquo; section to explore its features
-          </p>
-        </div>
+        {/* Development Info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className='rounded-md bg-blue-50 p-4 text-sm text-blue-800'>
+            <p className='font-medium'>Development Mode</p>
+            <p className='mt-1'>
+              Test credentials: test@example.com / password123
+            </p>
+            <p className='mt-1'>OAuth providers: Coming soon</p>
+          </div>
+        )}
       </div>
     </div>
   );

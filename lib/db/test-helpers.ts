@@ -1,4 +1,4 @@
-import bcrypt from '@node-rs/bcrypt';
+import bcrypt from 'bcryptjs';
 
 import {
   userApiKeys,
@@ -379,7 +379,7 @@ export const authTestHelpers = {
 
   // Verify password hashing
   verifyPasswordHash(plainPassword: string, hashedPassword: string): boolean {
-    return bcrypt.verifySync(plainPassword, hashedPassword);
+    return bcrypt.compareSync(plainPassword, hashedPassword);
   },
 
   // Test data for auth scenarios

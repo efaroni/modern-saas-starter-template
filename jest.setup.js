@@ -1,4 +1,8 @@
 import '@testing-library/jest-dom';
+import { config } from 'dotenv';
+
+// Load test environment variables from .env.test
+config({ path: '.env.test' });
 
 // Fix setImmediate not defined error
 global.setImmediate =
@@ -6,20 +10,98 @@ global.setImmediate =
 global.clearImmediate =
   global.clearImmediate || (id => global.clearTimeout(id));
 
-// Mock environment variables for testing
+// Ensure NODE_ENV is set to test
 process.env.NODE_ENV = 'test';
 
-// Set component-based test database configuration to use existing database
-process.env.TEST_DB_HOST = 'localhost';
-process.env.TEST_DB_PORT = '5432'; // Changed from 5433 to match your PostgreSQL
-process.env.TEST_DB_USER = 'efaroni'; // Changed from test_user to match your user
-process.env.TEST_DB_PASSWORD = ''; // Empty password like your main database
-process.env.TEST_DB_NAME = 'saas_template_test';
+// Mock Next.js server components only for API route testing (not middleware tests)
+// Middleware tests need the real NextRequest implementation
+const mockNextResponse = {
+  json: (data, init) => {
+    const response = {
+      _data: data,
+      status: init?.status || 200,
+      ok: (init?.status || 200) < 400,
+      headers: new Map(),
+      json() {
+        return Promise.resolve(this._data);
+      },
+    };
+    return response;
+  },
+  redirect: (url, status) => {
+    return {
+      _data: null,
+      status: status || 302,
+      headers: new Map([['location', url]]),
+      json() {
+        return Promise.resolve(null);
+      },
+    };
+  },
+  next: () => {
+    return {
+      _data: null,
+      status: 200,
+      headers: new Map(),
+      json() {
+        return Promise.resolve(null);
+      },
+    };
+  },
+};
 
-// Also set TEST_DATABASE_URL for backwards compatibility
-process.env.TEST_DATABASE_URL =
-  'postgresql://efaroni@localhost:5432/saas_template_test';
-process.env.ENCRYPTION_KEY = 'test-encryption-key-32-characters!!';
+// Only mock NextResponse, let NextRequest be the real implementation
+jest.mock('next/server', () => {
+  const actual = jest.requireActual('next/server');
+  return {
+    ...actual,
+    NextResponse: mockNextResponse,
+  };
+});
+
+// Minimal global Request/Response for Next.js compatibility
+// These are base implementations that don't interfere with NextRequest
+if (!global.Request) {
+  global.Request = class Request {
+    constructor(input, init = {}) {
+      this._url = typeof input === 'string' ? input : input.url;
+      this.method = init?.method || 'GET';
+      this.headers = new Headers(init?.headers);
+    }
+
+    get url() {
+      return this._url;
+    }
+  };
+}
+
+if (!global.Response) {
+  global.Response = class Response {
+    constructor(body, init = {}) {
+      this.body = body;
+      this.status = init.status || 200;
+      this.ok = this.status < 400;
+      this.headers = new Headers(init.headers);
+    }
+  };
+}
+
+if (!global.Headers) {
+  global.Headers = class Headers {
+    constructor(init = {}) {
+      this.map = new Map(Object.entries(init));
+    }
+    get(name) {
+      return this.map.get(name);
+    }
+    set(name, value) {
+      this.map.set(name, value);
+    }
+    has(name) {
+      return this.map.has(name);
+    }
+  };
+}
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
@@ -62,11 +144,10 @@ beforeAll(async () => {
     // Lazy import test database utilities to prevent early initialization
     const { initializeTestDatabase } = await import('./lib/db/test');
 
-    console.log('Initializing test database...');
+    // Initialize test database
     await initializeTestDatabase();
-    console.log('Test database initialization completed');
   } catch (error) {
-    console.error('Test database initialization failed:', error);
+    console.warn('Test database initialization failed:', error);
     // Don't throw - let individual tests handle database issues
   }
 }, 60000); // 60 second timeout for database initialization
@@ -76,10 +157,9 @@ afterAll(async () => {
     // Lazy import to avoid early initialization
     const { closeTestDatabase } = await import('./lib/db/test');
 
-    console.log('Closing test database connections...');
+    // Close test database connections
     await closeTestDatabase();
-    console.log('Test database cleanup completed');
   } catch (error) {
-    console.error('Test database cleanup failed:', error);
+    console.warn('Test database cleanup failed:', error);
   }
 }, 10000); // 10 second timeout for cleanup

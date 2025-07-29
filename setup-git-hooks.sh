@@ -1,5 +1,22 @@
 #!/bin/bash
 
+# ADDED this only for git worktrees
+
+# Determine if we're in the main repo (not a worktree)
+REPO_ROOT=$(git rev-parse --git-common-dir 2>/dev/null)
+
+if [ -z "$REPO_ROOT" ]; then
+  echo "❌ Error: Not inside a Git repository"
+  exit 1
+fi
+
+if [ "$REPO_ROOT" != ".git" ]; then
+  echo "⚠️ Skipping git hook setup: not in main Git repo root"
+  exit 0
+fi
+
+# DONE adding only for git worktrees
+
 # Setup script for git hooks
 echo "Setting up git hooks..."
 
