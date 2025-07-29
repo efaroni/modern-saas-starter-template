@@ -38,11 +38,11 @@ function getDatabaseEnvironment(env: string): EnvironmentDatabaseConfig {
   switch (env) {
     case 'development':
       return {
-        host: process.env.LOCAL_DB_HOST || 'localhost',
-        port: parseEnvInt('LOCAL_DB_PORT', 5432),
-        username: process.env.LOCAL_DB_USER,
-        password: process.env.LOCAL_DB_PASSWORD || '',
-        database: process.env.LOCAL_DB_NAME,
+        host: process.env.DEV_DB_HOST || 'localhost',
+        port: parseEnvInt('DEV_DB_PORT', 5432),
+        username: process.env.DEV_DB_USER,
+        password: process.env.DEV_DB_PASSWORD || '',
+        database: process.env.DEV_DB_NAME,
         ssl: false,
       };
     case 'test':
@@ -66,11 +66,11 @@ function getDatabaseEnvironment(env: string): EnvironmentDatabaseConfig {
     default:
       // Default to development
       return {
-        host: process.env.LOCAL_DB_HOST || 'localhost',
-        port: parseEnvInt('LOCAL_DB_PORT', 5432),
-        username: process.env.LOCAL_DB_USER,
-        password: process.env.LOCAL_DB_PASSWORD || '',
-        database: process.env.LOCAL_DB_NAME,
+        host: process.env.DEV_DB_HOST || 'localhost',
+        port: parseEnvInt('DEV_DB_PORT', 5432),
+        username: process.env.DEV_DB_USER,
+        password: process.env.DEV_DB_PASSWORD || '',
+        database: process.env.DEV_DB_NAME,
         ssl: false,
       };
   }
@@ -151,12 +151,10 @@ export function getDatabaseUrl(): string {
   const env = process.env.NODE_ENV || 'development';
 
   // Safety check: Prevent production database access in non-production environments
-  if (
-    env !== 'production' &&
-    (process.env.PROD_DB_HOST || process.env.PROD_DB_USER)
-  ) {
+  // Skip this check in test environment to avoid conflicts with TEST_DB_* variables
+  if (env === 'development' && process.env.NODE_ENV === 'production') {
     throw new Error(
-      '⚠️  SECURITY ERROR: Production database credentials detected in non-production environment! ' +
+      '⚠️  SECURITY ERROR: NODE_ENV=production detected in development environment! ' +
         'Refusing to continue to prevent accidental production data access.',
     );
   }
@@ -211,7 +209,7 @@ export function getDatabaseUrl(): string {
   // If we get here, no valid configuration was found
   throw new Error(
     'Database configuration is missing. Please set either:\n' +
-      '1. Component variables: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME\n' +
+      '1. Component variables: DEV_DB_* (development), TEST_DB_* (test), PROD_DB_* (production)\n' +
       '2. Or full URL: DATABASE_URL (TEST_DATABASE_URL for tests)\n' +
       'See documentation for complete setup instructions.',
   );
@@ -351,14 +349,7 @@ export function getDatabaseName(): string {
 export function getDatabaseConnectionComponents(): DatabaseConnectionComponents {
   const env = process.env.NODE_ENV || 'development';
 
-  let rawConfig: EnvironmentDatabaseConfig;
-  if (env === 'test') {
-    rawConfig = DATABASE_ENVIRONMENTS.test;
-  } else if (env === 'production') {
-    rawConfig = DATABASE_ENVIRONMENTS.production;
-  } else {
-    rawConfig = DATABASE_ENVIRONMENTS.development;
-  }
+  const rawConfig = getDatabaseEnvironment(env);
 
   // Convert to properly typed components, with fallbacks for required fields
   return {

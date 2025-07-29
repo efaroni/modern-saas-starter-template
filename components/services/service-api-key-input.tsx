@@ -324,8 +324,8 @@ export function ServiceApiKeyInput({
         {isEditingExistingKey && (
           <div className='mt-4 space-y-2'>
             <p className='text-sm text-gray-600'>
-              You&apos;re updating your existing API key. Click Save when you&apos;re
-              done.
+              You&apos;re updating your existing API key. Click Save when
+              you&apos;re done.
             </p>
             <button
               type='button'

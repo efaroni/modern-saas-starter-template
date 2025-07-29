@@ -38,28 +38,32 @@ export async function loginAction(data: {
   password: string;
 }): Promise<{ success: boolean; user?: AuthUser; error?: string }> {
   try {
-    // Use Next.js Auth signIn function with credentials provider
-    const result = await signIn('credentials', {
+    const service = await authService;
+
+    // First authenticate the user using our service
+    const authResult = await service.authenticateUser(
+      data.email,
+      data.password,
+    );
+
+    if (!authResult.success || !authResult.user) {
+      return {
+        success: false,
+        error: authResult.error || 'Invalid credentials',
+      };
+    }
+
+    // Then use Next.js Auth signIn to create the session
+    // We need to use redirect: false to handle the response properly
+    await signIn('credentials', {
       email: data.email,
       password: data.password,
       redirect: false,
     });
 
-    if (result?.error) {
-      return { success: false, error: 'Invalid credentials' };
-    }
-
-    // If successful, the session will be created automatically
-    // Get the user data for the return value
-    const service = await authService;
-    const userResult = await service.getUserByEmail(data.email);
-
-    if (userResult.success && userResult.user) {
-      revalidatePath('/');
-      return { success: true, user: userResult.user };
-    }
-
-    return { success: false, error: 'Login failed' };
+    // Return the user data
+    revalidatePath('/');
+    return { success: true, user: authResult.user };
   } catch (error) {
     console.error('Login action error:', error);
 
@@ -108,6 +112,13 @@ export async function signupAction(data: SignUpRequest): Promise<{
     );
 
     if (result.success && result.user) {
+      // Create session for the new user
+      await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
       revalidatePath('/');
       return { success: true, user: result.user };
     } else {
