@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { billingService } from '@/lib/billing/service';
+import { emailService } from '@/lib/email/service';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -49,28 +50,34 @@ export async function POST(request: NextRequest) {
 
     // Handle only the critical events
     switch (event.type) {
-      case 'checkout.completed':
+      case 'checkout.session.completed':
         console.warn('Processing checkout completion:', data);
 
-        // TODO: Update user subscription/purchase status when schema is ready
-        // if (data.mode === 'subscription') {
-        //   await db
-        //     .update(users)
-        //     .set({
-        //       subscriptionId: data.subscription,
-        //       subscriptionStatus: 'active',
-        //     })
-        //     .where(eq(users.billingCustomerId, data.customer));
-        // } else if (data.mode === 'payment') {
-        //   await db
-        //     .update(purchases)
-        //     .set({
-        //       status: 'completed',
-        //       billingSessionId: data.id,
-        //       amount: data.amount_total,
-        //     })
-        //     .where(eq(purchases.billingSessionId, data.id));
-        // }
+        if (data.mode === 'subscription') {
+          // TODO: Update user subscription status when schema is ready
+          // For now, send subscription confirmation email if customer email is available
+          if (data.customer_email) {
+            await emailService.sendSubscriptionChangeEmail(
+              data.customer_email,
+              {
+                user: { email: data.customer_email, name: null },
+                previousPlan: 'Free',
+                newPlan: 'Pro', // TODO: Get from price metadata
+                effectiveDate: new Date(),
+              },
+            );
+          }
+        } else if (data.mode === 'payment') {
+          // Send payment success email
+          if (data.customer_email) {
+            await emailService.sendPaymentSuccessEmail(data.customer_email, {
+              user: { email: data.customer_email, name: null },
+              amount: data.amount_total || 0,
+              currency: data.currency || 'usd',
+              invoiceUrl: data.invoice?.hosted_invoice_url,
+            });
+          }
+        }
         break;
 
       case 'subscription.updated':
@@ -89,8 +96,22 @@ export async function POST(request: NextRequest) {
         //   .where(eq(users.subscriptionId, data.id));
         break;
 
-      case 'payment.succeeded':
+      case 'payment_intent.succeeded':
         console.warn('Processing payment success:', data);
+        // Payment success email is handled in checkout.session.completed
+        break;
+
+      case 'payment_intent.payment_failed':
+        console.warn('Processing payment failure:', data);
+        // Send payment failed email
+        if (data.receipt_email) {
+          await emailService.sendPaymentFailedEmail(data.receipt_email, {
+            user: { email: data.receipt_email, name: null },
+            amount: data.amount || 0,
+            currency: data.currency || 'usd',
+            retryUrl: `${process.env.NEXTAUTH_URL}/dashboard/billing`,
+          });
+        }
         break;
 
       default:

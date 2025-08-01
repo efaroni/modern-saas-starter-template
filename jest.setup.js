@@ -10,6 +10,19 @@ global.setImmediate =
 global.clearImmediate =
   global.clearImmediate || (id => global.clearTimeout(id));
 
+// Add TextDecoder/TextEncoder polyfills for React Email
+if (!global.TextDecoder) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { TextDecoder } = require('util');
+  global.TextDecoder = TextDecoder;
+}
+
+if (!global.TextEncoder) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { TextEncoder } = require('util');
+  global.TextEncoder = TextEncoder;
+}
+
 // Ensure NODE_ENV is set to test
 process.env.NODE_ENV = 'test';
 
