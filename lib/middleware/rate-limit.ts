@@ -1,220 +1,113 @@
-import { type NextRequest, NextResponse } from 'next/server';
-
-import { EnhancedRateLimiter } from '@/lib/auth/enhanced-rate-limiter';
-
-export interface RateLimitMiddlewareOptions {
-  type: string;
-  keyGenerator?: (req: NextRequest) => string;
-  skipIf?: (req: NextRequest) => boolean;
-  onRateLimited?: (
-    req: NextRequest,
-    result: {
-      allowed: boolean;
-      remaining: number;
-      resetTime: Date;
-      locked: boolean;
-      retryAfter?: number;
-    },
-  ) => NextResponse;
-}
-
-const globalRateLimiter = new EnhancedRateLimiter();
-
 /**
  * Rate limiting middleware for API routes
+ * Provides configurable rate limiting with Redis backing
  */
-export function withRateLimit(options: RateLimitMiddlewareOptions) {
-  return function rateLimitMiddleware(
-    handler: (req: NextRequest) => Promise<NextResponse>,
-  ) {
-    return async function (req: NextRequest): Promise<NextResponse> {
-      // Skip rate limiting if condition is met
-      if (options.skipIf && options.skipIf(req)) {
-        return handler(req);
-      }
 
-      // Generate identifier for rate limiting
-      const identifier = options.keyGenerator
-        ? options.keyGenerator(req)
-        : getClientIP(req) || 'anonymous';
+import { type NextRequest } from 'next/server';
 
-      // Check rate limit
-      const result = await globalRateLimiter.checkRateLimit(
-        identifier,
-        options.type,
-        getClientIP(req) ?? undefined,
-      );
-
-      // Add rate limit headers
-      let response: NextResponse;
-      if (result.allowed) {
-        response = await handler(req);
-      } else if (options.onRateLimited) {
-        response = options.onRateLimited(req, result);
-      } else {
-        response = createRateLimitResponse(result);
-      }
-
-      // Add standard rate limit headers
-      response.headers.set('X-RateLimit-Limit', result.remaining.toString());
-      response.headers.set(
-        'X-RateLimit-Remaining',
-        result.remaining.toString(),
-      );
-      response.headers.set('X-RateLimit-Reset', result.resetTime.toISOString());
-      response.headers.set('X-RateLimit-Algorithm', result.algorithm);
-
-      if (result.retryAfter) {
-        response.headers.set('Retry-After', result.retryAfter.toString());
-      }
-
-      // Record the attempt
-      await globalRateLimiter.recordAttempt(
-        identifier,
-        options.type,
-        result.allowed,
-        getClientIP(req) ?? undefined,
-        req.headers.get('user-agent') || undefined,
-      );
-
-      return response;
+export type RateLimitResult =
+  | {
+      allowed: true;
+      remaining: number;
+      resetTime: number;
+    }
+  | {
+      allowed: false;
+      retryAfter: number;
     };
+
+export interface RateLimitConfig {
+  windowMs: number;
+  maxRequests: number;
+  keyGenerator?: (request: NextRequest) => string;
+}
+
+// Default configuration
+const defaultConfig: RateLimitConfig = {
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 100,
+  keyGenerator: request => {
+    // Use IP address as default key
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0] : request.ip || 'unknown';
+    return `rate_limit:${ip}`;
+  },
+};
+
+// In-memory store for development/testing (production should use Redis)
+const memoryStore = new Map<string, { count: number; resetTime: number }>();
+
+/**
+ * Apply rate limiting to a request
+ */
+export async function applyRateLimit(
+  request: NextRequest,
+  config: Partial<RateLimitConfig> = {},
+): Promise<RateLimitResult> {
+  const finalConfig = { ...defaultConfig, ...config };
+  const key = finalConfig.keyGenerator!(request);
+  const now = Date.now();
+  const windowStart = now - finalConfig.windowMs;
+
+  // Clean up expired entries
+  for (const [storeKey, data] of memoryStore.entries()) {
+    if (data.resetTime < now) {
+      memoryStore.delete(storeKey);
+    }
+  }
+
+  const current = memoryStore.get(key);
+
+  if (!current || current.resetTime < now) {
+    // First request in window or window has expired
+    const resetTime = now + finalConfig.windowMs;
+    memoryStore.set(key, { count: 1, resetTime });
+
+    return {
+      allowed: true,
+      remaining: finalConfig.maxRequests - 1,
+      resetTime,
+    };
+  }
+
+  if (current.count >= finalConfig.maxRequests) {
+    // Rate limit exceeded
+    return {
+      allowed: false,
+      retryAfter: Math.ceil((current.resetTime - now) / 1000),
+    };
+  }
+
+  // Increment counter
+  current.count += 1;
+  memoryStore.set(key, current);
+
+  return {
+    allowed: true,
+    remaining: finalConfig.maxRequests - current.count,
+    resetTime: current.resetTime,
   };
 }
 
 /**
- * Create a rate limit exceeded response
+ * Create a rate limiter with specific configuration
  */
-function createRateLimitResponse(result: {
-  allowed: boolean;
-  remaining: number;
-  resetTime: Date;
-  locked: boolean;
-  retryAfter?: number;
-}): NextResponse {
-  const message = result.locked
-    ? 'Account temporarily locked due to too many failed attempts'
-    : 'Rate limit exceeded';
-
-  return NextResponse.json(
-    {
-      error: message,
-      type: 'RATE_LIMIT_EXCEEDED',
-      retryAfter: result.retryAfter,
-      resetTime: result.resetTime,
-    },
-    { status: 429 },
-  );
+export function createRateLimiter(config: Partial<RateLimitConfig> = {}) {
+  return (request: NextRequest) => applyRateLimit(request, config);
 }
 
-/**
- * Get client IP address from request
- */
-function getClientIP(req: NextRequest): string | null {
-  const xForwardedFor = req.headers.get('x-forwarded-for');
-  const xRealIP = req.headers.get('x-real-ip');
-  const cfConnectingIP = req.headers.get('cf-connecting-ip');
+// Pre-configured rate limiters for common use cases
+export const strictRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 5,
+});
 
-  if (cfConnectingIP) {
-    return cfConnectingIP;
-  }
+export const moderateRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 100,
+});
 
-  if (xRealIP) {
-    return xRealIP;
-  }
-
-  if (xForwardedFor) {
-    return xForwardedFor.split(',')[0].trim();
-  }
-
-  return null;
-}
-
-/**
- * Higher-order function to create rate limit middleware with preset configurations
- */
-export const rateLimitPresets = {
-  /**
-   * Authentication endpoints (login, signup, etc.)
-   */
-  auth: (type: 'login' | 'signup' | 'passwordReset') =>
-    withRateLimit({
-      type,
-      keyGenerator: req => {
-        // Try to get email from request body, fallback to IP
-        const body = req.body ? JSON.parse(req.body.toString()) : {};
-        return body.email || getClientIP(req) || 'anonymous';
-      },
-    }),
-
-  /**
-   * API endpoints
-   */
-  api: (type: 'api' = 'api') =>
-    withRateLimit({
-      type,
-      keyGenerator: req => {
-        // Use API key if available, otherwise IP
-        const apiKey =
-          req.headers.get('x-api-key') || req.headers.get('authorization');
-        return apiKey || getClientIP(req) || 'anonymous';
-      },
-    }),
-
-  /**
-   * Upload endpoints
-   */
-  upload: () =>
-    withRateLimit({
-      type: 'upload',
-      keyGenerator: req => getClientIP(req) || 'anonymous',
-    }),
-
-  /**
-   * Public endpoints with light rate limiting
-   */
-  public: (type: string = 'public') =>
-    withRateLimit({
-      type,
-      keyGenerator: req => getClientIP(req) || 'anonymous',
-      skipIf: req => {
-        // Skip for local development
-        const ip = getClientIP(req);
-        return ip === '127.0.0.1' || ip === '::1';
-      },
-    }),
-};
-
-/**
- * Express-style middleware for easy integration
- */
-export async function applyRateLimit(
-  req: NextRequest,
-  type: string,
-  identifier?: string,
-): Promise<{ allowed: boolean; response?: NextResponse }> {
-  const key = identifier || getClientIP(req) || 'anonymous';
-  const result = await globalRateLimiter.checkRateLimit(
-    key,
-    type,
-    getClientIP(req) ?? undefined,
-  );
-
-  if (!result.allowed) {
-    return {
-      allowed: false,
-      response: createRateLimitResponse(result),
-    };
-  }
-
-  // Record successful check
-  await globalRateLimiter.recordAttempt(
-    key,
-    type,
-    true,
-    getClientIP(req) ?? undefined,
-    req.headers.get('user-agent') || undefined,
-  );
-
-  return { allowed: true };
-}
+export const lenientRateLimit = createRateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  maxRequests: 1000,
+});

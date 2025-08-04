@@ -1,7 +1,8 @@
 import { Geist, Geist_Mono } from 'next/font/google';
 
+import { ClerkProvider } from '@clerk/nextjs';
+
 import { Navigation } from '@/components/navigation';
-import { auth } from '@/lib/auth/auth';
 
 import type { Metadata } from 'next';
 import './globals.css';
@@ -22,37 +23,24 @@ export const metadata: Metadata = {
     'A comprehensive SaaS starter template with authentication, payments, AI, and more',
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Get current user session
-  const session = await auth();
-  const user = session?.user
-    ? {
-        id: session.user.id || '',
-        email: session.user.email || '',
-        name: session.user.name || null,
-        emailVerified: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-    : null;
-
   return (
-    <html lang='en'>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {/* Show navigation only for authenticated users */}
-        <Navigation user={user} />
+    <ClerkProvider>
+      <html lang='en'>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          {/* Navigation will be updated to use Clerk's user */}
+          <Navigation />
 
-        {/* Main content */}
-        <main className={user ? 'min-h-screen bg-gray-50' : ''}>
-          {children}
-        </main>
-      </body>
-    </html>
+          {/* Main content */}
+          <main>{children}</main>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

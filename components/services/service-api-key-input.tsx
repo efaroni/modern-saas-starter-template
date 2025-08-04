@@ -152,15 +152,48 @@ export function ServiceApiKeyInput({
           setOriginalMaskedKey(null); // Will be refetched
 
           // Refetch the key status
-          const testResult = await testUserApiKey(service);
+          const [testResult, displayResult] = await Promise.all([
+            testUserApiKey(service),
+            getDisplayMaskedApiKey(service),
+          ]);
+
           setExistingKeyStatus({
             hasKey: true,
             isValid: testResult.success,
             error: testResult.error,
-            maskedKey: undefined, // Will show the masked version after reload
+            maskedKey: displayResult.success
+              ? displayResult.maskedKey
+              : undefined,
           });
+
+          // Update the form with the new masked key
+          if (displayResult.success && displayResult.maskedKey) {
+            setValue('key', displayResult.maskedKey);
+            setOriginalMaskedKey(displayResult.maskedKey);
+          }
         } else {
-          reset();
+          // New key was added
+          setIsExistingKey(true);
+
+          // Fetch and display the masked key
+          const [testResult, displayResult] = await Promise.all([
+            testUserApiKey(service),
+            getDisplayMaskedApiKey(service),
+          ]);
+
+          setExistingKeyStatus({
+            hasKey: true,
+            isValid: testResult.success,
+            error: testResult.error,
+            maskedKey: displayResult.success
+              ? displayResult.maskedKey
+              : undefined,
+          });
+
+          if (displayResult.success && displayResult.maskedKey) {
+            setValue('key', displayResult.maskedKey);
+            setOriginalMaskedKey(displayResult.maskedKey);
+          }
         }
         // Success handled by the validation hook
       } else {
@@ -185,12 +218,25 @@ export function ServiceApiKeyInput({
                 setIsEditingExistingKey(false);
                 setIsExistingKey(true);
                 // Refetch the key status
-                const testResult = await testUserApiKey(service);
+                const [testResult, displayResult] = await Promise.all([
+                  testUserApiKey(service),
+                  getDisplayMaskedApiKey(service),
+                ]);
+
                 setExistingKeyStatus({
                   hasKey: true,
                   isValid: testResult.success,
                   error: testResult.error,
+                  maskedKey: displayResult.success
+                    ? displayResult.maskedKey
+                    : undefined,
                 });
+
+                // Update the form with the new masked key
+                if (displayResult.success && displayResult.maskedKey) {
+                  setValue('key', displayResult.maskedKey);
+                  setOriginalMaskedKey(displayResult.maskedKey);
+                }
                 return;
               }
             }

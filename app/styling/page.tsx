@@ -1,3 +1,7 @@
+import { redirect } from 'next/navigation';
+
+import { auth } from '@clerk/nextjs/server';
+
 import { DesignAnalyzer } from '@/components/design-analyzer';
 
 import type { Metadata } from 'next';
@@ -8,7 +12,12 @@ export const metadata: Metadata = {
     'Extract design patterns from screenshots to create custom styling files',
 };
 
-export default function StylingPage() {
+export default async function StylingPage() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect('/sign-in');
+  }
   return (
     <div className='container mx-auto px-4 py-8'>
       <div className='mx-auto max-w-6xl'>

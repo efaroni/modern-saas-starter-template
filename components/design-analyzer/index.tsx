@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { useUser } from '@clerk/nextjs';
 import {
   Loader2,
   ArrowLeft,
@@ -13,7 +14,6 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import type { DesignAnalysisResult } from '@/lib/ai/vision/types';
-import { useAuth } from '@/lib/hooks/useAuth';
 import { useOpenAIKeyValidation } from '@/lib/hooks/useOpenAIKeyValidation';
 
 import { ImagePreview } from './image-preview';
@@ -21,7 +21,7 @@ import { ResultTabs } from './result-tabs';
 import { UploadZone } from './upload-zone';
 
 export function DesignAnalyzer() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { isLoaded, isSignedIn, user } = useUser();
   const {
     isValid: isKeyValid,
     isLoading: keyValidating,
@@ -38,8 +38,7 @@ export function DesignAnalyzer() {
   } | null>(null);
   const [result, setResult] = useState<DesignAnalysisResult | null>(null);
 
-  const isAuthenticated = !!user && !authLoading;
-  const canUseAnalyzer = isAuthenticated && isKeyValid && !keyValidating;
+  const canUseAnalyzer = isLoaded && isSignedIn && isKeyValid && !keyValidating;
 
   const handleFilesSelected = (files: File[]) => {
     setImages(files);
@@ -114,7 +113,7 @@ export function DesignAnalyzer() {
   };
 
   // Show loading state while checking auth or key validation
-  if (authLoading) {
+  if (!isLoaded) {
     return (
       <div className='flex items-center justify-center py-12'>
         <div className='flex items-center gap-2'>
@@ -126,13 +125,13 @@ export function DesignAnalyzer() {
   }
 
   // Show auth required message
-  if (!isAuthenticated) {
+  if (!isSignedIn) {
     return (
       <Alert>
         <AlertDescription>
           Please{' '}
           <a
-            href='/auth'
+            href='/sign-in'
             className='text-primary hover:text-primary/80 underline'
           >
             sign in

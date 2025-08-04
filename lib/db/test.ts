@@ -49,19 +49,8 @@ export async function initializeTestDatabase() {
       console.error('Please ensure the test database exists and is accessible');
       return false;
     }
-    // Check if all required tables exist
-    const requiredTables = [
-      'users',
-      'user_api_keys',
-      'auth_attempts',
-      'password_history',
-      'password_reset_tokens',
-      'user_sessions',
-      'session_activity',
-      'accounts',
-      'sessions',
-      'verification_tokens',
-    ];
+    // Check if all required tables exist (updated for current schema)
+    const requiredTables = ['users', 'user_api_keys', 'webhook_events'];
 
     const missingTables = [];
 
@@ -83,35 +72,52 @@ export async function initializeTestDatabase() {
       console.warn('Running migrations...');
 
       // Run migrations using drizzle-kit
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { exec } = require('child_process');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const util = require('util');
-      const execAsync = util.promisify(exec);
+      // Removed unused execAsync - now creating tables directly
 
       try {
-        // Add explicit timeout and kill signal to prevent hanging
-        await execAsync('npm run db:push', {
-          env: {
-            ...process.env,
-            DATABASE_URL: TEST_DATABASE_URL,
-          },
-          timeout: 30000, // 30 second timeout
-          killSignal: 'SIGKILL', // Force kill if timeout
-        });
-        console.warn('Migrations completed successfully');
+        // Create tables directly instead of using drizzle-kit which may hang
+        console.warn('Creating tables directly...');
+
+        // Create users table if it doesn't exist
+        await testClient`
+          CREATE TABLE IF NOT EXISTS users (
+            id text PRIMARY KEY,
+            email text NOT NULL UNIQUE,
+            created_at timestamp DEFAULT now() NOT NULL,
+            updated_at timestamp DEFAULT now() NOT NULL,
+            email_preferences jsonb DEFAULT '{"marketing": true, "productUpdates": true, "securityAlerts": true}'::jsonb,
+            unsubscribe_token text UNIQUE
+          )
+        `;
+
+        // Create webhook_events table if it doesn't exist
+        await testClient`
+          CREATE TABLE IF NOT EXISTS webhook_events (
+            id text PRIMARY KEY,
+            provider text DEFAULT 'clerk' NOT NULL,
+            event_type text NOT NULL,
+            processed_at timestamp DEFAULT now() NOT NULL
+          )
+        `;
+
+        // Create user_api_keys table if it doesn't exist
+        await testClient`
+          CREATE TABLE IF NOT EXISTS user_api_keys (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            provider text NOT NULL,
+            public_key text,
+            private_key_encrypted text NOT NULL,
+            metadata jsonb DEFAULT '{}'::jsonb,
+            created_at timestamp DEFAULT now() NOT NULL,
+            updated_at timestamp DEFAULT now() NOT NULL,
+            UNIQUE(user_id, provider)
+          )
+        `;
+
+        console.warn('Tables created successfully');
       } catch (migrationError) {
-        console.error('Migration failed:', migrationError);
-
-        // If it's a timeout, be more explicit
-        if ((migrationError as { code?: string }).code === 'TIMEOUT') {
-          console.error(
-            'Migration timed out after 30 seconds - this may indicate a database connection issue',
-          );
-        }
-
-        // Continue anyway - tests will fail if tables don't exist
-        // But return false to indicate initialization problems
+        console.error('Table creation failed:', migrationError);
         return false;
       }
     }
@@ -139,27 +145,11 @@ export async function clearTestDatabase() {
     // Clear in dependency order (foreign keys)
     // Child tables first, then parent tables
 
-    // Session and activity related tables
-    await testClient`DELETE FROM session_activity`;
-    await testClient`DELETE FROM user_sessions`;
+    // Clear webhook events (no dependencies)
+    await testClient`DELETE FROM webhook_events`;
 
-    // Auth related tables
-    await testClient`DELETE FROM auth_attempts`;
-    await testClient`DELETE FROM password_history`;
-    await testClient`DELETE FROM password_reset_tokens`;
-
-    // User account related tables
-    await testClient`DELETE FROM accounts`;
-    await testClient`DELETE FROM sessions`;
-    await testClient`DELETE FROM verification_tokens`;
+    // Clear user API keys (depends on users)
     await testClient`DELETE FROM user_api_keys`;
-
-    // Email and communication tables
-    await testClient`DELETE FROM email_logs`;
-    await testClient`DELETE FROM email_preferences`;
-
-    // Subscription tables (but keep plans as it's reference data)
-    await testClient`DELETE FROM subscriptions`;
 
     // Core user table (delete last due to foreign key dependencies)
     await testClient`DELETE FROM users`;
@@ -200,78 +190,16 @@ export async function clearWorkerTestData() {
 
       // Delete related data for these users (in correct order for foreign keys)
       for (const userId of userIds) {
-        // Check which tables exist and use correct column names
-        try {
-          await testClient`DELETE FROM session_activity WHERE user_id = ${userId}`;
-        } catch {
-          /* Table may not exist */
-        }
-
-        try {
-          await testClient`DELETE FROM user_sessions WHERE user_id = ${userId}`;
-        } catch {
-          /* Table may not exist */
-        }
-
-        try {
-          await testClient`DELETE FROM auth_attempts WHERE user_id = ${userId}`;
-        } catch {
-          /* Table may not exist */
-        }
-
-        try {
-          await testClient`DELETE FROM password_history WHERE user_id = ${userId}`;
-        } catch {
-          /* Table may not exist */
-        }
-
-        try {
-          await testClient`DELETE FROM accounts WHERE user_id = ${userId}`;
-        } catch {
-          /* Table may not exist */
-        }
-
-        try {
-          await testClient`DELETE FROM sessions WHERE user_id = ${userId}`;
-        } catch {
-          /* Table may not exist */
-        }
-
+        // Clear user API keys
         try {
           await testClient`DELETE FROM user_api_keys WHERE user_id = ${userId}`;
-        } catch {
-          /* Table may not exist */
-        }
-
-        try {
-          await testClient`DELETE FROM email_preferences WHERE user_id = ${userId}`;
-        } catch {
-          /* Table may not exist */
-        }
-
-        try {
-          await testClient`DELETE FROM password_reset_tokens WHERE user_id = ${userId}`;
-        } catch {
-          /* Table may not exist */
-        }
-
-        try {
-          await testClient`DELETE FROM subscriptions WHERE user_id = ${userId}`;
         } catch {
           /* Table may not exist */
         }
       }
     }
 
-    // Clear email logs by worker email pattern (no user_id column)
-    try {
-      await testClient`DELETE FROM email_logs WHERE to_email LIKE ${workerPrefix}`;
-    } catch {
-      /* Table may not exist */
-    }
-
-    // Clear verification tokens and users with worker prefix
-    await testClient`DELETE FROM verification_tokens WHERE identifier LIKE ${workerPrefix}`;
+    // Clear users with worker prefix
     await testClient`DELETE FROM users WHERE email LIKE ${workerPrefix}`;
   } catch (error) {
     console.warn('Worker test data cleanup failed:', error);

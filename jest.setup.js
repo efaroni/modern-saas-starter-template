@@ -10,6 +10,19 @@ global.setImmediate =
 global.clearImmediate =
   global.clearImmediate || (id => global.clearTimeout(id));
 
+// Add TextDecoder/TextEncoder polyfills for React Email
+if (!global.TextDecoder) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { TextDecoder } = require('util');
+  global.TextDecoder = TextDecoder;
+}
+
+if (!global.TextEncoder) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { TextEncoder } = require('util');
+  global.TextEncoder = TextEncoder;
+}
+
 // Ensure NODE_ENV is set to test
 process.env.NODE_ENV = 'test';
 
@@ -119,23 +132,23 @@ jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),
 }));
 
-// Mock next-auth to prevent ES module issues
-jest.mock('next-auth', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
-    auth: jest.fn(),
-    handlers: { GET: jest.fn(), POST: jest.fn() },
-    signIn: jest.fn(),
-    signOut: jest.fn(),
-  })),
+// Mock Clerk to prevent ES module issues in tests
+jest.mock('@clerk/nextjs', () => ({
+  useUser: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    user: {
+      id: 'test-user-id',
+      emailAddresses: [{ emailAddress: 'test@example.com' }],
+    },
+  }),
+  SignedIn: ({ children }) => children,
+  SignedOut: ({ children }) => null,
+  UserButton: () => null,
 }));
 
-// Mock next-auth config
-jest.mock('@/lib/auth/auth', () => ({
-  auth: jest.fn(),
-  handlers: { GET: jest.fn(), POST: jest.fn() },
-  signIn: jest.fn(),
-  signOut: jest.fn(),
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: () => Promise.resolve({ userId: 'test-user-id' }),
 }));
 
 // Global test setup and teardown

@@ -1,16 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 
-import { auth } from '@/lib/auth/auth';
 import { billingService } from '@/lib/billing/service';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 
 export async function POST(_request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 },
@@ -18,7 +18,7 @@ export async function POST(_request: NextRequest) {
     }
 
     const user = await db.query.users.findFirst({
-      where: eq(users.id, session.user.id),
+      where: eq(users.id, userId),
     });
 
     if (!user) {

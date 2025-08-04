@@ -61,32 +61,6 @@ export function validateUUID(uuid: string): ValidationResult {
 }
 
 /**
- * Validates a password meets minimum requirements
- */
-export function validatePasswordLength(
-  password: string,
-  minLength: number = 8,
-): ValidationResult {
-  if (!password || typeof password !== 'string') {
-    return {
-      isValid: false,
-      error: 'Password is required',
-    };
-  }
-
-  if (password.length < minLength) {
-    return {
-      isValid: false,
-      error: `Password must be at least ${minLength} characters`,
-    };
-  }
-
-  return {
-    isValid: true,
-  };
-}
-
-/**
  * Validates a string is not empty or whitespace-only
  */
 export function validateRequired(
