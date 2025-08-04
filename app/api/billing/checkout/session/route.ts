@@ -42,7 +42,12 @@ export async function POST(request: NextRequest) {
 
     // Get user with billing info
     const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
+      where: eq(users.clerkId, userId),
+      columns: {
+        id: true,
+        email: true,
+        billingCustomerId: true,
+      },
     });
 
     if (!user) {
@@ -52,15 +57,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For now, since we don't have billing fields yet, create a customer each time
-    // In the future, we'll check if user.billingCustomerId exists
-    const { customerId } = await billingService.createCustomer(user.email);
+    let customerId = user.billingCustomerId;
 
-    // TODO: Store customerId in user record when billing fields are available
-    // await db
-    //   .update(users)
-    //   .set({ billingCustomerId: customerId })
-    //   .where(eq(users.id, userId));
+    // Create customer if doesn't exist
+    if (!customerId) {
+      const result = await billingService.createCustomer(user.email);
+      customerId = result.customerId;
+
+      // Store customer ID in database
+      await db
+        .update(users)
+        .set({ billingCustomerId: customerId })
+        .where(eq(users.id, user.id));
+    }
 
     const { url } = await billingService.createCheckoutSession({
       customerId,
@@ -69,7 +78,7 @@ export async function POST(request: NextRequest) {
       successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/${mode === 'payment' ? 'purchase' : 'subscription'}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/${mode === 'payment' ? 'purchase' : 'subscription'}/cancel`,
       metadata: {
-        userId,
+        userId: user.id, // Use internal user ID for webhook processing
         ...metadata,
       },
     });

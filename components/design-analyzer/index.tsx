@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import Link from 'next/link';
+
 import { useUser } from '@clerk/nextjs';
 import {
   Loader2,
@@ -21,7 +23,7 @@ import { ResultTabs } from './result-tabs';
 import { UploadZone } from './upload-zone';
 
 export function DesignAnalyzer() {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, isSignedIn, user: _user } = useUser();
   const {
     isValid: isKeyValid,
     isLoading: keyValidating,
@@ -130,12 +132,12 @@ export function DesignAnalyzer() {
       <Alert>
         <AlertDescription>
           Please{' '}
-          <a
+          <Link
             href='/sign-in'
             className='text-primary hover:text-primary/80 underline'
           >
             sign in
-          </a>{' '}
+          </Link>{' '}
           to use the Design System Analyzer.
         </AlertDescription>
       </Alert>

@@ -18,7 +18,12 @@ export async function POST(_request: NextRequest) {
     }
 
     const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
+      where: eq(users.clerkId, userId),
+      columns: {
+        id: true,
+        email: true,
+        billingCustomerId: true,
+      },
     });
 
     if (!user) {
@@ -28,17 +33,19 @@ export async function POST(_request: NextRequest) {
       );
     }
 
-    // For now, we'll create a customer since we don't have billingCustomerId field yet
-    // In the future, check if user.billingCustomerId exists
-    // if (!user.billingCustomerId) {
-    //   return NextResponse.json(
-    //     { success: false, error: 'No billing account found' },
-    //     { status: 400 },
-    //   );
-    // }
+    let customerId = user.billingCustomerId;
 
-    // Temporary: create customer for portal access
-    const { customerId } = await billingService.createCustomer(user.email);
+    // Create customer if doesn't exist (for portal access)
+    if (!customerId) {
+      const result = await billingService.createCustomer(user.email);
+      customerId = result.customerId;
+
+      // Store customer ID in database
+      await db
+        .update(users)
+        .set({ billingCustomerId: customerId })
+        .where(eq(users.id, user.id));
+    }
 
     const { url } = await billingService.createPortalSession(
       customerId,

@@ -1,36 +1,80 @@
-# Minimal SaaS Billing Test Plan with Abstraction
+# Minimal SaaS Billing Implementation - LEAN APPROACH
 
-## Overview
+## Current Status
 
-This test plan focuses ONLY on what you need to implement for a minimal SaaS billing integration with Stripe. Stripe handles most of the heavy lifting through Checkout, Customer Portal, and automatic features. Your code only needs to handle the integration points. The stripe docs are located at https://docs.stripe.com/.
+✅ **DONE**: Abstraction layer exists (BillingService interface, Stripe & Mock implementations)
+✅ **DONE**: API routes partially exist (checkout session, portal, webhook handler)
+✅ **DONE**: Unit tests exist for Stripe service and portal route
+✅ **DONE**: Database migration exists for billing fields
 
-**Important**: The implementation should include a thin abstraction layer so that switching from Stripe to another payment processor (Paddle, LemonSqueezy, etc.) requires minimal refactoring.
+## What Still Needs to Be Done (LEAN TDD Approach)
 
-## What You Actually Need to Build
+### Phase 1: Enable Database Schema (READY)
 
-1. **Initial Setup Flow**
-   - Create Stripe Customer when user signs up
-   - Redirect to Checkout for subscription creation
-   - Redirect to Checkout for one-time payments
-   - Handle success/cancel URLs from Checkout
+- ✅ Migration exists (0008_grey_iron_lad.sql) - just need to uncomment fields in schema.ts
+- ✅ Uncomment billing fields in schema.ts and run migration
 
-2. **Access Control**
-   - Store subscription status in your database
-   - Track one-time purchases
-   - Grant/revoke access based on subscription status or purchases
+### Phase 2: Minimal Test Suite (~200 lines total)
 
-3. **Customer Portal Access**
-   - Generate portal session URL
-   - Redirect authenticated users to portal
+- **Schema Test** (~20 lines): Validate Zod schemas compile
+- **Core Integration Test** (~100 lines): Full billing flow with critical webhooks
+- **Access Control Test** (~30 lines): Simple Stripe API calls for subscription status
 
-4. **Webhook Processing**
-   - Verify webhook signatures
-   - Process 3-4 critical events (including one-time payments)
-   - Update user access accordingly
+### Phase 3: Lean Implementation (~150 lines changes)
 
-## Abstraction Layer
+- **Access Control** (~50 lines): Query Stripe directly for subscription status
+- **Complete Webhook Handler** (~100 lines): Handle only checkout.completed and subscription.deleted
+- **Fix API Routes**: Store billing_customer_id, remove local subscription tracking
 
-### Simple Service Interface
+## Key Changes from Original Plan
+
+### SIMPLIFIED APPROACH:
+
+1. **Use Stripe as Source of Truth** - No local subscription status tracking
+2. **Minimal Webhook Processing** - Only handle customer creation and audit events
+3. **Lean Test Suite** - One integration test file covers main flow
+4. **Skip Complex Unit Tests** - Focus on integration layer only
+
+### What We're NOT Building:
+
+- ❌ Local subscription status storage (query Stripe instead)
+- ❌ Complex webhook handler unit tests
+- ❌ Purchase tracking (use Stripe invoices if needed)
+- ❌ Multiple test files for each flow
+- ❌ E2E tests (implementers can add these)
+
+## Implementation Focus
+
+### 1. Access Control Functions (Query Stripe Directly)
+
+```typescript
+// lib/billing/access-control.ts
+export async function hasActiveSubscription(userId: string): Promise<boolean> {
+  const user = await getUser(userId);
+  if (!user.billingCustomerId) return false;
+
+  const subscriptions = await stripe.subscriptions.list({
+    customer: user.billingCustomerId,
+    status: 'active',
+    limit: 1,
+  });
+
+  return subscriptions.data.length > 0;
+}
+```
+
+### 2. Minimal Webhook Handler (Critical Events Only)
+
+- `checkout.session.completed`: Store billing_customer_id
+- `customer.subscription.deleted`: Log for audit (no local updates needed)
+- Idempotency via webhook_events table
+
+### 3. API Route Updates
+
+- Store billing_customer_id on first checkout
+- Query Stripe for subscription status (don't store locally)
+
+## Abstraction Layer (ALREADY EXISTS)
 
 ```typescript
 // lib/billing/types.ts

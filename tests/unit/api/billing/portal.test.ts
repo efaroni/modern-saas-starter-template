@@ -5,6 +5,7 @@
 
 import { NextRequest } from 'next/server';
 
+import { db as _db } from '@/lib/db';
 import { testUsers } from '@/tests/fixtures/clerk';
 
 // Mock Clerk auth directly
@@ -17,8 +18,8 @@ import { auth } from '@clerk/nextjs/server';
 const mockAuth = auth as jest.Mock;
 
 // Helper functions for auth mocking
-const mockAuthenticatedUser = (user: any) => {
-  mockAuth.mockResolvedValue({ userId: user.id });
+const mockAuthenticatedUser = (user: unknown) => {
+  mockAuth.mockResolvedValue({ userId: (user as { id: string }).id });
   return user;
 };
 
@@ -34,6 +35,11 @@ jest.mock('@/lib/db', () => ({
         findFirst: jest.fn(),
       },
     },
+    update: jest.fn(() => ({
+      set: jest.fn(() => ({
+        where: jest.fn(),
+      })),
+    })),
   },
 }));
 
