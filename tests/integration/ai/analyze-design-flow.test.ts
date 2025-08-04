@@ -22,6 +22,8 @@ import {
 import { users, userApiKeys } from '@/lib/db/schema';
 import { testDb } from '@/lib/db/test';
 import { encrypt } from '@/lib/encryption';
+import { testUsers } from '@/tests/fixtures/clerk';
+import { mockAuthenticatedUser, setupClerkMocks } from '@/tests/mocks/clerk';
 
 // Import the handler after mocks are set
 let analyzeDesignHandler: (
@@ -48,12 +50,6 @@ class MockNextRequest {
 }
 
 // Setup Clerk mocks
-import {
-  mockAuth,
-  mockAuthenticatedUser,
-  setupClerkMocks,
-} from '@/tests/mocks/clerk';
-import { testUsers } from '@/tests/fixtures/clerk';
 
 setupClerkMocks();
 
@@ -140,6 +136,7 @@ describe('AI Design Analysis Integration Flow', () => {
     // Create test user with unique ID
     await testDb.insert(users).values({
       id: testUserId,
+      clerkId: `test_clerk_id_${testUserId}`,
       email: `test-${testUserId}@example.com`, // Make email unique too
     });
 

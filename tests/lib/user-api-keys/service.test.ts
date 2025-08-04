@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm';
 
-import { testDb } from '@/lib/db/test';
 import { users, userApiKeys } from '@/lib/db/schema';
-import { userApiKeyService } from '@/lib/user-api-keys/service';
+import { testDb } from '@/lib/db/test';
 import { encrypt, decrypt } from '@/lib/encryption';
+import { userApiKeyService } from '@/lib/user-api-keys/service';
 
 describe('userApiKeyService', () => {
   const testUserId = '550e8400-e29b-41d4-a716-446655440000';
@@ -60,9 +60,9 @@ describe('userApiKeyService', () => {
       const otherUserId = '660e8400-e29b-41d4-a716-446655440001';
       await testDb.insert(users).values({
         id: otherUserId,
+        clerkId: 'test_clerk_id_other_user_1',
         email: 'other@example.com',
         name: 'Other User',
-        password: 'hashed_password',
       });
 
       // Insert keys for both users
@@ -254,9 +254,9 @@ describe('userApiKeyService', () => {
       const otherUserId = '660e8400-e29b-41d4-a716-446655440001';
       await testDb.insert(users).values({
         id: otherUserId,
+        clerkId: 'test_clerk_id_other_user_2',
         email: 'other@example.com',
         name: 'Other User',
-        password: 'hashed_password',
       });
 
       // Create key for other user
