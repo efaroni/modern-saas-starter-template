@@ -115,12 +115,29 @@ export async function POST(req: Request) {
 
   try {
     if (eventType === 'user.created' || eventType === 'user.updated') {
-      const { id, email_addresses, primary_email_address_id } = evt.data;
+      const {
+        id,
+        email_addresses,
+        primary_email_address_id,
+        first_name,
+        last_name,
+        image_url,
+      } = evt.data as {
+        id: string;
+        email_addresses: Array<{ id: string; email_address: string }>;
+        primary_email_address_id: string;
+        first_name?: string;
+        last_name?: string;
+        image_url?: string;
+      };
 
       logWebhookEvent(`Processing ${eventType}`, {
         userId: id,
         emailCount: email_addresses?.length,
         primaryEmailId: primary_email_address_id,
+        firstName: first_name,
+        lastName: last_name,
+        imageUrl: image_url,
       });
 
       // Find the primary email
@@ -137,40 +154,100 @@ export async function POST(req: Request) {
         );
       }
 
-      // Upsert user in our database
-      const result = await db
-        .insert(users)
-        .values({
-          id,
-          email: primaryEmail.email_address,
-        })
-        .onConflictDoUpdate({
-          target: [users.id],
-          set: {
-            email: primaryEmail.email_address,
-            updatedAt: new Date(),
-          },
-        })
-        .returning({ id: users.id, email: users.email });
+      // Construct full name from first_name and last_name
+      const fullName =
+        [first_name, last_name].filter(Boolean).join(' ') || null;
 
-      logWebhookEvent(
-        `User ${eventType === 'user.created' ? 'created' : 'updated'} successfully`,
-        {
+      if (eventType === 'user.created') {
+        // For new users, insert with all fields
+        const result = await db
+          .insert(users)
+          .values({
+            clerkId: id,
+            email: primaryEmail.email_address,
+            name: fullName,
+            imageUrl: image_url || null,
+          })
+          .returning({
+            id: users.id,
+            clerkId: users.clerkId,
+            email: users.email,
+          });
+
+        logWebhookEvent('User created successfully', {
           userId: id,
           email: primaryEmail.email_address,
+          name: fullName,
+          imageUrl: image_url,
           dbResult: result[0],
-        },
-      );
+        });
+      } else {
+        // For user updates, find by clerk_id and update
+        const result = await db
+          .update(users)
+          .set({
+            email: primaryEmail.email_address,
+            name: fullName,
+            imageUrl: image_url || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.clerkId, id))
+          .returning({
+            id: users.id,
+            clerkId: users.clerkId,
+            email: users.email,
+          });
+
+        if (result.length === 0) {
+          logWebhookEvent(
+            'WARNING: User not found for update, creating new user',
+            {
+              userId: id,
+            },
+          );
+
+          // If user doesn't exist, create them
+          const createResult = await db
+            .insert(users)
+            .values({
+              clerkId: id,
+              email: primaryEmail.email_address,
+              name: fullName,
+              imageUrl: image_url || null,
+            })
+            .returning({
+              id: users.id,
+              clerkId: users.clerkId,
+              email: users.email,
+            });
+
+          logWebhookEvent('User created during update event', {
+            userId: id,
+            email: primaryEmail.email_address,
+            name: fullName,
+            imageUrl: image_url,
+            dbResult: createResult[0],
+          });
+        } else {
+          logWebhookEvent('User updated successfully', {
+            userId: id,
+            email: primaryEmail.email_address,
+            name: fullName,
+            imageUrl: image_url,
+            dbResult: result[0],
+          });
+        }
+      }
     }
 
     if (eventType === 'user.deleted') {
-      const { id } = evt.data;
+      const { id } = evt.data as { id: string };
 
       logWebhookEvent('Processing user deletion', { userId: id });
 
-      // First check if user exists
+      // First check if user exists by clerk_id
       const existingUser = await db.query.users.findFirst({
-        where: eq(users.id, id),
+        where: eq(users.clerkId, id),
       });
 
       if (!existingUser) {
@@ -184,11 +261,11 @@ export async function POST(req: Request) {
         });
       }
 
-      // Delete user from our database
+      // Delete user from our database using clerk_id
       const deleteResult = await db
         .delete(users)
-        .where(eq(users.id, id))
-        .returning({ id: users.id });
+        .where(eq(users.clerkId, id))
+        .returning({ id: users.id, clerkId: users.clerkId });
 
       if (deleteResult.length > 0) {
         logWebhookEvent('User deleted successfully', {

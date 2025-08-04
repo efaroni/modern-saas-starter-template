@@ -15,7 +15,7 @@ const customJestConfig = {
   },
   testEnvironment: 'jsdom',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  testMatch: ['**/tests/**/*.(ts|tsx|js)', '**/*.(test|spec).(ts|tsx|js)'],
+  testMatch: ['**/tests/**/*.test.(ts|tsx|js)', '**/*.(test|spec).(ts|tsx|js)'],
   testPathIgnorePatterns: [
     '/node_modules/',
     '/scripts/',
@@ -24,6 +24,9 @@ const customJestConfig = {
     '/tests/e2e/',
     '/tests/accessibility/',
     '/tests/load/', // Exclude load tests from regular test runs
+    '/tests/helpers/', // Exclude helper files
+    '/tests/fixtures/', // Exclude fixture files
+    '/tests/mocks/', // Exclude mock files
   ],
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',

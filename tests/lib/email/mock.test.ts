@@ -9,33 +9,6 @@ describe('MockEmailService', () => {
     service = new MockEmailService();
   });
 
-  describe('sendPasswordResetEmail', () => {
-    it('should always return success for password reset email', async () => {
-      const result = await service.sendPasswordResetEmail('test@example.com', {
-        resetToken: 'token',
-        resetUrl: 'url',
-        user: { email: 'test@example.com' },
-      });
-
-      expect(result.success).toBe(true);
-      expect(service.getSentEmails()).toHaveLength(1);
-      expect(service.getLastSentEmail()?.type).toBe('password_reset');
-    });
-
-    it('should simulate failure when configured', async () => {
-      service.setShouldFail(true);
-
-      const result = await service.sendPasswordResetEmail('test@example.com', {
-        resetToken: 'token',
-        resetUrl: 'url',
-        user: { email: 'test@example.com' },
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Email service failed');
-    });
-  });
-
   describe('sendVerificationEmail', () => {
     it('should store verification email in sent emails', async () => {
       const result = await service.sendVerificationEmail('test@example.com', {

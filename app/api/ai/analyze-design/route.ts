@@ -1,24 +1,21 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
+import { auth } from '@clerk/nextjs/server';
+
 import { createVisionService } from '@/lib/ai/vision/service';
 import { analyzeDesignSchema } from '@/lib/ai/vision/types';
-import { auth } from '@/lib/auth/auth';
 import { applyRateLimit } from '@/lib/middleware/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Apply rate limiting - 10 requests per hour per user
-    const rateLimitResult = await applyRateLimit(
-      request,
-      'ai-vision',
-      session.user.id,
-    );
+    const rateLimitResult = await applyRateLimit(request, 'ai-vision', userId);
 
     if (!rateLimitResult.allowed) {
       return (
@@ -51,7 +48,7 @@ export async function POST(request: NextRequest) {
     // We don't need to check for API keys here since the service can use mock data
 
     // Get vision service with user's API key
-    const visionService = await createVisionService(session.user.id);
+    const visionService = await createVisionService(userId);
 
     // Analyze design
     const result = await visionService.analyzeDesign(validation.data);

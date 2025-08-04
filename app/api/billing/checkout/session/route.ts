@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { auth } from '@/lib/auth/auth';
 import { billingService } from '@/lib/billing/service';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
@@ -16,8 +16,8 @@ const createCheckoutSessionSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 },
@@ -39,7 +39,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { priceId, mode, metadata } = validation.data;
-    const userId = session.user.id;
 
     // Get user with billing info
     const user = await db.query.users.findFirst({

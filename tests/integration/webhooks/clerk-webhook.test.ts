@@ -131,11 +131,16 @@ describe('Clerk Webhook Handler', () => {
 
       // Verify user was created in database
       const createdUser = await testDb.query.users.findFirst({
-        where: eq(users.id, webhookPayloads.userCreated.data.id),
+        where: eq(users.clerkId, webhookPayloads.userCreated.data.id),
       });
 
       expect(createdUser).toBeDefined();
+      expect(createdUser?.clerkId).toBe('user_webhook_created');
       expect(createdUser?.email).toBe('newuser@test.com');
+      expect(createdUser?.name).toBe('New User');
+      expect(createdUser?.imageUrl).toBe(
+        'https://images.clerk.dev/uploaded/img_test_new_user.png',
+      );
 
       // Verify webhook event was recorded
       const webhookEvent = await testDb.query.webhookEvents.findFirst({
@@ -149,8 +154,10 @@ describe('Clerk Webhook Handler', () => {
     it('should update user on user.updated event', async () => {
       // Create initial user
       await testDb.insert(users).values({
-        id: webhookPayloads.userUpdated.data.id,
+        clerkId: webhookPayloads.userUpdated.data.id,
         email: 'olduser@test.com',
+        name: 'Old User',
+        imageUrl: null,
       });
 
       const headers = createWebhookHeaders(
@@ -171,18 +178,24 @@ describe('Clerk Webhook Handler', () => {
 
       // Verify user was updated in database
       const updatedUser = await testDb.query.users.findFirst({
-        where: eq(users.id, webhookPayloads.userUpdated.data.id),
+        where: eq(users.clerkId, webhookPayloads.userUpdated.data.id),
       });
 
       expect(updatedUser).toBeDefined();
       expect(updatedUser?.email).toBe('updated@test.com');
+      expect(updatedUser?.name).toBe('Updated User');
+      expect(updatedUser?.imageUrl).toBe(
+        'https://images.clerk.dev/uploaded/img_test_updated_user.png',
+      );
     });
 
     it('should delete user on user.deleted event', async () => {
       // Create user to delete
       await testDb.insert(users).values({
-        id: webhookPayloads.userDeleted.data.id,
+        clerkId: webhookPayloads.userDeleted.data.id,
         email: 'deleteme@test.com',
+        name: 'Delete Me',
+        imageUrl: null,
       });
 
       const headers = createWebhookHeaders(
@@ -203,7 +216,7 @@ describe('Clerk Webhook Handler', () => {
 
       // Verify user was deleted from database
       const deletedUser = await testDb.query.users.findFirst({
-        where: eq(users.id, webhookPayloads.userDeleted.data.id),
+        where: eq(users.clerkId, webhookPayloads.userDeleted.data.id),
       });
 
       expect(deletedUser).toBeUndefined();
@@ -265,7 +278,7 @@ describe('Clerk Webhook Handler', () => {
       const usersCount = await testDb
         .select({ count: users.id })
         .from(users)
-        .where(eq(users.id, webhookPayloads.userCreated.data.id));
+        .where(eq(users.clerkId, webhookPayloads.userCreated.data.id));
 
       expect(usersCount.length).toBe(1);
     });
@@ -322,6 +335,108 @@ describe('Clerk Webhook Handler', () => {
 
       expect(response.status).toBe(400);
       expect(data.error).toContain('No primary email found');
+    });
+  });
+
+  describe('User Data Edge Cases', () => {
+    it('should handle user creation with no name fields', async () => {
+      const payloadWithoutNames = {
+        ...webhookPayloads.userCreated,
+        data: {
+          ...webhookPayloads.userCreated.data,
+          first_name: null,
+          last_name: null,
+        },
+      };
+
+      const headers = createWebhookHeaders(payloadWithoutNames, WEBHOOK_SECRET);
+      const request = new MockWebhookRequest(
+        'http://localhost:3000/api/webhooks/clerk',
+        payloadWithoutNames,
+        headers,
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.received).toBe(true);
+
+      // Verify user was created with null name
+      const createdUser = await testDb.query.users.findFirst({
+        where: eq(users.clerkId, payloadWithoutNames.data.id),
+      });
+
+      expect(createdUser).toBeDefined();
+      expect(createdUser?.name).toBeNull();
+    });
+
+    it('should handle user creation with only first name', async () => {
+      const payloadWithFirstNameOnly = {
+        ...webhookPayloads.userCreated,
+        data: {
+          ...webhookPayloads.userCreated.data,
+          id: 'user_webhook_first_only',
+          first_name: 'First',
+          last_name: null,
+        },
+      };
+
+      const headers = createWebhookHeaders(
+        payloadWithFirstNameOnly,
+        WEBHOOK_SECRET,
+      );
+      const request = new MockWebhookRequest(
+        'http://localhost:3000/api/webhooks/clerk',
+        payloadWithFirstNameOnly,
+        headers,
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.received).toBe(true);
+
+      // Verify user was created with first name only
+      const createdUser = await testDb.query.users.findFirst({
+        where: eq(users.clerkId, payloadWithFirstNameOnly.data.id),
+      });
+
+      expect(createdUser).toBeDefined();
+      expect(createdUser?.name).toBe('First');
+    });
+
+    it('should handle user creation without image_url', async () => {
+      const payloadWithoutImage = {
+        ...webhookPayloads.userCreated,
+        data: {
+          ...webhookPayloads.userCreated.data,
+          id: 'user_webhook_no_image',
+          image_url: null,
+        },
+      };
+
+      const headers = createWebhookHeaders(payloadWithoutImage, WEBHOOK_SECRET);
+      const request = new MockWebhookRequest(
+        'http://localhost:3000/api/webhooks/clerk',
+        payloadWithoutImage,
+        headers,
+      );
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.received).toBe(true);
+
+      // Verify user was created with null image
+      const createdUser = await testDb.query.users.findFirst({
+        where: eq(users.clerkId, payloadWithoutImage.data.id),
+      });
+
+      expect(createdUser).toBeDefined();
+      expect(createdUser?.imageUrl).toBeNull();
     });
   });
 });

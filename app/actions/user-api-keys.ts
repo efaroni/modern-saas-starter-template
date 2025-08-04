@@ -2,18 +2,19 @@
 
 import { revalidatePath } from 'next/cache';
 
+import { auth } from '@clerk/nextjs/server';
+
 import { validateApiKey } from '@/lib/api-keys/validators';
-import { auth } from '@/lib/auth/auth';
 import { userApiKeyService } from '@/lib/user-api-keys/service';
 
 export async function getUserApiKeys() {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return { success: false, error: 'Not authenticated' };
     }
 
-    const apiKeys = await userApiKeyService.list(session.user.id);
+    const apiKeys = await userApiKeyService.list(userId);
     return { success: true, data: apiKeys };
   } catch {
     return { success: false, error: 'Failed to fetch API keys' };
@@ -27,8 +28,8 @@ export async function createUserApiKey(data: {
   metadata?: Record<string, unknown>;
 }) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return { success: false, error: 'Not authenticated' };
     }
 
@@ -63,7 +64,7 @@ export async function createUserApiKey(data: {
 
     const existing = await userApiKeyService.getByProvider(
       data.provider,
-      session.user.id,
+      userId,
     );
     if (existing) {
       return {
@@ -80,7 +81,7 @@ export async function createUserApiKey(data: {
         publicKey: data.publicKey || null,
         metadata: data.metadata || {},
       },
-      session.user.id,
+      userId,
     );
 
     revalidatePath('/configuration');
@@ -100,8 +101,8 @@ export async function createUserApiKey(data: {
 
 export async function deleteUserApiKey(idOrProvider: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return { success: false, error: 'Not authenticated' };
     }
 
@@ -118,14 +119,14 @@ export async function deleteUserApiKey(idOrProvider: string) {
       // Get the key by provider first
       const existingKey = await userApiKeyService.getByProvider(
         idOrProvider,
-        session.user.id,
+        userId,
       );
       if (existingKey) {
-        await userApiKeyService.delete(existingKey.id, session.user.id);
+        await userApiKeyService.delete(existingKey.id, userId);
       }
     } else {
       // It's an ID
-      await userApiKeyService.delete(idOrProvider, session.user.id);
+      await userApiKeyService.delete(idOrProvider, userId);
     }
 
     revalidatePath('/configuration');
@@ -137,14 +138,14 @@ export async function deleteUserApiKey(idOrProvider: string) {
 
 export async function getDisplayMaskedApiKey(provider: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return { success: false, error: 'Not authenticated' };
     }
 
     const maskedKey = await userApiKeyService.getDisplayMaskedKey(
       provider,
-      session.user.id,
+      userId,
     );
     if (!maskedKey) {
       return { success: false, error: 'No API key found for this provider' };
@@ -158,8 +159,8 @@ export async function getDisplayMaskedApiKey(provider: string) {
 
 export async function testUserApiKey(provider: string, privateKey?: string) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return { success: false, error: 'Not authenticated' };
     }
 
@@ -169,7 +170,7 @@ export async function testUserApiKey(provider: string, privateKey?: string) {
     if (!keyToTest) {
       keyToTest = await userApiKeyService.getDecryptedPrivateKey(
         provider,
-        session.user.id,
+        userId,
       );
       if (!keyToTest) {
         return { success: false, error: 'No API key found for this provider' };

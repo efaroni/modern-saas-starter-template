@@ -5,12 +5,7 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import {
-  users,
-  userApiKeys,
-  userSessions,
-  sessionActivity,
-} from '@/lib/db/schema';
+import { users, userApiKeys } from '@/lib/db/schema';
 
 import { getDatabaseUrl } from '../lib/db/config';
 
@@ -52,35 +47,28 @@ try {
 const client = postgres(DATABASE_URL);
 const db = drizzle(client);
 
-// Seed data
+// Seed data - Note: These users must be created via Clerk first
+// This seed script will only sync data that already exists in Clerk
 const seedUsers = [
   {
+    clerkId: 'user_clerk_admin_123', // Replace with actual Clerk user ID
     email: 'admin@example.com',
-    password: 'admin123',
     name: 'Admin User',
-    role: 'admin',
-    emailVerified: true,
   },
   {
+    clerkId: 'user_clerk_user_456', // Replace with actual Clerk user ID
     email: 'user@example.com',
-    password: 'user123',
     name: 'Regular User',
-    role: 'user',
-    emailVerified: true,
   },
   {
+    clerkId: 'user_clerk_test_789', // Replace with actual Clerk user ID
     email: 'test@example.com',
-    password: 'test123',
     name: 'Test User',
-    role: 'user',
-    emailVerified: false,
   },
   {
+    clerkId: 'user_clerk_premium_012', // Replace with actual Clerk user ID
     email: 'premium@example.com',
-    password: 'premium123',
     name: 'Premium User',
-    role: 'user',
-    emailVerified: true,
   },
 ];
 
@@ -118,38 +106,34 @@ async function seedDatabase() {
 
       // Clear existing data
       console.warn('🧹 Clearing existing data...');
-      await db.delete(sessionActivity);
-      await db.delete(userSessions);
       await db.delete(userApiKeys);
       await db.delete(users);
       console.warn('✅ Existing data cleared');
     }
 
-    // Create auth service for user creation (lazy import to avoid early DB connection)
-    const { createAuthService } = await import('@/lib/auth/factory');
-    const authService = await createAuthService();
-
-    // Seed users
-    console.warn('👥 Creating users...');
+    // Seed users directly (they should already exist in Clerk)
+    console.warn('👥 Creating users in database...');
     const createdUsers = [];
 
     for (const userData of seedUsers) {
-      const result = await authService.signUp(userData);
-      if (result.success && result.user) {
-        console.warn(`✅ Created user: ${userData.email}`);
-        createdUsers.push(result.user);
+      try {
+        const result = await db
+          .insert(users)
+          .values({
+            clerkId: userData.clerkId,
+            email: userData.email,
+            name: userData.name,
+          })
+          .returning();
 
-        // Update email verification status if needed
-        if (userData.emailVerified) {
-          await db
-            .update(users)
-            .set({ emailVerified: new Date() })
-            .where(eq(users.id, result.user.id));
+        if (result.length > 0) {
+          console.warn(`✅ Created user: ${userData.email}`);
+          createdUsers.push(result[0]);
         }
-      } else {
+      } catch (error) {
         console.error(
           `❌ Failed to create user ${userData.email}:`,
-          result.error,
+          error instanceof Error ? error.message : String(error),
         );
       }
     }
@@ -179,37 +163,17 @@ async function seedDatabase() {
       }
     }
 
-    // Create some sample sessions for testing
-    console.warn('🔐 Creating sample sessions...');
-    for (const user of createdUsers.slice(0, 2)) {
-      // Only for first 2 users
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const sessionManager = (authService as any).sessionManager;
-        if (sessionManager) {
-          await sessionManager.createSession(
-            user.id,
-            '127.0.0.1',
-            'Seed Script User Agent',
-          );
-          console.warn(`✅ Created session for user: ${user.email}`);
-        }
-      } catch (error) {
-        console.warn(`⚠️  Could not create session for ${user.email}:`, error);
-      }
-    }
+    // Note: Sessions are now managed by Clerk, no need to seed them
 
     console.warn('🎉 Database seeding completed successfully!');
     console.warn(`\n📊 Summary:`);
     console.warn(`- Created ${createdUsers.length} users`);
     console.warn(`- Created ${seedApiKeys.length} API keys`);
-    console.warn(`- Created sample sessions`);
+    console.warn(`- Sessions managed by Clerk`);
 
-    console.warn(`\n🔐 Test Credentials:`);
+    console.warn(`\n🔐 Test Users (create these in Clerk first):`);
     seedUsers.forEach(user => {
-      console.warn(
-        `- ${user.email} / ${user.password} (${user.role}${user.emailVerified ? ', verified' : ', unverified'})`,
-      );
+      console.warn(`- ${user.email} (Clerk ID: ${user.clerkId})`);
     });
   } catch (error) {
     console.error('❌ Database seeding failed:', error);

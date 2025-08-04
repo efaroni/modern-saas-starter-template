@@ -132,23 +132,23 @@ jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),
 }));
 
-// Mock next-auth to prevent ES module issues
-jest.mock('next-auth', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
-    auth: jest.fn(),
-    handlers: { GET: jest.fn(), POST: jest.fn() },
-    signIn: jest.fn(),
-    signOut: jest.fn(),
-  })),
+// Mock Clerk to prevent ES module issues in tests
+jest.mock('@clerk/nextjs', () => ({
+  useUser: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    user: {
+      id: 'test-user-id',
+      emailAddresses: [{ emailAddress: 'test@example.com' }],
+    },
+  }),
+  SignedIn: ({ children }) => children,
+  SignedOut: ({ children }) => null,
+  UserButton: () => null,
 }));
 
-// Mock next-auth config
-jest.mock('@/lib/auth/auth', () => ({
-  auth: jest.fn(),
-  handlers: { GET: jest.fn(), POST: jest.fn() },
-  signIn: jest.fn(),
-  signOut: jest.fn(),
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: () => Promise.resolve({ userId: 'test-user-id' }),
 }));
 
 // Global test setup and teardown

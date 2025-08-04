@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/lib/auth/auth';
+import { auth } from '@clerk/nextjs/server';
+
 import { userApiKeyService } from '@/lib/user-api-keys/service';
 
 /**
@@ -15,17 +16,15 @@ export async function GET(_request: NextRequest) {
       setTimeout(() => resolve(null), 3000),
     );
 
-    const session = await Promise.race([authPromise, timeoutPromise]);
+    const authResult = await Promise.race([authPromise, timeoutPromise]);
 
-    if (!session?.user?.id) {
+    const userId = authResult?.userId;
+    if (!userId) {
       return NextResponse.json({ hasKey: false });
     }
 
     // Check if user has an OpenAI API key stored (no decryption needed)
-    const keyRecord = await userApiKeyService.getByProvider(
-      'openai',
-      session.user.id,
-    );
+    const keyRecord = await userApiKeyService.getByProvider('openai', userId);
     const hasKey = !!keyRecord;
     return NextResponse.json({ hasKey });
   } catch (error) {

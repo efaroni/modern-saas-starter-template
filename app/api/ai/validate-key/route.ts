@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/lib/auth/auth';
+import { auth } from '@clerk/nextjs/server';
+
 import { applyRateLimit } from '@/lib/middleware/rate-limit';
 import { userApiKeyService } from '@/lib/user-api-keys/service';
 
@@ -11,8 +12,8 @@ import { userApiKeyService } from '@/lib/user-api-keys/service';
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const session = await auth();
-    if (!session?.user?.id) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await applyRateLimit(
       request,
       'ai-key-validation',
-      session.user.id,
+      userId,
     );
 
     if (!rateLimitResult.allowed) {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Check if user has an OpenAI API key stored
     const userApiKey = await userApiKeyService.getDecryptedPrivateKey(
       'openai',
-      session.user.id,
+      userId,
     );
 
     if (!userApiKey) {

@@ -12,7 +12,7 @@ A production-ready SaaS starter template designed for rapid deployment of modern
 
 - **Frontend**: Next.js 15 (App Router), TypeScript 5.0+, Tailwind CSS v4, React 19
 - **Backend**: PostgreSQL with Drizzle ORM, Redis for caching
-- **Auth**: Custom DatabaseAuthProvider with Auth.js v5 abstraction
+- **Auth**: Clerk authentication with NextJS integration
 - **Payments**: Stripe (abstracted service layer)
 - **Email**: Resend + React Email templates
 - **AI**: OpenAI with Vercel AI SDK
@@ -30,9 +30,9 @@ A production-ready SaaS starter template designed for rapid deployment of modern
 
 ### Recent Architectural Decisions
 
-- Implemented custom DatabaseAuthProvider replacing default Auth.js adapter
-- Added comprehensive password history tracking
-- Enhanced session management with Redis caching
+- Migrated from custom Auth.js implementation to Clerk authentication
+- Implemented comprehensive webhook system for user sync
+- Enhanced API routes with proper error handling and logging
 - Standardized error response format across API routes
 
 ### Active Features
@@ -45,7 +45,7 @@ A production-ready SaaS starter template designed for rapid deployment of modern
 
 - Parallel test execution requires careful data isolation
 - Rate limiting tests need retry logic for stability
-- Some Auth.js edge cases with custom provider
+- Clerk webhook configuration required for user sync
 
 ## Code Patterns & Conventions
 
@@ -200,22 +200,18 @@ export const sessions = pgTable('sessions', {
 
 ### Authentication Flow
 
-1. **Registration**: `/api/auth/register` → `DatabaseAuthProvider.createUser()`
-2. **Login**: `/api/auth/login` → `DatabaseAuthProvider.authenticateUser()`
-3. **Session**: Cookie-based with Redis caching
-4. **Password Reset**: Token-based with 24h expiration
-5. **Email Verification**: Token-based with 1h expiration
+1. **Registration**: Handled by Clerk's sign-up flow
+2. **Login**: Handled by Clerk's sign-in flow
+3. **Session**: Managed by Clerk with JWT tokens
+4. **User Sync**: Webhook-based sync to local database via `/api/webhooks/clerk`
+5. **User Management**: Clerk Dashboard for user administration
 
 ### API Endpoint Structure
 
 ```
 /api/
-├── auth/
-│   ├── login/          POST   - User login
-│   ├── register/       POST   - User registration
-│   ├── logout/         POST   - User logout
-│   ├── reset-password/ POST   - Initiate password reset
-│   └── verify-email/   POST   - Verify email token
+├── webhooks/
+│   └── clerk/          POST   - Clerk webhook handler
 ├── users/
 │   ├── profile/        GET/PUT - User profile
 │   └── settings/       GET/PUT - User settings
@@ -266,22 +262,22 @@ interface PaymentService {
 
 ### 1. Authentication Flow
 
-- **User Registration**: `DatabaseAuthProvider.createUser()`
-- **User Login**: `DatabaseAuthProvider.authenticateUser()`
-- **Password Reset**: Token-based password reset flow
-- **Email Verification**: Token-based email verification
+- **User Registration**: Clerk sign-up with webhook sync to database
+- **User Login**: Clerk sign-in with session management
+- **User Deletion**: Clerk deletion with webhook sync to database
+- **Webhook Processing**: User sync via `/api/webhooks/clerk`
 
 ### 2. Database Operations
 
-- All auth services use dependency injection with `testDb` for testing
-- Password history tracking for security
-- Rate limiting for brute force protection
+- User data sync via Clerk webhooks
+- API key management for authenticated users
+- Database relationships with user references
 
-### 3. Session Management
+### 3. Webhook Management
 
-- Session creation, validation, and destruction
-- Cookie configuration and security
-- Concurrent session limits
+- Clerk webhook verification and processing
+- Duplicate event prevention via webhook_events table
+- Comprehensive logging for debugging webhook issues
 
 ## Test Confidence Levels
 
@@ -620,15 +616,10 @@ TEST_DB_NAME="saas_template_test"
 # DATABASE_URL="postgresql://..."
 # TEST_DATABASE_URL="postgresql://..."
 
-# Authentication
-AUTH_SECRET="..."  # Generate with: openssl rand -base64 32
-NEXTAUTH_URL="http://localhost:3000"
-
-# OAuth Providers
-GOOGLE_CLIENT_ID="..."
-GOOGLE_CLIENT_SECRET="..."
-GITHUB_CLIENT_ID="..."
-GITHUB_CLIENT_SECRET="..."
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+CLERK_SECRET_KEY="sk_test_..."
+CLERK_WEBHOOK_SECRET="whsec_..."
 
 # Stripe
 STRIPE_SECRET_KEY="sk_test_..."

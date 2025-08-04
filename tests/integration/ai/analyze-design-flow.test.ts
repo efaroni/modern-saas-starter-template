@@ -47,12 +47,19 @@ class MockNextRequest {
   }
 }
 
-// Mock auth to return our test user
-jest.mock('@/lib/auth/auth', () => ({
-  auth: jest.fn().mockResolvedValue({
-    user: { id: '550e8400-e29b-41d4-a716-446655440000' },
-  }),
-}));
+// Setup Clerk mocks
+import {
+  mockAuth,
+  mockAuthenticatedUser,
+  setupClerkMocks,
+} from '@/tests/mocks/clerk';
+import { testUsers } from '@/tests/fixtures/clerk';
+
+setupClerkMocks();
+
+// Setup authenticated user for tests
+const testUserId = '550e8400-e29b-41d4-a716-446655440000';
+mockAuthenticatedUser({ ...testUsers.basic, id: testUserId });
 
 // Mock rate limiting to avoid test interference
 jest.mock('@/lib/middleware/rate-limit', () => ({
@@ -287,8 +294,8 @@ describe('AI Design Analysis Integration Flow', () => {
 
   it('should return 401 when user is not authenticated', async () => {
     // Arrange
-    const { auth } = await import('@/lib/auth/auth');
-    auth.mockResolvedValueOnce(null); // No session
+    const { auth } = await import('@clerk/nextjs/server');
+    auth.mockResolvedValueOnce({ userId: null }); // No session
 
     const formData = createFormData([
       createMockFile('design.png', 'image/png'),

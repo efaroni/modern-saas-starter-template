@@ -17,9 +17,9 @@ describe('userApiKeyService', () => {
     // Create test user
     await testDb.insert(users).values({
       id: testUserId,
+      clerkId: 'user_clerk_test_123',
       email: testEmail,
       name: 'Test User',
-      password: 'hashed_password',
     });
   });
 

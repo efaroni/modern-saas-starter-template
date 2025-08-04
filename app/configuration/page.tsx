@@ -1,7 +1,17 @@
+import { redirect } from 'next/navigation';
+
+import { auth } from '@clerk/nextjs/server';
+
 import { ServiceApiKeyInput } from '@/components/services/service-api-key-input';
 import { config } from '@/lib/config';
 
-export default function ConfigurationPage() {
+export default async function ConfigurationPage() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect('/sign-in');
+  }
+
   return (
     <div className='container mx-auto px-4 py-8'>
       <div className='mx-auto max-w-6xl'>

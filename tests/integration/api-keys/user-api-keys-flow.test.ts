@@ -8,12 +8,19 @@ import { validateApiKey } from '@/lib/api-keys/validators';
 import { users, userApiKeys } from '@/lib/db/schema';
 import { testDb } from '@/lib/db/test';
 
-// Mock auth to return our test user
-jest.mock('@/lib/auth/auth', () => ({
-  auth: jest.fn().mockResolvedValue({
-    user: { id: '550e8400-e29b-41d4-a716-446655440000' },
-  }),
-}));
+// Setup Clerk mocks
+import {
+  mockAuth,
+  mockAuthenticatedUser,
+  setupClerkMocks,
+} from '@/tests/mocks/clerk';
+import { testUsers } from '@/tests/fixtures/clerk';
+
+setupClerkMocks();
+
+// Setup authenticated user for tests
+const testUserId = '550e8400-e29b-41d4-a716-446655440000';
+mockAuthenticatedUser({ ...testUsers.basic, id: testUserId });
 
 // Mock the API validation to avoid real API calls
 jest.mock('@/lib/api-keys/validators', () => ({
@@ -29,7 +36,7 @@ jest.mock('next/cache', () => ({
 }));
 
 describe('User API Keys Integration Flow', () => {
-  const testUserId = '550e8400-e29b-41d4-a716-446655440000'; // Valid UUID
+  // testUserId is already defined above when setting up the mock
   const mockValidateApiKey = validateApiKey as jest.MockedFunction<
     typeof validateApiKey
   >;
@@ -50,9 +57,9 @@ describe('User API Keys Integration Flow', () => {
     // Create test user
     await testDb.insert(users).values({
       id: testUserId,
+      clerkId: 'user_clerk_test_123',
       email: 'test@example.com',
       name: 'Test User',
-      password: 'hashed_password',
     });
 
     // Reset mocks
