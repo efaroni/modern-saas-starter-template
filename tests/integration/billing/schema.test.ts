@@ -3,10 +3,7 @@
  * Validates that billing Zod schemas compile and types are correct
  */
 
-import {
-  insertUserSchema,
-  insertWebhookEventSchema,
-} from '@/lib/db/schema';
+import { insertUserSchema, insertWebhookEventSchema } from '@/lib/db/schema';
 
 describe('Billing Schema Validation', () => {
   describe('User Schema', () => {

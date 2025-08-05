@@ -29,7 +29,8 @@ describe('MockBillingService', () => {
   describe('createCheckoutSession', () => {
     it('should return a mock checkout URL', async () => {
       const params = {
-        customerId: 'cus_test',
+        email: 'test@example.com',
+        userId: 'user_123',
         priceId: 'price_test',
         mode: 'subscription' as const,
         successUrl: 'http://localhost:3000/success',
@@ -39,7 +40,7 @@ describe('MockBillingService', () => {
       const result = await service.createCheckoutSession(params);
 
       expect(result.url).toMatch(
-        /^https:\/\/checkout\.stripe\.com\/mock\/\d+$/,
+        /^https:\/\/checkout\.stripe\.com\/mock\/\d+\?email=test@example\.com&user=user_123$/,
       );
     });
 
@@ -50,7 +51,8 @@ describe('MockBillingService', () => {
       });
 
       const params = {
-        customerId: 'cus_test',
+        email: 'test@example.com',
+        userId: 'user_123',
         priceId: 'price_test',
         mode: 'subscription' as const,
         successUrl: 'http://localhost:3000/success',

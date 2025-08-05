@@ -8,6 +8,22 @@ import { db } from '@/lib/db';
 import { users, webhookEvents } from '@/lib/db/schema';
 import { emailService } from '@/lib/email/service';
 
+// Simple retry wrapper for database operations
+async function retryDbOperation<T>(
+  operation: () => Promise<T>,
+  retries = 3,
+): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, i)));
+    }
+  }
+  throw new Error('Retry operation failed');
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const headersList = await headers();
@@ -46,30 +62,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Store event for idempotency
-    await db.insert(webhookEvents).values({
-      id: data.id,
-      provider: 'stripe',
-      eventType: event.type,
-    });
+    // Store event for idempotency with retry
+    await retryDbOperation(() =>
+      db.insert(webhookEvents).values({
+        id: data.id,
+        provider: 'stripe',
+        eventType: event.type,
+      }),
+    );
 
     // Handle only the critical events (lean approach)
     switch (event.type) {
       case 'checkout.completed':
         console.warn('Processing checkout completion:', data.id);
 
-        // Store billing customer ID if this is the first checkout
-        if (data.customer && data.metadata?.userId) {
-          await db
-            .update(users)
-            .set({
-              billingCustomerId: data.customer,
-            })
-            .where(eq(users.id, data.metadata.userId));
+        // Store billing customer ID using client_reference_id from checkout
+        if (data.customer && data.client_reference_id) {
+          await retryDbOperation(() =>
+            db
+              .update(users)
+              .set({
+                billingCustomerId: data.customer,
+              })
+              .where(eq(users.id, data.client_reference_id)),
+          );
 
           console.warn(
             'Updated user billing customer ID:',
-            data.metadata.userId,
+            data.client_reference_id,
             '->',
             data.customer,
           );

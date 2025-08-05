@@ -40,13 +40,12 @@ export async function POST(request: NextRequest) {
 
     const { priceId, mode, metadata } = validation.data;
 
-    // Get user with billing info
+    // Get user info
     const user = await db.query.users.findFirst({
       where: eq(users.clerkId, userId),
       columns: {
         id: true,
         email: true,
-        billingCustomerId: true,
       },
     });
 
@@ -57,28 +56,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let customerId = user.billingCustomerId;
-
-    // Create customer if doesn't exist
-    if (!customerId) {
-      const result = await billingService.createCustomer(user.email);
-      customerId = result.customerId;
-
-      // Store customer ID in database
-      await db
-        .update(users)
-        .set({ billingCustomerId: customerId })
-        .where(eq(users.id, user.id));
-    }
-
     const { url } = await billingService.createCheckoutSession({
-      customerId,
+      email: user.email,
+      userId: user.id,
       priceId,
       mode,
-      successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/${mode === 'payment' ? 'purchase' : 'subscription'}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/${mode === 'payment' ? 'purchase' : 'subscription'}/cancel`,
+      successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing-test?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing-test?cancelled=true`,
       metadata: {
-        userId: user.id, // Use internal user ID for webhook processing
+        userId: user.id,
         ...metadata,
       },
     });

@@ -77,7 +77,8 @@ describe('StripeBillingService', () => {
       mockStripe.checkout.sessions.create.mockResolvedValue(mockSession as any);
 
       const params = {
-        customerId: 'cus_test',
+        email: 'test@example.com',
+        userId: 'user_123',
         priceId: 'price_test',
         mode: 'subscription' as const,
         successUrl: 'http://localhost:3000/success',
@@ -88,7 +89,8 @@ describe('StripeBillingService', () => {
       const result = await service.createCheckoutSession(params);
 
       expect(mockStripe.checkout.sessions.create).toHaveBeenCalledWith({
-        customer: 'cus_test',
+        client_reference_id: 'user_123',
+        customer_email: 'test@example.com',
         mode: 'subscription',
         line_items: [
           {
@@ -109,7 +111,8 @@ describe('StripeBillingService', () => {
       mockStripe.checkout.sessions.create.mockResolvedValue(mockSession as any);
 
       const params = {
-        customerId: 'cus_test',
+        email: 'test@example.com',
+        userId: 'user_123',
         priceId: 'price_test',
         mode: 'payment' as const,
         successUrl: 'http://localhost:3000/success',
@@ -119,7 +122,8 @@ describe('StripeBillingService', () => {
       const result = await service.createCheckoutSession(params);
 
       expect(mockStripe.checkout.sessions.create).toHaveBeenCalledWith({
-        customer: 'cus_test',
+        client_reference_id: 'user_123',
+        customer_email: 'test@example.com',
         mode: 'payment',
         line_items: [
           {
