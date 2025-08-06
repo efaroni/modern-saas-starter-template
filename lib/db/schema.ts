@@ -58,21 +58,6 @@ export const userApiKeys = pgTable(
   }),
 );
 
-// New table for one-time purchases (temporarily commented out until migration is ready)
-// export const purchases = pgTable('purchases', {
-//   id: uuid('id').defaultRandom().primaryKey(),
-//   userId: text('user_id')
-//     .references(() => users.id, { onDelete: 'cascade' })
-//     .notNull(),
-//   billingSessionId: text('billing_session_id').unique(),
-//   amount: integer('amount').notNull(), // in cents
-//   currency: text('currency').default('USD').notNull(),
-//   status: text('status').notNull(), // 'pending', 'completed', 'failed'
-//   purchaseType: text('purchase_type'), // 'credits', 'feature', etc.
-//   metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
-//   createdAt: timestamp('created_at').defaultNow().notNull(),
-// });
-
 // Track webhook events for idempotency (supports both Clerk and Stripe)
 export const webhookEvents = pgTable('webhook_events', {
   id: text('id').primaryKey(), // Provider event ID (svix-id for Clerk, event ID for Stripe)
@@ -86,8 +71,6 @@ export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertUserApiKeySchema = createInsertSchema(userApiKeys);
 export const selectUserApiKeySchema = createSelectSchema(userApiKeys);
-// export const insertPurchaseSchema = createInsertSchema(purchases);
-// export const selectPurchaseSchema = createSelectSchema(purchases);
 export const insertWebhookEventSchema = createInsertSchema(webhookEvents);
 export const selectWebhookEventSchema = createSelectSchema(webhookEvents);
 
@@ -96,7 +79,5 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type InsertUserApiKey = typeof userApiKeys.$inferInsert;
 export type SelectUserApiKey = typeof userApiKeys.$inferSelect;
-// export type Purchase = typeof purchases.$inferSelect;
-// export type NewPurchase = typeof purchases.$inferInsert;
 export type WebhookEvent = typeof webhookEvents.$inferSelect;
 export type NewWebhookEvent = typeof webhookEvents.$inferInsert;

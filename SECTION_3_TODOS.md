@@ -1,55 +1,113 @@
-# Minimal SaaS Billing Implementation - LEAN APPROACH
+# Minimal Billing Implementation - Boilerplate Setup
 
-## Current Status
+## Overview
 
-✅ **DONE**: Abstraction layer exists (BillingService interface, Stripe & Mock implementations)
-✅ **DONE**: API routes partially exist (checkout session, portal, webhook handler)
-✅ **DONE**: Unit tests exist for Stripe service and portal route
-✅ **DONE**: Database migration exists for billing fields
+This is a **boilerplate implementation** focused on minimal setup and maximum use of Stripe's built-in features. We don't reinvent what Stripe already does perfectly.
 
-## What Still Needs to Be Done (LEAN TDD Approach)
+## What You Get
 
-### Phase 1: Enable Database Schema (READY)
+✅ **Test Page**: Complete billing test interface at `/billing-test`  
+✅ **Stripe Integration**: Full checkout, portal, and webhook processing  
+✅ **Database**: Minimal schema storing only Stripe customer ID  
+✅ **Email Notifications**: Payment success/failure emails via webhooks  
+✅ **Service Abstraction**: Clean interface allowing provider switching
 
-- ✅ Migration exists (0008_grey_iron_lad.sql) - just need to uncomment fields in schema.ts
-- ✅ Uncomment billing fields in schema.ts and run migration
+## What We DON'T Build
 
-### Phase 2: Minimal Test Suite (~200 lines total)
+❌ Local subscription status tracking (query Stripe directly)  
+❌ Complex payment flows (use Stripe Checkout)  
+❌ Billing management UI (use Stripe Customer Portal)  
+❌ Purchase tracking table (use Stripe invoices/events)  
+❌ Custom payment forms (use Stripe Elements)
 
-- **Schema Test** (~20 lines): Validate Zod schemas compile
-- **Core Integration Test** (~100 lines): Full billing flow with critical webhooks
-- **Access Control Test** (~30 lines): Simple Stripe API calls for subscription status
+## 5-Minute Setup
 
-### Phase 3: Lean Implementation (~150 lines changes)
+### 1. Environment Variables
 
-- **Access Control** (~50 lines): Query Stripe directly for subscription status
-- **Complete Webhook Handler** (~100 lines): Handle only checkout.completed and subscription.deleted
-- **Fix API Routes**: Store billing_customer_id, remove local subscription tracking
+```bash
+# Add to .env.local
+STRIPE_SECRET_KEY="sk_test_..."  # From Stripe Dashboard → API Keys
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."  # From webhook setup below
+```
 
-## Key Changes from Original Plan
+### 2. Create Stripe Products
 
-### SIMPLIFIED APPROACH:
+In Stripe Dashboard → Products:
 
-1. **Use Stripe as Source of Truth** - No local subscription status tracking
-2. **Minimal Webhook Processing** - Only handle customer creation and audit events
-3. **Lean Test Suite** - One integration test file covers main flow
-4. **Skip Complex Unit Tests** - Focus on integration layer only
+1. Create a subscription product (e.g., "Pro Plan - $10/month")
+2. Create a one-time product (e.g., "100 Credits - $5")
+3. Copy the price IDs
 
-### What We're NOT Building:
+### 3. Update Test Page
 
-- ❌ Local subscription status storage (query Stripe instead)
-- ❌ Complex webhook handler unit tests
-- ❌ Purchase tracking (use Stripe invoices if needed)
-- ❌ Multiple test files for each flow
-- ❌ E2E tests (implementers can add these)
+Edit `app/billing-test/page.tsx` and replace:
 
-## Implementation Focus
+- `price_test_subscription` → Your subscription price ID
+- `price_test_credits` → Your one-time price ID
 
-### 1. Access Control Functions (Query Stripe Directly)
+### 4. Webhook Setup
+
+```bash
+# Install Stripe CLI
+brew install stripe/stripe-cli/stripe
+
+# Login and forward webhooks
+stripe login
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+
+# Copy the webhook secret to .env.local
+```
+
+### 5. Test the Flow
+
+1. Visit `/billing-test`
+2. Click "Subscribe" → Complete with test card `4242 4242 4242 4242`
+3. Return → Click "Refresh Status" → Verify subscription active
+4. Click "Manage Billing" → Test Stripe Portal
+
+**That's it!** Your billing system is ready.
+
+## Architecture
+
+### Database (Minimal)
+
+```sql
+-- users table has only:
+billing_customer_id TEXT UNIQUE  -- Stripe customer ID
+
+-- webhook_events table for idempotency
+id TEXT PRIMARY KEY           -- Stripe event ID
+provider TEXT                 -- 'stripe'
+event_type TEXT              -- 'checkout.completed', etc.
+processed_at TIMESTAMP       -- When processed
+```
+
+### API Routes (Already Built)
+
+- `POST /api/billing/checkout/session` - Create checkout sessions
+- `POST /api/billing/portal` - Customer portal access
+- `POST /api/webhooks/stripe` - Webhook processor
+- `GET /api/test/billing-status` - Check status (test only)
+- `POST /api/test/reset-user` - Reset billing data (test only)
+
+### Service Layer (Provider Agnostic)
+
+```typescript
+// lib/billing/service.ts - Factory creates Stripe or Mock service
+export const billingService = createBillingService();
+
+// Easy to switch providers later:
+// return new PaddleBillingService(apiKey, webhookSecret);
+```
+
+## Access Control Pattern
+
+Query Stripe directly for real-time status:
 
 ```typescript
 // lib/billing/access-control.ts
-export async function hasActiveSubscription(userId: string): Promise<boolean> {
+export async function hasActiveSubscription(userId: string) {
   const user = await getUser(userId);
   if (!user.billingCustomerId) return false;
 
@@ -63,883 +121,90 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
 }
 ```
 
-### 2. Minimal Webhook Handler (Critical Events Only)
+## Webhook Processing
 
-- `checkout.session.completed`: Store billing_customer_id
-- `customer.subscription.deleted`: Log for audit (no local updates needed)
-- Idempotency via webhook_events table
+Handles only critical events:
 
-### 3. API Route Updates
+- `checkout.session.completed` - Store customer ID, send emails
+- `customer.subscription.deleted` - Log for audit
+- `payment_intent.payment_failed` - Send failure email
 
-- Store billing_customer_id on first checkout
-- Query Stripe for subscription status (don't store locally)
+Uses idempotency table to prevent duplicate processing.
 
-## Abstraction Layer (ALREADY EXISTS)
+## Email Integration
 
-```typescript
-// lib/billing/types.ts
-export interface BillingService {
-  createCustomer(email: string): Promise<{ customerId: string }>;
+Automatic emails on webhook events:
 
-  createCheckoutSession(params: {
-    customerId: string;
-    priceId: string;
-    mode: 'subscription' | 'payment';
-    successUrl: string;
-    cancelUrl: string;
-    metadata?: Record<string, string>;
-  }): Promise<{ url: string }>;
+- Payment success confirmation
+- Payment failure notification
+- Subscription change alerts
 
-  createPortalSession(
-    customerId: string,
-    returnUrl: string,
-  ): Promise<{ url: string }>;
+Templates in `emails/` directory using React Email.
 
-  verifyWebhookSignature(payload: string, signature: string): boolean;
-  parseWebhookEvent(payload: string): BillingEvent;
-}
+## Testing Strategy
 
-export interface BillingEvent {
-  type:
-    | 'checkout.completed'
-    | 'subscription.updated'
-    | 'subscription.deleted'
-    | 'payment.succeeded';
-  data: any; // Provider-specific data
-}
+**Manual Testing Only** - Use the test page:
 
-export interface BillingResult<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-```
+1. Reset user → Subscribe → Verify webhook
+2. Test portal access → Modify subscription
+3. Test one-time payments → Verify completion
 
-### Stripe Implementation
+The billing-test page provides complete testing interface with:
 
-```typescript
-// lib/billing/stripe.ts
-import Stripe from 'stripe';
-import { BillingService, BillingEvent } from './types';
+- Status display (customer ID, subscription status)
+- Action buttons (subscribe, buy credits, manage billing)
+- Test instructions and card details
 
-export class StripeBillingService implements BillingService {
-  private stripe: Stripe;
+## Production Deployment
 
-  constructor(apiKey: string, webhookSecret: string) {
-    this.stripe = new Stripe(apiKey, {
-      apiVersion: '2024-11-20.acacia',
-      typescript: true,
-    });
-    this.webhookSecret = webhookSecret;
-  }
+1. Switch to live Stripe keys
+2. Set up production webhook endpoint in Stripe Dashboard
+3. Point to your domain: `https://yourdomain.com/api/webhooks/stripe`
+4. Select events: `checkout.session.completed`, `customer.subscription.deleted`, `payment_intent.payment_failed`
 
-  private webhookSecret: string;
-
-  async createCustomer(email: string) {
-    const customer = await this.stripe.customers.create({ email });
-    return { customerId: customer.id };
-  }
-
-  async createCheckoutSession(params: {
-    customerId: string;
-    priceId: string;
-    mode: 'subscription' | 'payment';
-    successUrl: string;
-    cancelUrl: string;
-    metadata?: Record<string, string>;
-  }) {
-    const session = await this.stripe.checkout.sessions.create({
-      customer: params.customerId,
-      mode: params.mode,
-      line_items: [
-        {
-          price: params.priceId,
-          quantity: 1,
-        },
-      ],
-      success_url: params.successUrl,
-      cancel_url: params.cancelUrl,
-      metadata: params.metadata,
-      payment_method_types: ['card'],
-    });
-
-    return { url: session.url! };
-  }
-
-  async createPortalSession(customerId: string, returnUrl: string) {
-    const session = await this.stripe.billingPortal.sessions.create({
-      customer: customerId,
-      return_url: returnUrl,
-    });
-    return { url: session.url };
-  }
-
-  verifyWebhookSignature(payload: string, signature: string): boolean {
-    try {
-      this.stripe.webhooks.constructEvent(
-        payload,
-        signature,
-        this.webhookSecret,
-      );
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  parseWebhookEvent(payload: string): BillingEvent {
-    const stripeEvent = JSON.parse(payload);
-
-    // Map Stripe events to generic events
-    const eventMap: Record<string, BillingEvent['type']> = {
-      'checkout.session.completed': 'checkout.completed',
-      'customer.subscription.updated': 'subscription.updated',
-      'customer.subscription.deleted': 'subscription.deleted',
-      'payment_intent.succeeded': 'payment.succeeded',
-    };
-
-    return {
-      type: eventMap[stripeEvent.type] || stripeEvent.type,
-      data: stripeEvent.data.object,
-    };
-  }
-}
-```
-
-### Mock Implementation
-
-```typescript
-// lib/billing/mock.ts
-import { BillingService, BillingEvent } from './types';
-
-export class MockBillingService implements BillingService {
-  async createCustomer(email: string) {
-    return { customerId: `cus_mock_${Date.now()}` };
-  }
-
-  async createCheckoutSession(params: any) {
-    return { url: `https://checkout.stripe.com/mock/${Date.now()}` };
-  }
-
-  async createPortalSession(customerId: string, returnUrl: string) {
-    return { url: `https://billing.stripe.com/mock/${Date.now()}` };
-  }
-
-  verifyWebhookSignature(payload: string, signature: string): boolean {
-    return signature === 'mock_valid_signature';
-  }
-
-  parseWebhookEvent(payload: string): BillingEvent {
-    const data = JSON.parse(payload);
-    return {
-      type: data.type || 'checkout.completed',
-      data: data.data || { id: 'mock_event', customer: 'cus_mock' },
-    };
-  }
-}
-```
-
-### Service Factory
-
-```typescript
-// lib/billing/service.ts
-import { MockBillingService } from './mock';
-import { StripeBillingService } from './stripe';
-import { type BillingService } from './types';
-
-function createBillingService(): BillingService {
-  // Use mock service in test environment
-  if (process.env.NODE_ENV === 'test') {
-    return new MockBillingService();
-  }
-
-  // Check for required environment variables
-  const apiKey = process.env.STRIPE_SECRET_KEY;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!apiKey || !webhookSecret) {
-    console.warn('Stripe configuration missing, using mock billing service');
-    return new MockBillingService();
-  }
-
-  return new StripeBillingService(apiKey, webhookSecret);
-}
-
-export const billingService = createBillingService();
-```
-
-## Integration Test Plan
-
-### 1. User Signup & Checkout Flow
-
-```typescript
-describe('User Signup Flow', () => {
-  test('Should create billing customer on user registration', async () => {
-    // Given: New user signs up
-    // When: User is created in database
-    // Then: billingService.createCustomer() is called with user email
-    // And: billingCustomerId is stored in user record
-  });
-
-  test('Should create Checkout session for subscription', async () => {
-    // Given: User wants to subscribe
-    // When: User clicks subscribe button
-    // Then: billingService.createCheckoutSession() is called with:
-    //   - customer: user's billingCustomerId
-    //   - success_url: /subscription/success
-    //   - cancel_url: /subscription/cancel
-    //   - mode: 'subscription'
-    // And: User is redirected to checkout URL
-  });
-
-  test('Should create Checkout session for one-time payment', async () => {
-    // Given: User wants to purchase credits/feature
-    // When: User clicks purchase button
-    // Then: billingService.createCheckoutSession() is called with:
-    //   - customer: user's billingCustomerId
-    //   - success_url: /purchase/success
-    //   - cancel_url: /purchase/cancel
-    //   - mode: 'payment'
-    //   - metadata: { purchaseType: 'credits', quantity: '100' }
-    // And: User is redirected to checkout URL
-  });
-
-  test('Should handle Checkout success', async () => {
-    // Given: User completes Checkout
-    // When: Redirected to success_url with session_id
-    // Then: Display success message
-    // Note: Actual provisioning happens via webhook
-  });
-});
-```
-
-### 2. Customer Portal Integration
-
-```typescript
-describe('Customer Portal Access', () => {
-  test('Should create portal session for authenticated user', async () => {
-    // Given: Authenticated user with subscription
-    // When: User clicks "Manage Billing"
-    // Then: billingService.createPortalSession() is called with:
-    //   - customer: user's billingCustomerId
-    //   - return_url: /dashboard
-    // And: User redirected to portal URL
-  });
-
-  test('Should require authentication for portal access', async () => {
-    // Given: Unauthenticated request
-    // When: Portal session requested
-    // Then: 401 Unauthorized returned
-  });
-});
-```
-
-### 3. Webhook Processing
-
-```typescript
-describe('Critical Webhook Events', () => {
-  test('Should verify webhook signatures', async () => {
-    // Given: Incoming webhook request
-    // When: billingService.verifyWebhookSignature() called
-    // Then: Valid signatures accepted (200)
-    // And: Invalid signatures rejected (400)
-  });
-
-  test('Should handle checkout.completed for subscriptions', async () => {
-    // Given: Successful subscription checkout webhook
-    // When: Event processed
-    // Then: User subscription status updated to 'active'
-    // And: User gains access to paid features
-  });
-
-  test('Should handle checkout.completed for one-time payments', async () => {
-    // Given: Successful payment checkout webhook
-    // When: Event processed with mode='payment'
-    // Then: Purchase record created with status 'completed'
-    // And: User granted credits/feature based on metadata
-  });
-
-  test('Should handle subscription.updated', async () => {
-    // Given: Subscription status change webhook
-    // When: Event processed with status change
-    // Then: User access updated based on new status:
-    //   - 'active' or 'trialing' → access granted
-    //   - 'past_due', 'canceled', 'unpaid' → access revoked
-  });
-
-  test('Should handle subscription.deleted', async () => {
-    // Given: Subscription ended webhook
-    // When: Event processed
-    // Then: User subscription status updated to 'canceled'
-    // And: User access to paid features removed
-  });
-});
-```
-
-## Unit Test Plan
-
-### 1. Billing Service Layer
-
-```typescript
-describe('BillingService', () => {
-  test('Should create customer with minimal data', () => {
-    // Test creates customer with just email
-    // Mock: Provider API call
-    // Verify: Returns customer ID
-  });
-
-  test('Should create checkout session for subscription', () => {
-    // Test creates session for subscription
-    // Mock: Provider checkout session creation
-    // Verify: Includes all required parameters
-  });
-
-  test('Should create checkout session for one-time payment', () => {
-    // Test creates session for payment
-    // Mock: Provider checkout session creation
-    // Verify: mode='payment' and metadata included
-  });
-
-  test('Should create portal session', () => {
-    // Test creates portal session
-    // Mock: Provider portal session creation
-    // Verify: Returns portal URL
-  });
-});
-```
-
-### 2. Access Control Logic
-
-```typescript
-describe('User Access Control', () => {
-  test('Should grant access for active subscriptions', () => {
-    // Given: User with subscription_status = 'active'
-    // When: hasAccess() called
-    // Then: Returns true
-  });
-
-  test('Should grant access during trial', () => {
-    // Given: User with subscription_status = 'trialing'
-    // When: hasAccess() called
-    // Then: Returns true
-  });
-
-  test('Should grant access for completed purchases', () => {
-    // Given: User with completed purchase of 'premium_feature'
-    // When: hasAccessToFeature('premium_feature') called
-    // Then: Returns true
-  });
-
-  test('Should deny access for inactive subscriptions', () => {
-    // Given: User with subscription_status in ['past_due', 'canceled', 'unpaid']
-    // When: hasAccess() called
-    // Then: Returns false
-  });
-});
-```
-
-### 3. Webhook Handler
-
-```typescript
-describe('Webhook Handler', () => {
-  test('Should route events to correct handlers', () => {
-    // Test event type routing
-    // Verify: Each event type calls appropriate handler
-  });
-
-  test('Should be idempotent', () => {
-    // Given: Same event processed twice
-    // When: Second processing occurs
-    // Then: No duplicate side effects
-  });
-
-  test('Should handle both subscription and payment events', () => {
-    // Test: checkout.completed differentiates between modes
-    // Test: payment.succeeded creates purchase records
-    // Verify: Correct data stored for each type
-  });
-});
-```
-
-## E2E Test Plan
-
-### 1. Complete Subscription Journey
-
-```typescript
-describe('Full Subscription Flow E2E', () => {
-  test('New user subscribes successfully', async () => {
-    // 1. User signs up (billing customer created)
-    // 2. User clicks subscribe
-    // 3. Redirected to Checkout (provider-agnostic)
-    // 4. Completes payment
-    // 5. Redirected to success page
-    // 6. Webhook updates access
-    // 7. User can access paid features
-  });
-
-  test('User makes one-time purchase', async () => {
-    // 1. User selects credit pack
-    // 2. Checkout session created with mode='payment'
-    // 3. Redirected to Checkout
-    // 4. Completes payment
-    // 5. Webhook grants credits
-    // 6. Credits available immediately
-  });
-
-  test('User manages subscription via portal', async () => {
-    // 1. Subscribed user clicks "Manage Billing"
-    // 2. Redirected to Customer Portal
-    // 3. User makes changes (handled by provider)
-    // 4. Webhook updates local status
-    // 5. Access updated accordingly
-  });
-});
-```
-
-## Database Schema
-
-```typescript
-// Add to lib/db/schema.ts
-
-// Additional fields for users table (already exists)
-// Add these fields to your existing users table:
-export const users = pgTable('users', {
-  // ... existing fields ...
-
-  // Billing fields
-  billingCustomerId: text('billing_customer_id').unique(),
-  subscriptionId: text('subscription_id'),
-  subscriptionStatus: text('subscription_status'), // 'active', 'trialing', 'past_due', 'canceled', etc.
-  subscriptionCurrentPeriodEnd: timestamp('subscription_current_period_end', {
-    mode: 'date',
-  }),
-
-  // ... rest of existing fields ...
-});
-
-// New table for one-time purchases
-export const purchases = pgTable('purchases', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .references(() => users.id, { onDelete: 'cascade' })
-    .notNull(),
-  billingSessionId: text('billing_session_id').unique(),
-  amount: integer('amount').notNull(), // in cents
-  currency: text('currency').default('USD').notNull(),
-  status: text('status').notNull(), // 'pending', 'completed', 'failed'
-  purchaseType: text('purchase_type'), // 'credits', 'feature', etc.
-  metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
-
-// Track webhook events for idempotency
-export const webhookEvents = pgTable('webhook_events', {
-  id: text('id').primaryKey(), // Provider event ID
-  provider: text('provider').default('stripe').notNull(),
-  processedAt: timestamp('processed_at').defaultNow().notNull(),
-});
-
-// Create Zod schemas for validation
-export const insertPurchaseSchema = createInsertSchema(purchases);
-export const selectPurchaseSchema = createSelectSchema(purchases);
-export const insertWebhookEventSchema = createInsertSchema(webhookEvents);
-export const selectWebhookEventSchema = createSelectSchema(webhookEvents);
-
-// Export types
-export type Purchase = typeof purchases.$inferSelect;
-export type NewPurchase = typeof purchases.$inferInsert;
-export type WebhookEvent = typeof webhookEvents.$inferSelect;
-export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
-```
-
-## API Endpoints You Need
-
-```typescript
-// 1. Create checkout session (handles both subscription and one-time)
-POST /api/billing/checkout/session
-{
-  priceId: string,  // Which plan/product to purchase
-  mode: 'subscription' | 'payment',
-  metadata?: {      // For one-time purchases
-    purchaseType: string,
-    quantity?: number
-  }
-}
-// Returns: { checkoutUrl: string }
-
-// 2. Create portal session
-POST /api/billing/portal
-// Returns: { portalUrl: string }
-
-// 3. Webhook endpoint
-POST /api/webhooks/stripe
-// Processes billing provider events
-
-// 4. Check subscription status (for frontend)
-GET /api/billing/subscription/status
-// Returns: { hasAccess: boolean, status: string }
-
-// 5. Check purchases (for frontend)
-GET /api/billing/purchases
-// Returns: { purchases: Array<Purchase> }
-```
-
-## Environment Variables
-
-```bash
-# Required Stripe configuration
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-
-# Your product/price IDs from Stripe Dashboard
-STRIPE_PRICE_MONTHLY=price_...
-STRIPE_PRICE_YEARLY=price_...
-STRIPE_PRICE_CREDIT_PACK=price_...  # One-time purchase
-STRIPE_PRICE_PREMIUM_FEATURE=price_... # One-time purchase
-
-# URLs for Checkout redirect
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-## Critical Webhooks Only
-
-You only need to handle these events:
-
-1. **`checkout.session.completed`** - Initial subscription creation AND one-time payments
-2. **`customer.subscription.updated`** - Status changes (trial end, payment failure, reactivation)
-3. **`customer.subscription.deleted`** - Subscription ended
-4. **`payment_intent.succeeded`** - Alternative for one-time payment confirmation
-
-That's it! All other events can be ignored for MVP.
-
-## Testing with Stripe CLI
-
-```bash
-# Forward webhooks to local dev
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
-
-# Trigger test events
-stripe trigger checkout.session.completed
-stripe trigger customer.subscription.updated
-stripe trigger customer.subscription.deleted
-stripe trigger payment_intent.succeeded
-
-# Test with specific scenarios
-stripe trigger customer.subscription.updated \
-  --override subscription:status=past_due
-```
-
-## What You DON'T Need to Test/Build
-
-- ❌ Payment method management (Customer Portal)
-- ❌ Subscription plan changes (Customer Portal)
-- ❌ Cancellation flow (Customer Portal)
-- ❌ Invoice downloads (Customer Portal)
-- ❌ Payment retry logic (Stripe Smart Retries)
-- ❌ Proration calculations (Automatic)
-- ❌ Tax calculations (Stripe Tax if enabled)
-- ❌ Email notifications (Stripe handles)
-- ❌ 3D Secure flows (Stripe Checkout)
-- ❌ PCI compliance (Stripe hosted pages)
-
-## Success Metrics for MVP
-
-- ✅ Users can subscribe via Checkout
-- ✅ Users can make one-time purchases
-- ✅ Users can access Customer Portal
-- ✅ Subscription status syncs via webhooks
-- ✅ Purchase status syncs via webhooks
-- ✅ Access control based on subscription status or purchases
-- ✅ No payment data stored locally
-- ✅ Aim for < 300 lines of billing code if you can
-- ✅ Easy to switch payment providers (change ~50 lines)
-
-## Code Examples
-
-### Creating a Checkout Session (Abstracted)
-
-```typescript
-// app/api/billing/checkout/session/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { billingService } from '@/lib/billing/service';
-import { db } from '@/lib/db';
-import { purchases } from '@/lib/db/schema';
-
-export async function POST(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 },
-      );
-    }
-
-    const { priceId, mode = 'subscription', metadata } = await request.json();
-    const userId = session.user.id;
-
-    // Get user with billing info
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
-
-    if (!user?.billingCustomerId) {
-      // Create customer if doesn't exist
-      const { customerId } = await billingService.createCustomer(user.email);
-      await db
-        .update(users)
-        .set({ billingCustomerId: customerId })
-        .where(eq(users.id, userId));
-      user.billingCustomerId = customerId;
-    }
-
-    // For one-time payments, create pending purchase record
-    if (mode === 'payment') {
-      await db.insert(purchases).values({
-        userId,
-        status: 'pending',
-        purchaseType: metadata?.purchaseType,
-        metadata,
-        amount: 0, // Will be updated by webhook
-        currency: 'USD',
-      });
-    }
-
-    const { url } = await billingService.createCheckoutSession({
-      customerId: user.billingCustomerId,
-      priceId,
-      mode,
-      successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/${mode === 'payment' ? 'purchase' : 'subscription'}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL}/${mode === 'payment' ? 'purchase' : 'subscription'}/cancel`,
-      metadata: {
-        userId,
-        ...metadata,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: { checkoutUrl: url },
-    });
-  } catch (error) {
-    console.error('Checkout session error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create checkout session' },
-      { status: 500 },
-    );
-  }
-}
-```
-
-### Creating Portal Session (Abstracted)
-
-```typescript
-// app/api/billing/portal/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { billingService } from '@/lib/billing/service';
-import { db } from '@/lib/db';
-import { eq } from 'drizzle-orm';
-import { users } from '@/lib/db/schema';
-
-export async function POST(request: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 },
-      );
-    }
-
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, session.user.id),
-    });
-
-    if (!user?.billingCustomerId) {
-      return NextResponse.json(
-        { success: false, error: 'No billing account found' },
-        { status: 400 },
-      );
-    }
-
-    const { url } = await billingService.createPortalSession(
-      user.billingCustomerId,
-      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
-    );
-
-    return NextResponse.json({
-      success: true,
-      data: { portalUrl: url },
-    });
-  } catch (error) {
-    console.error('Portal session error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create portal session' },
-      { status: 500 },
-    );
-  }
-}
-```
-
-### Minimal Webhook Handler (Abstracted)
-
-```typescript
-// app/api/webhooks/stripe/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
-import { billingService } from '@/lib/billing/service';
-import { db } from '@/lib/db';
-import { eq } from 'drizzle-orm';
-import { users, purchases, webhookEvents } from '@/lib/db/schema';
-
-export async function POST(request: NextRequest) {
-  const body = await request.text();
-  const headersList = headers();
-  const sig = headersList.get('stripe-signature');
-
-  if (!sig) {
-    return NextResponse.json(
-      { error: 'No signature provided' },
-      { status: 400 },
-    );
-  }
-
-  // Verify signature
-  if (!billingService.verifyWebhookSignature(body, sig)) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-  }
-
-  // Parse event
-  const event = billingService.parseWebhookEvent(body);
-  const data = event.data;
-
-  // Check for idempotency
-  const existingEvent = await db.query.webhookEvents.findFirst({
-    where: eq(webhookEvents.id, data.id),
-  });
-
-  if (existingEvent) {
-    return NextResponse.json({ received: true });
-  }
-
-  // Store event for idempotency
-  await db.insert(webhookEvents).values({
-    id: data.id,
-    provider: 'stripe',
-  });
-
-  // Handle only the critical events
-  switch (event.type) {
-    case 'checkout.completed':
-      if (data.mode === 'subscription') {
-        await db
-          .update(users)
-          .set({
-            subscriptionId: data.subscription,
-            subscriptionStatus: 'active',
-          })
-          .where(eq(users.billingCustomerId, data.customer));
-      } else if (data.mode === 'payment') {
-        await db
-          .update(purchases)
-          .set({
-            status: 'completed',
-            billingSessionId: data.id,
-            amount: data.amount_total,
-          })
-          .where(eq(purchases.billingSessionId, data.id));
-
-        // Grant access based on purchase metadata
-        if (data.metadata?.purchaseType === 'credits') {
-          // Implement your credit granting logic here
-          // await grantCredits(data.metadata.userId, data.metadata.quantity);
-        }
-      }
-      break;
-
-    case 'subscription.updated':
-    case 'subscription.deleted':
-      await db
-        .update(users)
-        .set({
-          subscriptionStatus: data.status,
-          subscriptionCurrentPeriodEnd: new Date(
-            data.current_period_end * 1000,
-          ),
-        })
-        .where(eq(users.subscriptionId, data.id));
-      break;
-  }
-
-  return NextResponse.json({ received: true });
-}
-```
-
-### Switching Providers
-
-To switch from Stripe to another provider:
-
-1. Create new implementation of `BillingService` interface in `lib/billing/paddle.ts` (or other provider)
-2. Update the factory in `lib/billing/service.ts`:
-   ```typescript
-   // Change from:
-   return new StripeBillingService(apiKey, webhookSecret);
-   // To:
-   return new PaddleBillingService(apiKey, webhookSecret);
-   ```
-3. Update environment variables
-4. Update webhook endpoint URL if needed
-5. Map new provider's event types in the implementation
-
-That's it! This minimal implementation gives you a fully functional SaaS billing system with both subscriptions and one-time payments, while being easy to switch providers later.
-
-## File Structure Summary
+## File Structure
 
 ```
-lib/
-├── billing/
-│   ├── types.ts       # BillingService interface & types
-│   ├── stripe.ts      # Stripe implementation
-│   ├── mock.ts        # Mock implementation for tests
-│   └── service.ts     # Factory function
+lib/billing/           # Service layer
+├── types.ts          # Interfaces
+├── stripe.ts         # Stripe implementation
+├── mock.ts           # Test implementation
+├── service.ts        # Factory
+└── access-control.ts # Subscription queries
 
-app/
-├── api/
-│   ├── billing/
-│   │   ├── checkout/
-│   │   │   └── session/
-│   │   │       └── route.ts    # Create checkout sessions
-│   │   ├── portal/
-│   │   │   └── route.ts        # Customer portal access
-│   │   ├── subscription/
-│   │   │   └── status/
-│   │   │       └── route.ts    # Check subscription status
-│   │   └── purchases/
-│   │       └── route.ts        # List purchases
-│   └── webhooks/
-│       └── stripe/
-│           └── route.ts        # Webhook handler
+app/api/billing/      # API routes
+├── checkout/session/ # Checkout creation
+└── portal/           # Customer portal
 
-components/
-└── billing/
-    ├── subscription-button.tsx
-    ├── manage-billing-button.tsx
-    ├── purchase-button.tsx
-    └── subscription-status.tsx
+app/api/webhooks/
+└── stripe/           # Webhook handler
 
-tests/
-├── lib/
-│   └── billing/
-│       ├── stripe.test.ts      # Unit tests for Stripe implementation
-│       └── mock.test.ts        # Unit tests for mock
-├── integration/
-│   └── billing/
-│       ├── checkout-flow.test.ts
-│       ├── portal-access.test.ts
-│       └── webhook-processing.test.ts
-└── e2e/
-    └── billing-flows.test.ts   # Full user journey tests
+app/billing-test/     # Test interface
+└── page.tsx
+
+emails/               # Email templates
+├── payment-success.tsx
+└── payment-failed.tsx
 ```
+
+## Success Criteria
+
+✅ User can subscribe via Stripe Checkout  
+✅ User can access Stripe Customer Portal  
+✅ Webhooks process payment events  
+✅ Emails send automatically  
+✅ Access control works via Stripe queries  
+✅ Easy to switch payment providers  
+✅ Total implementation < 100 lines of business logic
+
+## What's Already Done
+
+Everything! The implementation is complete and tested. You just need to:
+
+1. Set environment variables
+2. Create Stripe products
+3. Update price IDs in test page
+4. Set up webhook forwarding
+5. Test the flow
+
+This boilerplate prioritizes **simplicity over customization** - perfect for getting billing working quickly while maintaining the ability to customize later.

@@ -20,8 +20,7 @@ export class StripeBillingService implements BillingService {
   }
 
   async createCheckoutSession(params: {
-    email: string;
-    userId: string;
+    customerId: string;
     priceId: string;
     mode: 'subscription' | 'payment';
     successUrl: string;
@@ -29,8 +28,8 @@ export class StripeBillingService implements BillingService {
     metadata?: Record<string, string>;
   }) {
     const session = await this.stripe.checkout.sessions.create({
-      client_reference_id: params.userId,
-      customer_email: params.email,
+      customer: params.customerId,
+      client_reference_id: params.metadata?.userId, // For webhook processing
       mode: params.mode,
       line_items: [
         {

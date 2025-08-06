@@ -2,8 +2,7 @@ export interface BillingService {
   createCustomer(email: string): Promise<{ customerId: string }>;
 
   createCheckoutSession(params: {
-    email: string;
-    userId: string;
+    customerId: string;
     priceId: string;
     mode: 'subscription' | 'payment';
     successUrl: string;

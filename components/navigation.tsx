@@ -14,6 +14,7 @@ import {
   Code2,
   Gauge,
   ShieldAlert,
+  CreditCard,
 } from 'lucide-react';
 
 const navItems = [
@@ -22,6 +23,12 @@ const navItems = [
     href: '/configuration',
     icon: Settings,
     description: 'Manage your API keys',
+  },
+  {
+    name: 'Billing System',
+    href: '/billing-test',
+    icon: CreditCard,
+    description: 'Test billing integration',
   },
   {
     name: 'AI Styling',

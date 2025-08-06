@@ -23,8 +23,7 @@ export class MockBillingService implements BillingService {
   }
 
   createCheckoutSession(params: {
-    email: string;
-    userId: string;
+    customerId: string;
     priceId: string;
     mode: 'subscription' | 'payment';
     successUrl: string;
@@ -33,7 +32,7 @@ export class MockBillingService implements BillingService {
   }) {
     return Promise.resolve(
       this.mockResults.createCheckoutSession || {
-        url: `https://checkout.stripe.com/mock/${Date.now()}?email=${params.email}&user=${params.userId}`,
+        url: `https://checkout.stripe.com/mock/${Date.now()}?customer=${params.customerId}`,
       },
     );
   }
