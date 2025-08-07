@@ -178,18 +178,24 @@ describe('Billing API Routes Integration', () => {
       });
     });
 
-    test('returns 400 when user does not have billing customer', async () => {
-      // Create test user without billing customer (should not happen in real scenario)
-      await db
+    test('creates checkout session for user with existing billing customer', async () => {
+      // Create test user with billing customer (reflects new architecture)
+      const [testUser] = await db
         .insert(users)
         .values({
           email: 'api-test@example.com',
-          clerkId: 'user_api_test_no_customer',
+          clerkId: 'user_api_test_with_customer',
+          billingCustomerId: 'cus_existing_customer_123',
         })
         .returning();
 
       // Mock auth
-      auth.mockResolvedValue({ userId: 'user_api_test_no_customer' });
+      auth.mockResolvedValue({ userId: 'user_api_test_with_customer' });
+
+      // Mock billing service
+      billingService.createCheckoutSession.mockResolvedValue({
+        url: 'https://checkout.stripe.com/test_session_456',
+      });
 
       // Create mock request
       const request = {
@@ -203,10 +209,22 @@ describe('Billing API Routes Integration', () => {
       const response = await createCheckoutSession(request);
       const result = await response.json();
 
-      // Verify response - should fail without billing customer
-      expect(response.status).toBe(400);
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('User billing not set up');
+      // Verify response
+      expect(response.status).toBe(200);
+      expect(result.success).toBe(true);
+
+      // Verify checkout session was created with existing customer ID
+      expect(billingService.createCheckoutSession).toHaveBeenCalledWith({
+        customerId: 'cus_existing_customer_123',
+        priceId: 'price_test_subscription',
+        mode: 'subscription',
+        successUrl: expect.stringContaining('/billing-test?success=true'),
+        cancelUrl: expect.stringContaining('/billing-test?cancelled=true'),
+        metadata: { userId: testUser.id },
+      });
+
+      // Verify customer creation was NOT called since user already has one
+      expect(billingService.createCustomer).not.toHaveBeenCalled();
     });
 
     test('returns 401 for unauthenticated request', async () => {
@@ -273,18 +291,24 @@ describe('Billing API Routes Integration', () => {
       );
     });
 
-    test('returns 400 when user does not have billing customer', async () => {
-      // Create test user without billing customer (should not happen in real scenario)
+    test('creates portal session for user with existing billing customer', async () => {
+      // Create test user with billing customer (reflects new architecture)
       await db
         .insert(users)
         .values({
           email: 'api-test@example.com',
-          clerkId: 'user_api_test_no_billing',
+          clerkId: 'user_api_test_with_billing',
+          billingCustomerId: 'cus_existing_portal_456',
         })
         .returning();
 
       // Mock auth
-      auth.mockResolvedValue({ userId: 'user_api_test_no_billing' });
+      auth.mockResolvedValue({ userId: 'user_api_test_with_billing' });
+
+      // Mock billing service
+      billingService.createPortalSession.mockResolvedValue({
+        url: 'https://billing.stripe.com/test_portal_existing',
+      });
 
       // Create mock request
       const request = {} as unknown;
@@ -293,10 +317,21 @@ describe('Billing API Routes Integration', () => {
       const response = await createPortalSession(request);
       const result = await response.json();
 
-      // Verify response - should fail without billing customer
-      expect(response.status).toBe(400);
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('User billing not set up');
+      // Verify response
+      expect(response.status).toBe(200);
+      expect(result.success).toBe(true);
+      expect(result.data.portalUrl).toBe(
+        'https://billing.stripe.com/test_portal_existing',
+      );
+
+      // Verify portal session was created with existing customer ID
+      expect(billingService.createPortalSession).toHaveBeenCalledWith(
+        'cus_existing_portal_456',
+        expect.stringContaining('/dashboard'),
+      );
+
+      // Verify customer creation was NOT called since user already has one
+      expect(billingService.createCustomer).not.toHaveBeenCalled();
     });
   });
 });
