@@ -17,6 +17,7 @@ export async function POST(_request: NextRequest) {
       );
     }
 
+    // Get user from database
     const user = await db.query.users.findFirst({
       where: eq(users.clerkId, userId),
       columns: {
@@ -33,22 +34,16 @@ export async function POST(_request: NextRequest) {
       );
     }
 
-    let customerId = user.billingCustomerId;
-
-    // Create customer if doesn't exist (for portal access)
-    if (!customerId) {
-      const result = await billingService.createCustomer(user.email);
-      customerId = result.customerId;
-
-      // Store customer ID in database
-      await db
-        .update(users)
-        .set({ billingCustomerId: customerId })
-        .where(eq(users.id, user.id));
+    // Check if user has billing customer ID
+    if (!user.billingCustomerId) {
+      return NextResponse.json(
+        { success: false, error: 'User billing not set up' },
+        { status: 400 },
+      );
     }
 
     const { url } = await billingService.createPortalSession(
-      customerId,
+      user.billingCustomerId,
       `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`,
     );
 

@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "PORT=3000 next dev --port 3000",
+    "dev:tunnel": "concurrently \"npm run dev\" \"ngrok http --domain=gostealthiq-dev.sa.ngrok.io 3000\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -70,6 +71,7 @@
     "@types/react-dom": "^19",
     "@types/testing-library__jest-dom": "^5.14.9",
     "axe-playwright": "^2.1.0",
+    "concurrently": "^9.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "eslint-config-prettier": "^10.1.8",

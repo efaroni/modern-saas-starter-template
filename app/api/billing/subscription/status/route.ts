@@ -20,7 +20,7 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    // Get user internal ID from Clerk ID
+    // Get user from database
     const user = await db.query.users.findFirst({
       where: eq(users.clerkId, userId),
       columns: {

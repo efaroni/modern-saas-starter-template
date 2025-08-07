@@ -108,7 +108,7 @@ describe('Billing API Routes Integration', () => {
       expect(result.error).toBe('Unauthorized');
     });
 
-    test('returns 404 for user not found in database', async () => {
+    test('returns 404 when user not found in database', async () => {
       // Mock auth with user not in database
       auth.mockResolvedValue({ userId: 'user_not_in_db' });
 
@@ -119,7 +119,7 @@ describe('Billing API Routes Integration', () => {
       const response = await getSubscriptionStatus(request);
       const result = await response.json();
 
-      // Verify response
+      // Verify response - should return 404 for user not found
       expect(response.status).toBe(404);
       expect(result.success).toBe(false);
       expect(result.error).toBe('User not found');
@@ -178,26 +178,18 @@ describe('Billing API Routes Integration', () => {
       });
     });
 
-    test('creates billing customer if user does not have one', async () => {
-      // Create test user without billing customer
-      const [testUser] = await db
+    test('returns 400 when user does not have billing customer', async () => {
+      // Create test user without billing customer (should not happen in real scenario)
+      await db
         .insert(users)
         .values({
           email: 'api-test@example.com',
-          clerkId: 'user_api_test_new_customer',
+          clerkId: 'user_api_test_no_customer',
         })
         .returning();
 
       // Mock auth
-      auth.mockResolvedValue({ userId: 'user_api_test_new_customer' });
-
-      // Mock billing service
-      billingService.createCustomer.mockResolvedValue({
-        customerId: 'cus_test_new_789',
-      });
-      billingService.createCheckoutSession.mockResolvedValue({
-        url: 'https://checkout.stripe.com/test_session_456',
-      });
+      auth.mockResolvedValue({ userId: 'user_api_test_no_customer' });
 
       // Create mock request
       const request = {
@@ -211,20 +203,10 @@ describe('Billing API Routes Integration', () => {
       const response = await createCheckoutSession(request);
       const result = await response.json();
 
-      // Verify response
-      expect(response.status).toBe(200);
-      expect(result.success).toBe(true);
-
-      // Verify customer was created
-      expect(billingService.createCustomer).toHaveBeenCalledWith(
-        testUser.email,
-      );
-
-      // Verify user was updated with customer ID
-      const updatedUser = await db.query.users.findFirst({
-        where: eq(users.id, testUser.id),
-      });
-      expect(updatedUser?.billingCustomerId).toBe('cus_test_new_789');
+      // Verify response - should fail without billing customer
+      expect(response.status).toBe(400);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('User billing not set up');
     });
 
     test('returns 401 for unauthenticated request', async () => {
@@ -291,9 +273,9 @@ describe('Billing API Routes Integration', () => {
       );
     });
 
-    test('creates billing customer automatically if user does not have one', async () => {
-      // Create test user without billing customer
-      const [testUser] = await db
+    test('returns 400 when user does not have billing customer', async () => {
+      // Create test user without billing customer (should not happen in real scenario)
+      await db
         .insert(users)
         .values({
           email: 'api-test@example.com',
@@ -304,14 +286,6 @@ describe('Billing API Routes Integration', () => {
       // Mock auth
       auth.mockResolvedValue({ userId: 'user_api_test_no_billing' });
 
-      // Mock billing service
-      billingService.createCustomer.mockResolvedValue({
-        customerId: 'cus_test_auto_created_456',
-      });
-      billingService.createPortalSession.mockResolvedValue({
-        url: 'https://billing.stripe.com/test_portal_auto',
-      });
-
       // Create mock request
       const request = {} as unknown;
 
@@ -319,23 +293,10 @@ describe('Billing API Routes Integration', () => {
       const response = await createPortalSession(request);
       const result = await response.json();
 
-      // Verify response
-      expect(response.status).toBe(200);
-      expect(result.success).toBe(true);
-      expect(result.data.portalUrl).toBe(
-        'https://billing.stripe.com/test_portal_auto',
-      );
-
-      // Verify customer was created
-      expect(billingService.createCustomer).toHaveBeenCalledWith(
-        testUser.email,
-      );
-
-      // Verify user was updated with customer ID
-      const updatedUser = await db.query.users.findFirst({
-        where: eq(users.id, testUser.id),
-      });
-      expect(updatedUser?.billingCustomerId).toBe('cus_test_auto_created_456');
+      // Verify response - should fail without billing customer
+      expect(response.status).toBe(400);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('User billing not set up');
     });
   });
 });

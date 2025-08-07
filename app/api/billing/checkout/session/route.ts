@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const { priceId, mode, metadata } = validation.data;
 
-    // Get user info with billing customer ID
+    // Get user from database
     const user = await db.query.users.findFirst({
       where: eq(users.clerkId, userId),
       columns: {
@@ -57,23 +57,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Stripe customer if user doesn't have one
-    let customerId = user.billingCustomerId;
-    if (!customerId) {
-      const { customerId: newCustomerId } = await billingService.createCustomer(
-        user.email,
+    // Check if user has billing customer ID
+    if (!user.billingCustomerId) {
+      return NextResponse.json(
+        { success: false, error: 'User billing not set up' },
+        { status: 400 },
       );
-      customerId = newCustomerId;
-
-      // Store the customer ID in database
-      await db
-        .update(users)
-        .set({ billingCustomerId: customerId })
-        .where(eq(users.id, user.id));
     }
 
     const { url } = await billingService.createCheckoutSession({
-      customerId,
+      customerId: user.billingCustomerId,
       priceId,
       mode,
       successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing-test?success=true&session_id={CHECKOUT_SESSION_ID}`,

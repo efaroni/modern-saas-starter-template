@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { STRIPE_PRODUCTS } from '@/lib/billing/config';
+
 interface BillingStatus {
   email: string;
   customerId: string | null;
@@ -22,7 +24,21 @@ export default function BillingTestPage() {
   const refreshStatus = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/test/billing-status');
+      const response = await fetch('/api/test/billing-status', {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        console.error(
+          'Status response not ok:',
+          response.status,
+          response.statusText,
+        );
+        const text = await response.text();
+        console.error('Response body:', text);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data: StatusResponse = await response.json();
 
       if (data.success && data.data) {
@@ -32,6 +48,7 @@ export default function BillingTestPage() {
         setMessage(`Error: ${data.error}`);
       }
     } catch (error) {
+      console.error('Status error:', error);
       setMessage(`Error: ${error}`);
     } finally {
       setLoading(false);
@@ -45,7 +62,22 @@ export default function BillingTestPage() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/test/reset-user', { method: 'POST' });
+      const response = await fetch('/api/test/reset-user', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        console.error(
+          'Reset response not ok:',
+          response.status,
+          response.statusText,
+        );
+        const text = await response.text();
+        console.error('Response body:', text);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -55,6 +87,7 @@ export default function BillingTestPage() {
         setMessage(`Error: ${data.error}`);
       }
     } catch (error) {
+      console.error('Reset error:', error);
       setMessage(`Error: ${error}`);
     } finally {
       setLoading(false);
@@ -64,14 +97,29 @@ export default function BillingTestPage() {
   const createSubscription = async () => {
     setLoading(true);
     try {
+      console.log('Creating subscription...');
       const response = await fetch('/api/billing/checkout/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          priceId: 'price_test_subscription', // You'll need to set this in Stripe
-          mode: 'subscription',
+          priceId: STRIPE_PRODUCTS.SUBSCRIPTION.priceId,
+          mode: STRIPE_PRODUCTS.SUBSCRIPTION.type,
         }),
       });
+
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        console.error(
+          'Checkout response not ok:',
+          response.status,
+          response.statusText,
+        );
+        const text = await response.text();
+        console.error('Response body:', text);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -80,6 +128,7 @@ export default function BillingTestPage() {
         setMessage(`Error: ${data.error}`);
       }
     } catch (error) {
+      console.error('Subscription error:', error);
       setMessage(`Error: ${error}`);
     } finally {
       setLoading(false);
@@ -92,15 +141,27 @@ export default function BillingTestPage() {
       const response = await fetch('/api/billing/checkout/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          priceId: 'price_test_credits', // You'll need to set this in Stripe
-          mode: 'payment',
+          priceId: STRIPE_PRODUCTS.CREDITS.priceId,
+          mode: STRIPE_PRODUCTS.CREDITS.type,
           metadata: {
             purchaseType: 'credits',
             quantity: '100',
           },
         }),
       });
+
+      if (!response.ok) {
+        console.error(
+          'Credits response not ok:',
+          response.status,
+          response.statusText,
+        );
+        const text = await response.text();
+        console.error('Response body:', text);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -109,6 +170,7 @@ export default function BillingTestPage() {
         setMessage(`Error: ${data.error}`);
       }
     } catch (error) {
+      console.error('Credits error:', error);
       setMessage(`Error: ${error}`);
     } finally {
       setLoading(false);
@@ -123,7 +185,22 @@ export default function BillingTestPage() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/billing/portal', { method: 'POST' });
+      const response = await fetch('/api/billing/portal', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        console.error(
+          'Portal response not ok:',
+          response.status,
+          response.statusText,
+        );
+        const text = await response.text();
+        console.error('Response body:', text);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -132,6 +209,7 @@ export default function BillingTestPage() {
         setMessage(`Error: ${data.error}`);
       }
     } catch (error) {
+      console.error('Portal error:', error);
       setMessage(`Error: ${error}`);
     } finally {
       setLoading(false);
