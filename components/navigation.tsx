@@ -11,7 +11,6 @@ import {
   X,
   Settings,
   Palette,
-  Code2,
   Gauge,
   ShieldAlert,
   CreditCard,
@@ -35,12 +34,6 @@ const navItems = [
     href: '/styling',
     icon: Palette,
     description: 'Design system generator',
-  },
-  {
-    name: 'Generators',
-    href: '/generators',
-    icon: Code2,
-    description: 'Code generation tools',
   },
   {
     name: 'Performance',
