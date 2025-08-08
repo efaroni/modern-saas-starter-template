@@ -135,7 +135,7 @@ export default function BillingTestPage() {
     }
   };
 
-  const buyCredits = async () => {
+  const buyOneTime = async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/billing/checkout/session', {
@@ -143,18 +143,17 @@ export default function BillingTestPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          priceId: STRIPE_PRODUCTS.CREDITS.priceId,
-          mode: STRIPE_PRODUCTS.CREDITS.type,
+          priceId: STRIPE_PRODUCTS.ONE_TIME.priceId,
+          mode: STRIPE_PRODUCTS.ONE_TIME.type,
           metadata: {
-            purchaseType: 'credits',
-            quantity: '100',
+            purchaseType: 'one-time-access',
           },
         }),
       });
 
       if (!response.ok) {
         console.error(
-          'Credits response not ok:',
+          'One-time payment response not ok:',
           response.status,
           response.statusText,
         );
@@ -170,7 +169,7 @@ export default function BillingTestPage() {
         setMessage(`Error: ${data.error}`);
       }
     } catch (error) {
-      console.error('Credits error:', error);
+      console.error('One-time payment error:', error);
       setMessage(`Error: ${error}`);
     } finally {
       setLoading(false);
@@ -272,11 +271,11 @@ export default function BillingTestPage() {
         </button>
 
         <button
-          onClick={buyCredits}
+          onClick={buyOneTime}
           disabled={loading}
           className='rounded bg-purple-500 px-4 py-2 text-white hover:bg-purple-600 disabled:opacity-50'
         >
-          Buy Credits
+          One-Time Payment
         </button>
 
         <button

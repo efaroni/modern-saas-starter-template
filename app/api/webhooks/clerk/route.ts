@@ -181,8 +181,6 @@ export async function POST(req: Request) {
           imageUrl: image_url,
           dbResult: result[0],
         });
-
-        // TODO: Add Stripe customer creation back after debugging
       } else {
         // For user updates, find by clerk_id and update
         const result = await db

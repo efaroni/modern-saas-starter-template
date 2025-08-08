@@ -141,6 +141,9 @@ describe('Billing API Routes Integration', () => {
       // Mock auth
       auth.mockResolvedValue({ userId: 'user_api_test_checkout' });
 
+      // Mock that user does not have active subscription
+      hasActiveSubscription.mockResolvedValue(false);
+
       // Mock billing service
       billingService.createCheckoutSession.mockResolvedValue({
         url: 'https://checkout.stripe.com/test_session_123',
@@ -192,6 +195,9 @@ describe('Billing API Routes Integration', () => {
       // Mock auth
       auth.mockResolvedValue({ userId: 'user_api_test_with_customer' });
 
+      // Mock that user does not have active subscription
+      hasActiveSubscription.mockResolvedValue(false);
+
       // Mock billing service
       billingService.createCheckoutSession.mockResolvedValue({
         url: 'https://checkout.stripe.com/test_session_456',
@@ -225,6 +231,161 @@ describe('Billing API Routes Integration', () => {
 
       // Verify customer creation was NOT called since user already has one
       expect(billingService.createCustomer).not.toHaveBeenCalled();
+    });
+
+    test('creates customer and checkout session for user without billing customer', async () => {
+      // Create test user WITHOUT billing customer
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          email: 'api-test@example.com',
+          clerkId: 'user_api_test_no_customer',
+          billingCustomerId: null, // No billing customer ID
+        })
+        .returning();
+
+      // Mock auth
+      auth.mockResolvedValue({ userId: 'user_api_test_no_customer' });
+
+      // Mock that user does not have active subscription
+      hasActiveSubscription.mockResolvedValue(false);
+
+      // Mock billing service - customer creation
+      billingService.createCustomer.mockResolvedValue({
+        customerId: 'cus_new_customer_789',
+      });
+
+      // Mock billing service - checkout session creation
+      billingService.createCheckoutSession.mockResolvedValue({
+        url: 'https://checkout.stripe.com/test_session_789',
+      });
+
+      // Create mock request
+      const request = {
+        json: jest.fn().mockResolvedValue({
+          priceId: 'price_test_subscription',
+          mode: 'subscription',
+        }),
+      } as unknown;
+
+      // Make request
+      const response = await createCheckoutSession(request);
+      const result = await response.json();
+
+      // Verify response
+      expect(response.status).toBe(200);
+      expect(result.success).toBe(true);
+      expect(result.data.checkoutUrl).toBe(
+        'https://checkout.stripe.com/test_session_789',
+      );
+
+      // Verify customer was created first
+      expect(billingService.createCustomer).toHaveBeenCalledWith(
+        'api-test@example.com',
+      );
+
+      // Verify checkout session was created with new customer ID
+      expect(billingService.createCheckoutSession).toHaveBeenCalledWith({
+        customerId: 'cus_new_customer_789',
+        priceId: 'price_test_subscription',
+        mode: 'subscription',
+        successUrl: expect.stringContaining('/billing-test?success=true'),
+        cancelUrl: expect.stringContaining('/billing-test?cancelled=true'),
+        metadata: { userId: testUser.id },
+      });
+    });
+
+    test('prevents duplicate subscription for user with active subscription', async () => {
+      // Create test user
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          email: 'api-test@example.com',
+          clerkId: 'user_api_test_duplicate',
+          billingCustomerId: 'cus_test_duplicate_123',
+        })
+        .returning();
+
+      // Mock auth
+      auth.mockResolvedValue({ userId: 'user_api_test_duplicate' });
+
+      // Mock that user already has active subscription
+      hasActiveSubscription.mockResolvedValue(true);
+
+      // Create mock request for subscription
+      const request = {
+        json: jest.fn().mockResolvedValue({
+          priceId: 'price_test_subscription',
+          mode: 'subscription',
+        }),
+      } as unknown;
+
+      // Make request
+      const response = await createCheckoutSession(request);
+      const result = await response.json();
+
+      // Verify response
+      expect(response.status).toBe(400);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('User already has an active subscription');
+
+      // Verify subscription check was called
+      expect(hasActiveSubscription).toHaveBeenCalledWith(testUser.id);
+
+      // Verify checkout session was NOT created
+      expect(billingService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
+    test('allows one-time payment even with active subscription', async () => {
+      // Create test user
+      const [testUser] = await db
+        .insert(users)
+        .values({
+          email: 'api-test@example.com',
+          clerkId: 'user_api_test_onetime',
+          billingCustomerId: 'cus_test_onetime_456',
+        })
+        .returning();
+
+      // Mock auth
+      auth.mockResolvedValue({ userId: 'user_api_test_onetime' });
+
+      // Mock that user has active subscription (but should still allow one-time payment)
+      hasActiveSubscription.mockResolvedValue(true);
+
+      // Mock billing service
+      billingService.createCheckoutSession.mockResolvedValue({
+        url: 'https://checkout.stripe.com/test_onetime_session',
+      });
+
+      // Create mock request for one-time payment
+      const request = {
+        json: jest.fn().mockResolvedValue({
+          priceId: 'price_test_onetime',
+          mode: 'payment',
+        }),
+      } as unknown;
+
+      // Make request
+      const response = await createCheckoutSession(request);
+      const result = await response.json();
+
+      // Verify response
+      expect(response.status).toBe(200);
+      expect(result.success).toBe(true);
+      expect(result.data.checkoutUrl).toBe(
+        'https://checkout.stripe.com/test_onetime_session',
+      );
+
+      // Verify checkout session was created (subscription check should not block one-time payments)
+      expect(billingService.createCheckoutSession).toHaveBeenCalledWith({
+        customerId: 'cus_test_onetime_456',
+        priceId: 'price_test_onetime',
+        mode: 'payment',
+        successUrl: expect.stringContaining('/billing-test?success=true'),
+        cancelUrl: expect.stringContaining('/billing-test?cancelled=true'),
+        metadata: { userId: testUser.id },
+      });
     });
 
     test('returns 401 for unauthenticated request', async () => {

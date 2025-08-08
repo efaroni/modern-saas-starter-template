@@ -44,7 +44,7 @@ In Stripe Dashboard → Products:
 Edit `app/billing-test/page.tsx` and replace:
 
 - `price_test_subscription` → Your subscription price ID
-- `price_test_credits` → Your one-time price ID
+- `price_test_one_time` → Your one-time payment price ID
 
 ### 4. Webhook Setup
 
@@ -152,7 +152,7 @@ Templates in `emails/` directory using React Email.
 The billing-test page provides complete testing interface with:
 
 - Status display (customer ID, subscription status)
-- Action buttons (subscribe, buy credits, manage billing)
+- Action buttons (subscribe, one-time payment, manage billing)
 - Test instructions and card details
 
 ## Production Deployment

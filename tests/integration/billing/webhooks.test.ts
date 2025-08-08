@@ -50,6 +50,7 @@ describe('Stripe Webhook Integration', () => {
     // Cleanup any existing test data
     await db.delete(users).where(eq(users.email, 'webhook-test@example.com'));
     await db.delete(webhookEvents).where(like(webhookEvents.id, 'evt_test%'));
+    await db.delete(webhookEvents).where(like(webhookEvents.id, 'cus_test%'));
   });
 
   afterEach(async () => {
@@ -57,6 +58,7 @@ describe('Stripe Webhook Integration', () => {
     await db.delete(users).where(eq(users.email, 'webhook-test@example.com'));
     // Clean up any webhook events that might have been created
     await db.delete(webhookEvents).where(like(webhookEvents.id, 'evt_test%'));
+    await db.delete(webhookEvents).where(like(webhookEvents.id, 'cus_test%'));
   });
 
   test('stores customer ID from checkout.completed event', async () => {
@@ -154,6 +156,61 @@ describe('Stripe Webhook Integration', () => {
     await db
       .delete(webhookEvents)
       .where(eq(webhookEvents.id, 'evt_test_duplicate_789'));
+  });
+
+  test('stores customer ID from customer.created event', async () => {
+    // Create test user without billing customer ID
+    const [testUser] = await db
+      .insert(users)
+      .values({
+        email: 'webhook-test@example.com',
+        clerkId: 'user_webhook_customer_test',
+        billingCustomerId: null, // No billing customer initially
+      })
+      .returning();
+
+    // Mock webhook event parsing
+    billingService.parseWebhookEvent.mockReturnValue({
+      type: 'customer.created',
+      data: {
+        id: 'cus_test_new_customer_123',
+        object: 'customer',
+        email: 'webhook-test@example.com',
+        created: Math.floor(Date.now() / 1000),
+      },
+    });
+
+    // Create mock request
+    const request = {
+      text: jest.fn().mockResolvedValue(
+        JSON.stringify({
+          id: 'cus_test_new_customer_123',
+          type: 'customer.created',
+        }),
+      ),
+    } as unknown;
+
+    // Process webhook
+    const response = await POST(request);
+    const result = await response.json();
+
+    // Verify response
+    expect(response.status).toBe(200);
+    expect(result.received).toBe(true);
+
+    // Verify customer ID was stored
+    const updatedUser = await db.query.users.findFirst({
+      where: eq(users.id, testUser.id),
+    });
+    expect(updatedUser?.billingCustomerId).toBe('cus_test_new_customer_123');
+
+    // Verify webhook event was recorded for idempotency
+    const webhookEvent = await db.query.webhookEvents.findFirst({
+      where: eq(webhookEvents.id, 'cus_test_new_customer_123'),
+    });
+    expect(webhookEvent).toBeDefined();
+    expect(webhookEvent?.provider).toBe('stripe');
+    expect(webhookEvent?.eventType).toBe('customer.created');
   });
 
   test('rejects webhook without signature', async () => {

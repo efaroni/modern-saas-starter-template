@@ -113,6 +113,34 @@ export async function POST(request: NextRequest) {
         }
         break;
 
+      case 'customer.created':
+        console.warn('Processing customer creation:', data.id);
+
+        // Update user with billing customer ID using email
+        if (data.email) {
+          await retryDbOperation(() =>
+            db
+              .update(users)
+              .set({
+                billingCustomerId: data.id,
+              })
+              .where(eq(users.email, data.email)),
+          );
+
+          console.warn(
+            'Updated user billing customer ID:',
+            data.email,
+            '->',
+            data.id,
+          );
+        } else {
+          console.warn(
+            'Customer created without email, skipping user update:',
+            data.id,
+          );
+        }
+        break;
+
       case 'subscription.deleted':
         console.warn('Processing subscription deletion:', data.id);
         // Just log for audit - we query Stripe directly for access control

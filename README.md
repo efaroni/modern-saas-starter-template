@@ -96,12 +96,15 @@ This project includes a minimal, production-ready billing system using Stripe. T
 2. **Create Products in Stripe Dashboard**:
    - Go to [Stripe Dashboard → Products](https://dashboard.stripe.com/products)
    - Create a subscription (e.g., "Pro Plan - $10/month")
-   - Create a one-time product (e.g., "100 Credits - $5")
+   - Create a one-time product (e.g., "Pro Access - $50")
    - Copy the price IDs
 
-3. **Update Test Page** (`app/billing-test/page.tsx`):
-   - Replace `price_test_subscription` with your subscription price ID
-   - Replace `price_test_credits` with your one-time price ID
+3. **Add Price IDs** to your `.env.local`:
+
+   ```bash
+   NEXT_PUBLIC_STRIPE_SUBSCRIPTION_PRICE_ID="price_your_subscription_price_here"
+   NEXT_PUBLIC_STRIPE_ONE_TIME_PRICE_ID="price_your_one_time_price_here"
+   ```
 
 4. **Set Up Webhooks** (for local development):
 
@@ -115,6 +118,88 @@ This project includes a minimal, production-ready billing system using Stripe. T
 
    # Copy the webhook secret (whsec_...) to your .env.local
    ```
+
+### Webhook Configuration
+
+#### Required Webhook Events
+
+When setting up webhooks in the [Stripe Dashboard](https://dashboard.stripe.com/webhooks), select these events:
+
+**Essential Events (Required):**
+
+- `checkout.session.completed` - Updates user's billing customer ID after successful checkout
+- `customer.created` - Syncs customer ID when customers are created (for lazy customer creation)
+
+**Subscription Management (Recommended):**
+
+- `customer.subscription.created` - Track new subscriptions
+- `customer.subscription.updated` - Handle plan changes and renewals
+- `customer.subscription.deleted` - Handle cancellations
+
+**Payment Events (Optional but useful):**
+
+- `payment_intent.succeeded` - Track successful payments
+- `payment_intent.payment_failed` - Handle failed payments
+- `invoice.payment_succeeded` - Track successful invoice payments
+- `invoice.payment_failed` - Handle failed invoice payments
+
+#### Webhook Setup Options
+
+**Option 1: Local Development with Stripe CLI**
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+
+**Option 2: Local Development with Ngrok**
+
+```bash
+# If using ngrok with custom domain (see package.json)
+npm run dev:tunnel
+
+# Then add webhook endpoint in Stripe Dashboard:
+# https://gostealthiq-dev.sa.ngrok.io/api/webhooks/stripe
+```
+
+**Option 3: Production**
+
+1. Add endpoint in Stripe Dashboard: `https://yourdomain.com/api/webhooks/stripe`
+2. Select the events listed above
+3. Copy the signing secret to your production environment variables
+
+#### Webhook Security
+
+The webhook handler (`/api/webhooks/stripe`) includes:
+
+- ✅ Signature verification (prevents replay attacks)
+- ✅ Idempotency handling (prevents duplicate processing)
+- ✅ Retry logic for database operations
+- ✅ Comprehensive error logging
+
+#### ⚠️ Important: Webhook Monitoring
+
+**Stripe automatically disables webhooks that fail repeatedly.** This is a common issue during development.
+
+To monitor and troubleshoot webhooks:
+
+1. Visit [Stripe Webhook Workbench](https://dashboard.stripe.com/test/workbench/webhooks)
+2. Check the status of your endpoints
+3. View recent webhook attempts and their responses
+4. Re-enable disabled endpoints if needed
+
+Common reasons for webhook failures:
+
+- 🔴 **Incorrect signing secret** - Make sure `STRIPE_WEBHOOK_SECRET` matches your endpoint's secret
+- 🔴 **Endpoint unreachable** - Ensure ngrok/tunnel is running for local development
+- 🔴 **500 errors** - Check your server logs for database or code errors
+- 🔴 **Timeout** - Webhook must respond within 20 seconds
+
+If your webhook endpoint gets disabled:
+
+1. Fix the underlying issue
+2. Go to [Webhooks](https://dashboard.stripe.com/test/webhooks)
+3. Click on your endpoint
+4. Click "Enable endpoint" to reactivate it
 
 ### Testing the Integration
 
@@ -130,7 +215,7 @@ npm test  # Runs integration tests for API routes and webhook processing
 2. Click "Subscribe" → Complete checkout with test card `4242 4242 4242 4242`
 3. Return to test page → Click "Refresh Status" → Verify subscription active
 4. Click "Manage Billing" → Test Stripe Customer Portal
-5. Click "Buy Credits" → Test one-time payment flow
+5. Click "One-Time Payment" → Test one-time payment flow
 
 **Test Cards:**
 

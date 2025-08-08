@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
+import { hasActiveSubscription } from '@/lib/billing/access-control';
 import { billingService } from '@/lib/billing/service';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
@@ -57,16 +58,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user has billing customer ID
-    if (!user.billingCustomerId) {
-      return NextResponse.json(
-        { success: false, error: 'User billing not set up' },
-        { status: 400 },
+    // For subscription mode, check if user already has an active subscription
+    if (mode === 'subscription') {
+      const hasSubscription = await hasActiveSubscription(user.id);
+      if (hasSubscription) {
+        return NextResponse.json(
+          { success: false, error: 'User already has an active subscription' },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Get or create billing customer ID
+    let customerId = user.billingCustomerId;
+    if (!customerId) {
+      console.warn('Creating new Stripe customer for user:', user.email);
+      const { customerId: newCustomerId } = await billingService.createCustomer(
+        user.email,
       );
+      customerId = newCustomerId;
+      console.warn(
+        'Created Stripe customer:',
+        customerId,
+        'for user:',
+        user.email,
+      );
+      // Don't update DB here - let webhook handle it
     }
 
     const { url } = await billingService.createCheckoutSession({
-      customerId: user.billingCustomerId,
+      customerId,
       priceId,
       mode,
       successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing-test?success=true&session_id={CHECKOUT_SESSION_ID}`,

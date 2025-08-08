@@ -6,7 +6,7 @@
 // Stripe price IDs from environment variables
 const SUBSCRIPTION_PRICE_ID =
   process.env.NEXT_PUBLIC_STRIPE_SUBSCRIPTION_PRICE_ID;
-const CREDITS_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_CREDITS_PRICE_ID;
+const ONE_TIME_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ONE_TIME_PRICE_ID;
 
 // Validation helper
 function validatePriceId(priceId: string | undefined, name: string): string {
@@ -25,9 +25,9 @@ export const STRIPE_PRICE_IDS = {
     SUBSCRIPTION_PRICE_ID,
     'NEXT_PUBLIC_STRIPE_SUBSCRIPTION_PRICE_ID',
   ),
-  CREDITS: validatePriceId(
-    CREDITS_PRICE_ID,
-    'NEXT_PUBLIC_STRIPE_CREDITS_PRICE_ID',
+  ONE_TIME: validatePriceId(
+    ONE_TIME_PRICE_ID,
+    'NEXT_PUBLIC_STRIPE_ONE_TIME_PRICE_ID',
   ),
 } as const;
 
@@ -39,11 +39,11 @@ export const STRIPE_PRODUCTS = {
     type: 'subscription' as const,
     description: 'Monthly subscription with full access',
   },
-  CREDITS: {
-    priceId: STRIPE_PRICE_IDS.CREDITS,
-    name: 'Credits',
+  ONE_TIME: {
+    priceId: STRIPE_PRICE_IDS.ONE_TIME,
+    name: 'Pro Access',
     type: 'payment' as const,
-    description: 'One-time credit purchase',
+    description: 'One-time payment for pro access',
   },
 } as const;
 
