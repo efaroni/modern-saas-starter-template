@@ -29,14 +29,14 @@ jest.mock('@/lib/billing/service', () => ({
 jest.mock('@/lib/billing/access-control', () => ({
   hasActiveSubscription: jest.fn(),
   getSubscriptionDetails: jest.fn(),
+  verifyStripeCustomer: jest.fn(),
 }));
 
 // Get mocked modules
 const { auth } = jest.requireMock('@clerk/nextjs/server');
 const { billingService } = jest.requireMock('@/lib/billing/service');
-const { hasActiveSubscription, getSubscriptionDetails } = jest.requireMock(
-  '@/lib/billing/access-control',
-);
+const { hasActiveSubscription, getSubscriptionDetails, verifyStripeCustomer } =
+  jest.requireMock('@/lib/billing/access-control');
 
 describe('Billing API Routes Integration', () => {
   beforeEach(() => {
@@ -426,6 +426,13 @@ describe('Billing API Routes Integration', () => {
       // Mock auth
       auth.mockResolvedValue({ userId: 'user_api_test_portal' });
 
+      // Mock customer verification - customer exists
+      verifyStripeCustomer.mockResolvedValue({
+        id: 'cus_test_portal_123',
+        email: 'api-test@example.com',
+        deleted: false,
+      });
+
       // Mock billing service
       billingService.createPortalSession.mockResolvedValue({
         url: 'https://billing.stripe.com/test_portal_session',
@@ -444,6 +451,9 @@ describe('Billing API Routes Integration', () => {
       expect(result.data.portalUrl).toBe(
         'https://billing.stripe.com/test_portal_session',
       );
+
+      // Verify customer verification was called
+      expect(verifyStripeCustomer).toHaveBeenCalledWith('cus_test_portal_123');
 
       // Verify billing service was called correctly
       expect(billingService.createPortalSession).toHaveBeenCalledWith(
@@ -466,6 +476,13 @@ describe('Billing API Routes Integration', () => {
       // Mock auth
       auth.mockResolvedValue({ userId: 'user_api_test_with_billing' });
 
+      // Mock customer verification - customer exists
+      verifyStripeCustomer.mockResolvedValue({
+        id: 'cus_existing_portal_456',
+        email: 'api-test@example.com',
+        deleted: false,
+      });
+
       // Mock billing service
       billingService.createPortalSession.mockResolvedValue({
         url: 'https://billing.stripe.com/test_portal_existing',
@@ -485,6 +502,11 @@ describe('Billing API Routes Integration', () => {
         'https://billing.stripe.com/test_portal_existing',
       );
 
+      // Verify customer verification was called
+      expect(verifyStripeCustomer).toHaveBeenCalledWith(
+        'cus_existing_portal_456',
+      );
+
       // Verify portal session was created with existing customer ID
       expect(billingService.createPortalSession).toHaveBeenCalledWith(
         'cus_existing_portal_456',
@@ -493,6 +515,119 @@ describe('Billing API Routes Integration', () => {
 
       // Verify customer creation was NOT called since user already has one
       expect(billingService.createCustomer).not.toHaveBeenCalled();
+    });
+
+    test('returns 404 when customer not found in Stripe', async () => {
+      // Create test user with billing customer ID that doesn't exist in Stripe
+      await db
+        .insert(users)
+        .values({
+          email: 'api-test@example.com',
+          clerkId: 'user_api_test_missing_customer',
+          billingCustomerId: 'cus_nonexistent_123',
+        })
+        .returning();
+
+      // Mock auth
+      auth.mockResolvedValue({ userId: 'user_api_test_missing_customer' });
+
+      // Mock customer verification - customer doesn't exist
+      verifyStripeCustomer.mockResolvedValue(null);
+
+      // Create mock request
+      const request = {} as unknown;
+
+      // Make request
+      const response = await createPortalSession(request);
+      const result = await response.json();
+
+      // Verify response
+      expect(response.status).toBe(404);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe(
+        'Customer not found in Stripe. Please subscribe first to create a customer record.',
+      );
+
+      // Verify customer verification was called
+      expect(verifyStripeCustomer).toHaveBeenCalledWith('cus_nonexistent_123');
+
+      // Verify portal session was NOT created
+      expect(billingService.createPortalSession).not.toHaveBeenCalled();
+    });
+
+    test('returns 400 when customer is deleted in Stripe', async () => {
+      // Create test user with billing customer that is deleted in Stripe
+      await db
+        .insert(users)
+        .values({
+          email: 'api-test@example.com',
+          clerkId: 'user_api_test_deleted_customer',
+          billingCustomerId: 'cus_deleted_789',
+        })
+        .returning();
+
+      // Mock auth
+      auth.mockResolvedValue({ userId: 'user_api_test_deleted_customer' });
+
+      // Mock customer verification - customer is deleted
+      verifyStripeCustomer.mockResolvedValue({
+        id: 'cus_deleted_789',
+        email: null,
+        deleted: true,
+      });
+
+      // Create mock request
+      const request = {} as unknown;
+
+      // Make request
+      const response = await createPortalSession(request);
+      const result = await response.json();
+
+      // Verify response
+      expect(response.status).toBe(400);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe(
+        'Customer record is deleted in Stripe. Please contact support.',
+      );
+
+      // Verify customer verification was called
+      expect(verifyStripeCustomer).toHaveBeenCalledWith('cus_deleted_789');
+
+      // Verify portal session was NOT created
+      expect(billingService.createPortalSession).not.toHaveBeenCalled();
+    });
+
+    test('returns 400 when user has no billing customer ID', async () => {
+      // Create test user WITHOUT billing customer
+      await db
+        .insert(users)
+        .values({
+          email: 'api-test@example.com',
+          clerkId: 'user_api_test_no_billing',
+          billingCustomerId: null,
+        })
+        .returning();
+
+      // Mock auth
+      auth.mockResolvedValue({ userId: 'user_api_test_no_billing' });
+
+      // Create mock request
+      const request = {} as unknown;
+
+      // Make request
+      const response = await createPortalSession(request);
+      const result = await response.json();
+
+      // Verify response
+      expect(response.status).toBe(400);
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('User billing not set up');
+
+      // Verify customer verification was NOT called since no customer ID
+      expect(verifyStripeCustomer).not.toHaveBeenCalled();
+
+      // Verify portal session was NOT created
+      expect(billingService.createPortalSession).not.toHaveBeenCalled();
     });
   });
 });

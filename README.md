@@ -119,6 +119,148 @@ This project includes a minimal, production-ready billing system using Stripe. T
    # Copy the webhook secret (whsec_...) to your .env.local
    ```
 
+### Testing Stripe Integration Locally
+
+Before testing the billing system, verify your Stripe configuration is correct:
+
+#### 1. **Verify Environment Variables**
+
+Visit [Stripe Dashboard (Test Mode)](https://dashboard.stripe.com/test) and ensure your `.env.local` contains:
+
+```bash
+# Stripe API Keys (from https://dashboard.stripe.com/test/apikeys)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."  # Publishable key
+STRIPE_SECRET_KEY="sk_test_..."                   # Secret key
+
+# Product Price IDs (from https://dashboard.stripe.com/test/products)
+NEXT_PUBLIC_STRIPE_SUBSCRIPTION_PRICE_ID="price_..." # Monthly subscription price
+NEXT_PUBLIC_STRIPE_ONE_TIME_PRICE_ID="price_..."     # One-time payment price
+
+# Webhook Secret (from your webhook endpoint)
+STRIPE_WEBHOOK_SECRET="whsec_..."                    # Webhook signing secret
+```
+
+#### 2. **Verify Products and Prices**
+
+In [Stripe Dashboard → Products](https://dashboard.stripe.com/test/products):
+
+1. **Check Subscription Product exists:**
+   - Product should be set to "Recurring"
+   - Price should match your `NEXT_PUBLIC_STRIPE_SUBSCRIPTION_PRICE_ID`
+   - Billing period should be "Monthly" or "Yearly"
+
+2. **Check One-Time Product exists:**
+   - Product should be set to "One-time"
+   - Price should match your `NEXT_PUBLIC_STRIPE_ONE_TIME_PRICE_ID`
+
+#### 3. **Verify Webhook Configuration**
+
+In [Stripe Dashboard → Webhooks](https://dashboard.stripe.com/test/webhooks):
+
+1. **Check endpoint exists** with your local URL (ngrok or Stripe CLI)
+2. **Verify events are selected** (at minimum: `checkout.session.completed`, `customer.created`)
+3. **Copy signing secret** matches your `STRIPE_WEBHOOK_SECRET`
+4. **Check endpoint status** is "Enabled" (not disabled due to failures)
+
+⚠️ **Important:** If you're using ngrok tunnels, you **MUST run `npm run dev:tunnel`** to start the tunnel before testing. The webhook secret may need to be recreated if your ngrok URL changes.
+
+#### 4. **Test the Integration**
+
+Once verified, test the complete flow:
+
+1. **Start development environment:**
+
+   ```bash
+   # Terminal 1: Start tunnel (if using ngrok)
+   npm run dev:tunnel
+
+   # Terminal 2: Start development server
+   npm run dev
+   ```
+
+2. **Visit the test page:** `http://localhost:3000/billing-test`
+3. **Check initial status:** Should show your email with no customer ID
+4. **Test subscription flow:**
+   - Click "Subscribe" → Should redirect to Stripe Checkout
+   - Use test card: `4242 4242 4242 4242`
+   - Complete payment → Should redirect back to test page
+   - Click "Refresh Status" → Should show customer ID and active subscription
+
+#### 5. **Common Issues and Solutions**
+
+**❌ "Invalid price ID" errors:**
+
+- Price IDs are case-sensitive and must match exactly
+- Ensure you're using Test mode price IDs (not Live mode)
+
+**❌ Webhook failures:**
+
+- Check [Webhook Workbench](https://dashboard.stripe.com/test/workbench/webhooks) for errors
+- Ensure your local server is running and accessible
+- **Recreate webhook secret** if ngrok URL changed
+- Verify webhook secret matches exactly in `.env.local`
+
+**❌ "User already has active subscription" error:**
+
+- This is expected behavior to prevent duplicate subscriptions
+- Use "Reset User" button to clear billing data for testing
+
+**❌ Ngrok tunnel issues:**
+
+- **Always run `npm run dev:tunnel`** before testing webhooks
+- If URL changes, update webhook endpoint in Stripe Dashboard
+- Recreate webhook secret after URL changes
+
+**❌ "Customer portal not configured" error:**
+
+- Customer Portal must be configured in Stripe Dashboard before use
+- See Customer Portal Configuration section below
+
+#### Customer Portal Configuration
+
+⚠️ **Critical Setup Required**: The "Manage Billing" button will fail with a 500 error if the Customer Portal is not configured in Stripe.
+
+**Steps to configure:**
+
+1. **Visit [Stripe Dashboard → Customer Portal](https://dashboard.stripe.com/test/settings/billing/portal)**
+
+2. **Configure Portal Settings:**
+   - **Business information**: Add your business name and support email
+   - **Features**: Enable the features you want customers to access:
+     - ✅ **Update payment method** (recommended)
+     - ✅ **Download invoices** (recommended)
+     - ✅ **Cancel subscriptions** (recommended)
+     - ✅ **Update billing address** (optional)
+     - ✅ **Invoice history** (recommended)
+
+3. **Set Default Return URL:**
+   - **For local development:** `http://localhost:3000/dashboard`
+   - **For production:** `https://yourdomain.com/dashboard`
+
+4. **Save Configuration**
+
+5. **Test Portal Access:**
+   - The "Manage Billing" button should now work
+   - Users will be redirected to Stripe's hosted portal
+   - They can manage their subscription and billing settings
+   - After making changes, they'll return to your specified URL
+
+**Portal Features Available to Users:**
+
+- View and download invoices
+- Update payment methods (credit cards)
+- View upcoming charges
+- Cancel subscriptions
+- Update billing address and tax information
+- View billing history
+
+**Security Notes:**
+
+- Portal sessions are temporary and secure
+- Users can only access their own billing data
+- All changes sync back to your system via webhooks
+- Stripe handles all security and PCI compliance
+
 ### Webhook Configuration
 
 #### Required Webhook Events

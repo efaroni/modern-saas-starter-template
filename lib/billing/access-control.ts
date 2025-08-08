@@ -122,3 +122,61 @@ export async function getSubscriptionDetails(userId: string): Promise<{
     return null;
   }
 }
+
+/**
+ * Verify if a customer exists in Stripe
+ * Returns customer data if found, null if not found or error
+ */
+export async function verifyStripeCustomer(customerId: string): Promise<{
+  id: string;
+  email: string | null;
+  deleted: boolean;
+} | null> {
+  try {
+    console.warn('Verifying Stripe customer exists:', customerId);
+
+    const customer = await stripe.customers.retrieve(customerId);
+
+    // Check if customer is deleted
+    if ('deleted' in customer && customer.deleted) {
+      console.warn('Stripe customer is deleted:', customerId);
+      return {
+        id: customerId,
+        email: null,
+        deleted: true,
+      };
+    }
+
+    const customerData = customer as Stripe.Customer;
+    console.warn('Stripe customer verified successfully:', {
+      id: customerData.id,
+      email: customerData.email,
+      created: new Date(customerData.created * 1000).toISOString(),
+    });
+
+    return {
+      id: customerData.id,
+      email: customerData.email,
+      deleted: false,
+    };
+  } catch (error) {
+    console.error('Error verifying Stripe customer:', error);
+
+    if (error instanceof Stripe.StripeError) {
+      console.error('Stripe customer verification error:', {
+        type: error.type,
+        code: error.code,
+        message: error.message,
+        customerId,
+      });
+
+      // Customer not found is a common case
+      if (error.code === 'resource_missing') {
+        console.warn('Stripe customer not found:', customerId);
+        return null;
+      }
+    }
+
+    return null;
+  }
+}
