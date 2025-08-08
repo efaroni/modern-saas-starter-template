@@ -19,25 +19,6 @@
 
 **Database Tables:** `user_api_keys`
 
-## Section 2: Authentication & User Management
-
-**Purpose:** Auth.js + user CRUD + file uploads + Google/GitHub OAuth
-**Route:** `/dev/auth`
-**Features:**
-
-- Auth.js v5 implementation with abstracted service layer
-- Login/signup flow testing (email/password)
-- Google OAuth integration testing
-- GitHub OAuth integration testing
-- Session management validation
-- User profile CRUD operations (create, read, update, delete)
-- User profile form (validation, avatar upload, email validation)
-- File upload testing (avatar images to R2/Vercel Blob)
-- Password reset flow testing
-- Form validation patterns (Zod + React Hook Form)
-
-**Database Tables:** `users`, `accounts`, `sessions`, `verification_tokens`
-
 ## Section 4: Email System
 
 See Section_4_TODOS.md
