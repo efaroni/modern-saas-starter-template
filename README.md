@@ -224,7 +224,16 @@ Once verified, test the complete flow:
 
 1. **Visit [Stripe Dashboard → Customer Portal](https://dashboard.stripe.com/test/settings/billing/portal)**
 
-2. **Configure Portal Settings:**
+2. **Activate the Customer Portal:**
+   - Click on the **"Customer Portal"** tab if not already selected
+   - The portal is inactive by default - you must make at least one change to activate it
+   - **Example setup:**
+     - Go to **"Subscriptions"** section
+     - Click **"Add product"** and select one of your created product IDs
+     - Or go to **"Business information"** and add your business name
+     - **Important:** Click **"Save changes"** - this activates the portal
+
+3. **Configure Portal Settings:**
    - **Business information**: Add your business name and support email
    - **Features**: Enable the features you want customers to access:
      - ✅ **Update payment method** (recommended)
@@ -233,13 +242,13 @@ Once verified, test the complete flow:
      - ✅ **Update billing address** (optional)
      - ✅ **Invoice history** (recommended)
 
-3. **Set Default Return URL:**
+4. **Set Default Return URL:**
    - **For local development:** `http://localhost:3000/dashboard`
    - **For production:** `https://yourdomain.com/dashboard`
 
-4. **Save Configuration**
+5. **Save Configuration** (Critical - portal won't work without this step)
 
-5. **Test Portal Access:**
+6. **Test Portal Access:**
    - The "Manage Billing" button should now work
    - Users will be redirected to Stripe's hosted portal
    - They can manage their subscription and billing settings
