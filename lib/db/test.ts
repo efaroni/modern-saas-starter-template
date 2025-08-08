@@ -37,10 +37,10 @@ export const testDb = drizzle(testClient, { schema });
 export async function initializeTestDatabase() {
   try {
     // First, validate the test database connection
-    console.warn('Validating test database connection...');
+    console.debug('Validating test database connection...');
     try {
       await testClient`SELECT 1 as test`;
-      console.warn('Test database connection successful');
+      console.debug('Test database connection successful');
     } catch (connectionError) {
       console.error(
         'Cannot connect to test database:',
@@ -78,15 +78,19 @@ export async function initializeTestDatabase() {
         // Create tables directly instead of using drizzle-kit which may hang
         console.warn('Creating tables directly...');
 
-        // Create users table if it doesn't exist
+        // Create users table if it doesn't exist - MUST match actual schema
         await testClient`
           CREATE TABLE IF NOT EXISTS users (
-            id text PRIMARY KEY,
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            clerk_id text NOT NULL UNIQUE,
             email text NOT NULL UNIQUE,
+            name text,
+            image_url text,
             created_at timestamp DEFAULT now() NOT NULL,
             updated_at timestamp DEFAULT now() NOT NULL,
             email_preferences jsonb DEFAULT '{"marketing": true, "productUpdates": true, "securityAlerts": true}'::jsonb,
-            unsubscribe_token text UNIQUE
+            unsubscribe_token text UNIQUE,
+            billing_customer_id text UNIQUE
           )
         `;
 
@@ -100,11 +104,11 @@ export async function initializeTestDatabase() {
           )
         `;
 
-        // Create user_api_keys table if it doesn't exist
+        // Create user_api_keys table if it doesn't exist - MUST match actual schema
         await testClient`
           CREATE TABLE IF NOT EXISTS user_api_keys (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-            user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             provider text NOT NULL,
             public_key text,
             private_key_encrypted text NOT NULL,
@@ -209,9 +213,9 @@ export async function clearWorkerTestData() {
 // Close test database connection
 export async function closeTestDatabase() {
   try {
-    console.warn('Closing test database connection...');
+    console.debug('Closing test database connection...');
     await testClient.end();
-    console.warn('Test database connection closed successfully');
+    console.debug('Test database connection closed successfully');
   } catch (error) {
     console.error('Error closing test database:', error);
   }

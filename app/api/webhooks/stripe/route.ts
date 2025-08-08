@@ -1,8 +1,28 @@
 import { headers } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { eq } from 'drizzle-orm';
+
 import { billingService } from '@/lib/billing/service';
+import { db } from '@/lib/db';
+import { users, webhookEvents } from '@/lib/db/schema';
 import { emailService } from '@/lib/email/service';
+
+// Simple retry wrapper for database operations
+async function retryDbOperation<T>(
+  operation: () => Promise<T>,
+  retries = 3,
+): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, i)));
+    }
+  }
+  throw new Error('Retry operation failed');
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -24,98 +44,124 @@ export async function POST(request: NextRequest) {
   try {
     // Parse event
     const event = billingService.parseWebhookEvent(body);
-    const data = event.data;
+    const data = event.data as Record<string, unknown>;
 
-    // For now, just log events since we don't have the full database schema
     console.warn('Stripe webhook event received:', {
       type: event.type,
-      data: data,
+      id: data.id,
+      customer: data.customer,
     });
 
-    // TODO: Implement full webhook processing when database schema is ready
     // Check for idempotency
-    // const existingEvent = await db.query.webhookEvents.findFirst({
-    //   where: eq(webhookEvents.id, data.id),
-    // });
+    const existingEvent = await db.query.webhookEvents.findFirst({
+      where: eq(webhookEvents.id, data.id),
+    });
 
-    // if (existingEvent) {
-    //   return NextResponse.json({ received: true });
-    // }
+    if (existingEvent) {
+      console.warn('Webhook already processed, skipping:', data.id);
+      return NextResponse.json({ received: true });
+    }
 
-    // Store event for idempotency
-    // await db.insert(webhookEvents).values({
-    //   id: data.id,
-    //   provider: 'stripe',
-    // });
+    // Store event for idempotency with retry
+    await retryDbOperation(() =>
+      db.insert(webhookEvents).values({
+        id: data.id,
+        provider: 'stripe',
+        eventType: event.type,
+      }),
+    );
 
-    // Handle only the critical events
+    // Handle only the critical events (lean approach)
     switch (event.type) {
-      case 'checkout.session.completed':
-        console.warn('Processing checkout completion:', data);
+      case 'checkout.completed':
+        console.warn('Processing checkout completion:', data.id);
 
-        if (data.mode === 'subscription') {
-          // TODO: Update user subscription status when schema is ready
-          // For now, send subscription confirmation email if customer email is available
-          if (data.customer_email) {
-            await emailService.sendSubscriptionChangeEmail(
-              data.customer_email,
-              {
-                user: { email: data.customer_email, name: null },
-                previousPlan: 'Free',
-                newPlan: 'Pro', // TODO: Get from price metadata
-                effectiveDate: new Date(),
-              },
-            );
-          }
-        } else if (data.mode === 'payment') {
-          // Send payment success email
-          if (data.customer_email) {
-            await emailService.sendPaymentSuccessEmail(data.customer_email, {
-              user: { email: data.customer_email, name: null },
-              amount: data.amount_total || 0,
-              currency: data.currency || 'usd',
-              invoiceUrl: data.invoice?.hosted_invoice_url,
-            });
-          }
+        // Store billing customer ID using client_reference_id from checkout
+        if (data.customer && data.client_reference_id) {
+          await retryDbOperation(() =>
+            db
+              .update(users)
+              .set({
+                billingCustomerId: data.customer,
+              })
+              .where(eq(users.id, data.client_reference_id)),
+          );
+
+          console.warn(
+            'Updated user billing customer ID:',
+            data.client_reference_id,
+            '->',
+            data.customer,
+          );
+        }
+
+        // Send confirmation emails
+        if (data.mode === 'subscription' && data.customer_email) {
+          await emailService.sendSubscriptionChangeEmail(data.customer_email, {
+            user: { email: data.customer_email, name: null },
+            previousPlan: 'Free',
+            newPlan: 'Pro', // TODO: Get from price metadata
+            effectiveDate: new Date(),
+          });
+        } else if (data.mode === 'payment' && data.customer_email) {
+          await emailService.sendPaymentSuccessEmail(data.customer_email, {
+            user: { email: data.customer_email, name: null },
+            amount: data.amount_total || 0,
+            currency: data.currency || 'usd',
+            invoiceUrl: data.invoice?.hosted_invoice_url,
+          });
         }
         break;
 
-      case 'subscription.updated':
-      case 'subscription.deleted':
-        console.warn('Processing subscription change:', data);
+      case 'customer.created':
+        console.warn('Processing customer creation:', data.id);
 
-        // TODO: Update user subscription status when schema is ready
-        // await db
-        //   .update(users)
-        //   .set({
-        //     subscriptionStatus: data.status,
-        //     subscriptionCurrentPeriodEnd: new Date(
-        //       data.current_period_end * 1000,
-        //     ),
-        //   })
-        //   .where(eq(users.subscriptionId, data.id));
+        // Update user with billing customer ID using email
+        if (data.email) {
+          await retryDbOperation(() =>
+            db
+              .update(users)
+              .set({
+                billingCustomerId: data.id,
+              })
+              .where(eq(users.email, data.email)),
+          );
+
+          console.warn(
+            'Updated user billing customer ID:',
+            data.email,
+            '->',
+            data.id,
+          );
+        } else {
+          console.warn(
+            'Customer created without email, skipping user update:',
+            data.id,
+          );
+        }
         break;
 
-      case 'payment_intent.succeeded':
-        console.warn('Processing payment success:', data);
-        // Payment success email is handled in checkout.session.completed
+      case 'subscription.deleted':
+        console.warn('Processing subscription deletion:', data.id);
+        // Just log for audit - we query Stripe directly for access control
+        console.warn('Subscription ended for customer:', data.customer);
         break;
 
       case 'payment_intent.payment_failed':
-        console.warn('Processing payment failure:', data);
+        console.warn('Processing payment failure:', data.id);
         // Send payment failed email
         if (data.receipt_email) {
           await emailService.sendPaymentFailedEmail(data.receipt_email, {
             user: { email: data.receipt_email, name: null },
             amount: data.amount || 0,
             currency: data.currency || 'usd',
-            retryUrl: `${process.env.NEXTAUTH_URL}/dashboard/billing`,
+            retryUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
           });
         }
         break;
 
       default:
-        console.warn('Unhandled webhook event type:', event.type);
+        console.warn('Ignoring webhook event type:', event.type);
     }
 
     return NextResponse.json({ received: true });

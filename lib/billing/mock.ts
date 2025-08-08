@@ -22,10 +22,17 @@ export class MockBillingService implements BillingService {
     );
   }
 
-  createCheckoutSession(_params: unknown) {
+  createCheckoutSession(params: {
+    customerId: string;
+    priceId: string;
+    mode: 'subscription' | 'payment';
+    successUrl: string;
+    cancelUrl: string;
+    metadata?: Record<string, string>;
+  }) {
     return Promise.resolve(
       this.mockResults.createCheckoutSession || {
-        url: `https://checkout.stripe.com/mock/${Date.now()}`,
+        url: `https://checkout.stripe.com/mock/${Date.now()}?customer=${params.customerId}`,
       },
     );
   }

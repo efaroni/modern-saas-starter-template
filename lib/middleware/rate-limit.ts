@@ -40,14 +40,13 @@ const memoryStore = new Map<string, { count: number; resetTime: number }>();
 /**
  * Apply rate limiting to a request
  */
-export async function applyRateLimit(
+export function applyRateLimit(
   request: NextRequest,
   config: Partial<RateLimitConfig> = {},
-): Promise<RateLimitResult> {
+): RateLimitResult {
   const finalConfig = { ...defaultConfig, ...config };
-  const key = finalConfig.keyGenerator!(request);
+  const key = finalConfig.keyGenerator?.(request) ?? 'default';
   const now = Date.now();
-  const windowStart = now - finalConfig.windowMs;
 
   // Clean up expired entries
   for (const [storeKey, data] of memoryStore.entries()) {

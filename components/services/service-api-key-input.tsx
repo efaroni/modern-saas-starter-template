@@ -60,7 +60,7 @@ export function ServiceApiKeyInput({
   const {
     register,
     handleSubmit,
-    reset,
+    reset: _reset,
     setValue,
     formState: { errors },
   } = useForm<ApiKeyFormData>({

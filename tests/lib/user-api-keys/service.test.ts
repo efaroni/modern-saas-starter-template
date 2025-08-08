@@ -6,7 +6,7 @@ import { encrypt, decrypt } from '@/lib/encryption';
 import { userApiKeyService } from '@/lib/user-api-keys/service';
 
 describe('userApiKeyService', () => {
-  const testUserId = '550e8400-e29b-41d4-a716-446655440000';
+  let testUserId: string;
   const testEmail = 'test@example.com';
 
   beforeEach(async () => {
@@ -14,13 +14,17 @@ describe('userApiKeyService', () => {
     await testDb.delete(userApiKeys);
     await testDb.delete(users);
 
-    // Create test user
-    await testDb.insert(users).values({
-      id: testUserId,
-      clerkId: 'user_clerk_test_123',
-      email: testEmail,
-      name: 'Test User',
-    });
+    // Create test user - let database auto-generate UUID
+    const [createdUser] = await testDb
+      .insert(users)
+      .values({
+        clerkId: 'user_clerk_test_123',
+        email: testEmail,
+        name: 'Test User',
+      })
+      .returning({ id: users.id });
+
+    testUserId = createdUser.id;
   });
 
   afterEach(async () => {
@@ -56,14 +60,16 @@ describe('userApiKeyService', () => {
     });
 
     it('should only return keys for the specified user', async () => {
-      // Create another user
-      const otherUserId = '660e8400-e29b-41d4-a716-446655440001';
-      await testDb.insert(users).values({
-        id: otherUserId,
-        clerkId: 'test_clerk_id_other_user_1',
-        email: 'other@example.com',
-        name: 'Other User',
-      });
+      // Create another user - let database auto-generate UUID
+      const [otherUser] = await testDb
+        .insert(users)
+        .values({
+          clerkId: 'test_clerk_id_other_user_1',
+          email: 'other@example.com',
+          name: 'Other User',
+        })
+        .returning({ id: users.id });
+      const otherUserId = otherUser.id;
 
       // Insert keys for both users
       await testDb.insert(userApiKeys).values([
@@ -250,14 +256,16 @@ describe('userApiKeyService', () => {
     });
 
     it('should not delete keys belonging to other users', async () => {
-      // Create another user
-      const otherUserId = '660e8400-e29b-41d4-a716-446655440001';
-      await testDb.insert(users).values({
-        id: otherUserId,
-        clerkId: 'test_clerk_id_other_user_2',
-        email: 'other@example.com',
-        name: 'Other User',
-      });
+      // Create another user - let database auto-generate UUID
+      const [otherUser] = await testDb
+        .insert(users)
+        .values({
+          clerkId: 'test_clerk_id_other_user_2',
+          email: 'other2@example.com',
+          name: 'Other User',
+        })
+        .returning({ id: users.id });
+      const otherUserId = otherUser.id;
 
       // Create key for other user
       const [created] = await testDb

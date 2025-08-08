@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
+import { hasActiveSubscription } from '@/lib/billing/access-control';
 import { billingService } from '@/lib/billing/service';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
@@ -40,9 +41,14 @@ export async function POST(request: NextRequest) {
 
     const { priceId, mode, metadata } = validation.data;
 
-    // Get user with billing info
+    // Get user from database
     const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
+      where: eq(users.clerkId, userId),
+      columns: {
+        id: true,
+        email: true,
+        billingCustomerId: true,
+      },
     });
 
     if (!user) {
@@ -52,24 +58,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For now, since we don't have billing fields yet, create a customer each time
-    // In the future, we'll check if user.billingCustomerId exists
-    const { customerId } = await billingService.createCustomer(user.email);
+    // For subscription mode, check if user already has an active subscription
+    if (mode === 'subscription') {
+      const hasSubscription = await hasActiveSubscription(user.id);
+      if (hasSubscription) {
+        return NextResponse.json(
+          { success: false, error: 'User already has an active subscription' },
+          { status: 400 },
+        );
+      }
+    }
 
-    // TODO: Store customerId in user record when billing fields are available
-    // await db
-    //   .update(users)
-    //   .set({ billingCustomerId: customerId })
-    //   .where(eq(users.id, userId));
+    // Get or create billing customer ID
+    let customerId = user.billingCustomerId;
+    if (!customerId) {
+      console.warn('Creating new Stripe customer for user:', user.email);
+      const { customerId: newCustomerId } = await billingService.createCustomer(
+        user.email,
+      );
+      customerId = newCustomerId;
+      console.warn(
+        'Created Stripe customer:',
+        customerId,
+        'for user:',
+        user.email,
+      );
+      // Don't update DB here - let webhook handle it
+    }
 
     const { url } = await billingService.createCheckoutSession({
       customerId,
       priceId,
       mode,
-      successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/${mode === 'payment' ? 'purchase' : 'subscription'}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/${mode === 'payment' ? 'purchase' : 'subscription'}/cancel`,
+      successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing-test?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/billing-test?cancelled=true`,
       metadata: {
-        userId,
+        userId: user.id,
         ...metadata,
       },
     });

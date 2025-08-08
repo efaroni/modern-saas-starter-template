@@ -8,6 +8,15 @@ function createBillingService(): BillingService {
     return new MockBillingService();
   }
 
+  // Check if billing is enabled
+  const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true';
+  if (!billingEnabled) {
+    console.warn(
+      'Billing disabled via NEXT_PUBLIC_BILLING_ENABLED, using mock service',
+    );
+    return new MockBillingService();
+  }
+
   // Check for required environment variables
   const apiKey = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;

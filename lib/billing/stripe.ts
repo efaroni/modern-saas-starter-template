@@ -29,6 +29,7 @@ export class StripeBillingService implements BillingService {
   }) {
     const session = await this.stripe.checkout.sessions.create({
       customer: params.customerId,
+      client_reference_id: params.metadata?.userId, // For webhook processing
       mode: params.mode,
       line_items: [
         {

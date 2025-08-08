@@ -5,9 +5,25 @@
 
 import { NextRequest } from 'next/server';
 
-import { POST as aiAnalyzePost } from '@/app/api/ai/analyze-design/route';
-import { POST as billingPortalPost } from '@/app/api/billing/portal/route';
-import { testUsers } from '@/tests/fixtures/clerk';
+// Mock Stripe FIRST before any other imports
+jest.mock('stripe', () => {
+  return jest.fn().mockImplementation(() => ({
+    billingPortal: {
+      sessions: {
+        create: jest.fn().mockResolvedValue({
+          url: 'https://billing.stripe.com/session/test',
+        }),
+      },
+    },
+    customers: {
+      retrieve: jest.fn().mockResolvedValue({
+        id: 'cus_test_123',
+        email: 'test@example.com',
+        deleted: false,
+      }),
+    },
+  }));
+});
 
 // Mock Clerk auth
 jest.mock('@clerk/nextjs/server', () => ({
@@ -44,47 +60,37 @@ jest.mock('@/lib/ai/vision/service', () => ({
   hasValidOpenAIKey: jest.fn().mockResolvedValue(true),
 }));
 
-// Mock Stripe
-const mockStripeSessionCreate = jest.fn().mockResolvedValue({
-  url: 'https://billing.stripe.com/session/test',
-});
-
-jest.mock('stripe', () => {
-  return jest.fn().mockImplementation(() => ({
-    billingPortal: {
-      sessions: {
-        create: mockStripeSessionCreate,
-      },
-    },
-  }));
-});
-
 import { auth } from '@clerk/nextjs/server';
+
+// Now import the route handlers after all mocks are set up
+import { POST as aiAnalyzePost } from '@/app/api/ai/analyze-design/route';
+import { POST as billingPortalPost } from '@/app/api/billing/portal/route';
 import { db } from '@/lib/db';
+import { testUsers } from '@/tests/fixtures/clerk';
 
 const mockAuth = auth as jest.Mock;
-const mockDb = db as any;
+const mockDb = db as unknown;
 
 // Mock NextRequest with formData support
 class MockNextRequest extends NextRequest {
   private _formData: FormData;
-  private _json: any;
+  private _json: unknown;
 
   constructor(
     url: string,
-    init: RequestInit & { formData?: FormData; json?: any } = {},
+    init: RequestInit & { formData?: FormData; json?: unknown } = {},
   ) {
     super(url, init);
     this._formData = init.formData || new FormData();
     this._json = init.json || {};
   }
 
-  async formData(): Promise<FormData> {
-    return this._formData;
+  formData(): Promise<FormData> {
+    return Promise.resolve(this._formData);
   }
 
-  async json(): Promise<any> {
-    return this._json;
+  json(): Promise<unknown> {
+    return Promise.resolve(this._json);
   }
 }
 

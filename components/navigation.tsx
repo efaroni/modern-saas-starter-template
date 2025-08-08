@@ -11,9 +11,10 @@ import {
   X,
   Settings,
   Palette,
-  Code2,
   Gauge,
   ShieldAlert,
+  CreditCard,
+  Mail,
 } from 'lucide-react';
 
 const navItems = [
@@ -24,16 +25,22 @@ const navItems = [
     description: 'Manage your API keys',
   },
   {
+    name: 'Billing System',
+    href: '/billing-test',
+    icon: CreditCard,
+    description: 'Test billing integration',
+  },
+  {
     name: 'AI Styling',
     href: '/styling',
     icon: Palette,
     description: 'Design system generator',
   },
   {
-    name: 'Generators',
-    href: '/generators',
-    icon: Code2,
-    description: 'Code generation tools',
+    name: 'Emails',
+    href: '/emails',
+    icon: Mail,
+    description: 'Email management and templates',
   },
   {
     name: 'Performance',
