@@ -38,10 +38,6 @@
 
 **Database Tables:** `users`, `accounts`, `sessions`, `verification_tokens`
 
-## Section 3: Payments & Billing
-
-See Section_3_TODOS.md
-
 ## Section 4: Email System
 
 See Section_4_TODOS.md

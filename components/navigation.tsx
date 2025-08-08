@@ -14,6 +14,7 @@ import {
   Gauge,
   ShieldAlert,
   CreditCard,
+  Mail,
 } from 'lucide-react';
 
 const navItems = [
@@ -34,6 +35,12 @@ const navItems = [
     href: '/styling',
     icon: Palette,
     description: 'Design system generator',
+  },
+  {
+    name: 'Emails',
+    href: '/emails',
+    icon: Mail,
+    description: 'Email management and templates',
   },
   {
     name: 'Performance',
