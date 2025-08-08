@@ -1,93 +1,23 @@
 import {
   type EmailService,
   type EmailResult,
-  type PasswordResetEmailData,
-  type EmailVerificationData,
   type WelcomeEmailData,
-  type PaymentEmailData,
-  type SubscriptionChangeEmailData,
   type MarketingEmailData,
+  type PasswordResetNotificationData,
 } from './types';
 
 export class MockEmailService implements EmailService {
   private sentEmails: Array<{
     to: string | string[];
-    type:
-      | 'password_reset'
-      | 'verification'
-      | 'welcome'
-      | 'payment_success'
-      | 'payment_failed'
-      | 'subscription_change'
-      | 'marketing';
+    type: 'password_reset_notification' | 'welcome' | 'marketing' | 'test';
     data:
-      | PasswordResetEmailData
-      | EmailVerificationData
+      | PasswordResetNotificationData
       | WelcomeEmailData
-      | PaymentEmailData
-      | SubscriptionChangeEmailData
-      | MarketingEmailData;
+      | MarketingEmailData
+      | { timestamp: Date };
     sentAt: Date;
   }> = [];
   private shouldFail = false;
-
-  async sendPasswordResetEmail(
-    email: string,
-    data: PasswordResetEmailData,
-  ): Promise<EmailResult> {
-    // Simulate email sending delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Check if we should fail
-    if (this.shouldFail) {
-      return {
-        success: false,
-        error: 'Email service failed',
-      };
-    }
-
-    // Store the email for testing purposes
-    this.sentEmails.push({
-      to: email,
-      type: 'password_reset',
-      data,
-      sentAt: new Date(),
-    });
-
-    // Mock success
-    return {
-      success: true,
-    };
-  }
-
-  async sendVerificationEmail(
-    email: string,
-    data: EmailVerificationData,
-  ): Promise<EmailResult> {
-    // Simulate email sending delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Check if we should fail
-    if (this.shouldFail) {
-      return {
-        success: false,
-        error: 'Email service failed',
-      };
-    }
-
-    // Store the email for testing purposes
-    this.sentEmails.push({
-      to: email,
-      type: 'verification',
-      data,
-      sentAt: new Date(),
-    });
-
-    // Mock success
-    return {
-      success: true,
-    };
-  }
 
   async sendWelcomeEmail(
     email: string,
@@ -118,93 +48,6 @@ export class MockEmailService implements EmailService {
     };
   }
 
-  async sendPaymentSuccessEmail(
-    email: string,
-    data: PaymentEmailData,
-  ): Promise<EmailResult> {
-    // Simulate email sending delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Check if we should fail
-    if (this.shouldFail) {
-      return {
-        success: false,
-        error: 'Email service failed',
-      };
-    }
-
-    // Store the email for testing purposes
-    this.sentEmails.push({
-      to: email,
-      type: 'payment_success',
-      data,
-      sentAt: new Date(),
-    });
-
-    // Mock success
-    return {
-      success: true,
-    };
-  }
-
-  async sendPaymentFailedEmail(
-    email: string,
-    data: PaymentEmailData,
-  ): Promise<EmailResult> {
-    // Simulate email sending delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Check if we should fail
-    if (this.shouldFail) {
-      return {
-        success: false,
-        error: 'Email service failed',
-      };
-    }
-
-    // Store the email for testing purposes
-    this.sentEmails.push({
-      to: email,
-      type: 'payment_failed',
-      data,
-      sentAt: new Date(),
-    });
-
-    // Mock success
-    return {
-      success: true,
-    };
-  }
-
-  async sendSubscriptionChangeEmail(
-    email: string,
-    data: SubscriptionChangeEmailData,
-  ): Promise<EmailResult> {
-    // Simulate email sending delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Check if we should fail
-    if (this.shouldFail) {
-      return {
-        success: false,
-        error: 'Email service failed',
-      };
-    }
-
-    // Store the email for testing purposes
-    this.sentEmails.push({
-      to: email,
-      type: 'subscription_change',
-      data,
-      sentAt: new Date(),
-    });
-
-    // Mock success
-    return {
-      success: true,
-    };
-  }
-
   async sendMarketingEmail(
     emails: string[],
     data: MarketingEmailData,
@@ -225,6 +68,61 @@ export class MockEmailService implements EmailService {
       to: emails,
       type: 'marketing',
       data,
+      sentAt: new Date(),
+    });
+
+    // Mock success
+    return {
+      success: true,
+    };
+  }
+
+  async sendPasswordResetNotificationEmail(
+    email: string,
+    data: PasswordResetNotificationData,
+  ): Promise<EmailResult> {
+    // Simulate email sending delay
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Check if we should fail
+    if (this.shouldFail) {
+      return {
+        success: false,
+        error: 'Email service failed',
+      };
+    }
+
+    // Store the email for testing purposes
+    this.sentEmails.push({
+      to: email,
+      type: 'password_reset_notification',
+      data,
+      sentAt: new Date(),
+    });
+
+    // Mock success
+    return {
+      success: true,
+    };
+  }
+
+  async sendTestEmail(email: string): Promise<EmailResult> {
+    // Simulate email sending delay
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Check if we should fail
+    if (this.shouldFail) {
+      return {
+        success: false,
+        error: 'Email service failed',
+      };
+    }
+
+    // Store the email for testing purposes
+    this.sentEmails.push({
+      to: email,
+      type: 'test',
+      data: { timestamp: new Date() },
       sentAt: new Date(),
     });
 

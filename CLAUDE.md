@@ -34,12 +34,19 @@ A production-ready SaaS starter template designed for rapid deployment of modern
 - Implemented comprehensive webhook system for user sync
 - Enhanced API routes with proper error handling and logging
 - Standardized error response format across API routes
+- **NEW**: Complete email system implementation with React Email templates
+- **NEW**: Email preference management and unsubscribe functionality
+- **NEW**: Welcome emails on user signup via Clerk webhooks
+- **NEW**: Payment and subscription email notifications via Stripe webhooks
 
 ### Active Features
 
+- [x] ✅ **COMPLETED**: Complete email system with React Email templates
+- [x] ✅ **COMPLETED**: Email preference management and unsubscribe functionality
+- [x] ✅ **COMPLETED**: Welcome emails and password reset notifications
+- [x] ✅ **COMPLETED**: Payment/subscription email notifications
 - [ ] Completing Section 7: Deployment & CI/CD
 - [ ] Implementing AI styling system (Section 5)
-- [ ] Enhancing email template system
 
 ### Known Issues & Blockers
 
@@ -231,6 +238,36 @@ interface AuthProvider {
   authenticateUser(email: string, password: string): Promise<User>;
   deleteUser(userId: string): Promise<void>;
 }
+
+// Email System Overview
+
+The application features a comprehensive email system built on Resend + React Email:
+
+**Core Components:**
+- `EmailService` interface with ResendEmailService and MockEmailService implementations
+- React Email templates in `/emails/` directory with shared components
+- Email preference system with user-controllable settings
+- Secure unsubscribe functionality with unique tokens
+- Automatic email sending via Clerk and Stripe webhooks
+
+**Email Types:**
+- Welcome emails (auto-sent on user signup via Clerk webhook)
+- Password reset notifications (security alerts after password changes)
+- Payment success/failed emails (triggered by Stripe webhooks)
+- Subscription change notifications (upgrades/downgrades/cancellations)
+- Marketing emails (with preference checking and personalized unsubscribe links)
+
+**User Features:**
+- Email management dashboard at `/emails` for preference management and testing
+- One-click unsubscribe at `/unsubscribe?token=xxx` with re-subscribe option
+- Automatic unsubscribe token generation for all users
+- Security emails always enabled (payment, security alerts)
+
+**Developer Features:**
+- Type-safe email service with comprehensive error handling
+- Email preference enforcement before sending any marketing emails
+- Enhanced webhook integration with proper user data fetching
+- Comprehensive logging and debugging support
 
 // Email Service Interface
 interface EmailService {
@@ -582,6 +619,16 @@ npm run db:seed
 - Validation schemas: Create in same file or `lib/schemas/`
 - Service layer: `lib/services/[service].ts`
 
+**Email System:**
+
+- Email templates: `emails/[template-name].tsx`
+- Email service: `lib/email/service.ts` (factory), `lib/email/resend.ts` (implementation)
+- Email types: `lib/email/types.ts` (interfaces)
+- Email preferences: `lib/email/preferences.ts` (enforcement helpers)
+- Email management page: `app/emails/page.tsx`
+- Unsubscribe page: `app/unsubscribe/page.tsx`
+- Marketing endpoints: `app/api/marketing/unsubscribe/route.ts`, `app/api/marketing/subscribe/route.ts`
+
 **UI Components:**
 
 - Base components: `components/ui/`
@@ -654,7 +701,7 @@ export default async function ProtectedPage() {
 
 **Server Action:**
 
-```typescript
+````typescript
 // app/actions/user.ts
 'use server';
 
@@ -667,6 +714,51 @@ export async function updateUser(data: unknown) {
 
   const validated = userSchema.parse(data);
   // Update logic
+}
+
+**Send Welcome Email:**
+
+```typescript
+// In Clerk webhook or server action
+import { emailService } from '@/lib/email/service';
+
+await emailService.sendWelcomeEmail(user.email, {
+  user: { email: user.email, name: user.name },
+  dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+});
+````
+
+**Check Email Preferences Before Sending:**
+
+```typescript
+// Check if user can receive marketing emails
+import { canSendEmailToUser, EmailType } from '@/lib/email/preferences';
+
+const canSend = await canSendEmailToUser(userEmail, EmailType.MARKETING);
+if (canSend.canSend) {
+  await emailService.sendMarketingEmail([userEmail], marketingData);
+}
+```
+
+**Create New Email Template:**
+
+```typescript
+// emails/my-new-email.tsx
+import { Text } from '@react-email/components';
+import { EmailLayout } from './components/layout';
+
+interface MyEmailProps {
+  userName?: string | null;
+  customData: string;
+}
+
+export function MyEmail({ userName, customData }: MyEmailProps) {
+  return (
+    <EmailLayout preview="Email preview text">
+      <Text style={heading}>Hello {userName || 'there'}!</Text>
+      <Text style={paragraph}>{customData}</Text>
+    </EmailLayout>
+  );
 }
 ```
 

@@ -5,6 +5,11 @@ import { Webhook } from 'svix';
 
 import { db } from '@/lib/db';
 import { users, webhookEvents } from '@/lib/db/schema';
+import { emailService } from '@/lib/email/service';
+import {
+  generateSecureToken,
+  TokenSecurityLevel,
+} from '@/lib/utils/token-generator';
 
 // Add logging utility
 const logWebhookEvent = (message: string, data?: unknown) => {
@@ -159,7 +164,15 @@ export async function POST(req: Request) {
         [first_name, last_name].filter(Boolean).join(' ') || null;
 
       if (eventType === 'user.created') {
-        // For new users, insert with all fields
+        // Generate unsubscribe token for new users
+        const unsubscribeToken = generateSecureToken(
+          TokenSecurityLevel.MEDIUM,
+          {
+            prefix: 'unsub',
+          },
+        );
+
+        // For new users, insert with all fields including unsubscribe token
         const result = await db
           .insert(users)
           .values({
@@ -167,11 +180,13 @@ export async function POST(req: Request) {
             email: primaryEmail.email_address,
             name: fullName,
             imageUrl: image_url || null,
+            unsubscribeToken,
           })
           .returning({
             id: users.id,
             clerkId: users.clerkId,
             email: users.email,
+            name: users.name,
           });
 
         logWebhookEvent('User created successfully', {
@@ -181,16 +196,59 @@ export async function POST(req: Request) {
           imageUrl: image_url,
           dbResult: result[0],
         });
+
+        // Send welcome email to new user
+        const user = result[0];
+        const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`;
+
+        try {
+          await emailService.sendWelcomeEmail(user.email, {
+            user: { email: user.email, name: user.name },
+            dashboardUrl,
+          });
+
+          logWebhookEvent('Welcome email sent successfully', {
+            userId: id,
+            email: user.email,
+          });
+        } catch (emailError) {
+          logWebhookEvent('Failed to send welcome email', {
+            userId: id,
+            email: user.email,
+            error:
+              emailError instanceof Error
+                ? emailError.message
+                : 'Unknown error',
+          });
+          // Don't fail the webhook if email fails
+        }
       } else {
         // For user updates, find by clerk_id and update
+        // First check if user exists and if they need an unsubscribe token
+        const existingUser = await db.query.users.findFirst({
+          where: eq(users.clerkId, id),
+        });
+
+        const updateData: Record<string, unknown> = {
+          email: primaryEmail.email_address,
+          name: fullName,
+          imageUrl: image_url || null,
+          updatedAt: new Date(),
+        };
+
+        // Generate unsubscribe token if user doesn't have one
+        if (existingUser && !existingUser.unsubscribeToken) {
+          updateData.unsubscribeToken = generateSecureToken(
+            TokenSecurityLevel.MEDIUM,
+            {
+              prefix: 'unsub',
+            },
+          );
+        }
+
         const result = await db
           .update(users)
-          .set({
-            email: primaryEmail.email_address,
-            name: fullName,
-            imageUrl: image_url || null,
-            updatedAt: new Date(),
-          })
+          .set(updateData)
           .where(eq(users.clerkId, id))
           .returning({
             id: users.id,
@@ -206,6 +264,14 @@ export async function POST(req: Request) {
             },
           );
 
+          // Generate unsubscribe token for new users
+          const unsubscribeToken = generateSecureToken(
+            TokenSecurityLevel.MEDIUM,
+            {
+              prefix: 'unsub',
+            },
+          );
+
           // If user doesn't exist, create them
           const createResult = await db
             .insert(users)
@@ -214,6 +280,7 @@ export async function POST(req: Request) {
               email: primaryEmail.email_address,
               name: fullName,
               imageUrl: image_url || null,
+              unsubscribeToken,
             })
             .returning({
               id: users.id,

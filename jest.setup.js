@@ -142,14 +142,15 @@ jest.mock('@clerk/nextjs', () => ({
       emailAddresses: [{ emailAddress: 'test@example.com' }],
     },
   }),
-  SignedIn: ({ children }) => children,
-  SignedOut: ({ children }) => null,
+  SignedIn: ({ children: _children }) => _children,
+  SignedOut: ({ children: _children }) => null,
   UserButton: () => null,
 }));
 
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: () => Promise.resolve({ userId: 'test-user-id' }),
-}));
+// Mock Clerk backend to prevent ES module issues (but let individual tests mock server functions)
+jest.mock('@clerk/backend', () => ({}));
+
+// Removed global Clerk mock to allow individual tests to control auth state
 
 // Global test setup and teardown
 beforeAll(async () => {
