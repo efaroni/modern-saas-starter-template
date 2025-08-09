@@ -6,17 +6,10 @@ import { Webhook } from 'svix';
 import { db } from '@/lib/db';
 import { users, webhookEvents } from '@/lib/db/schema';
 import { emailService } from '@/lib/email/service';
-import {
-  generateSecureToken,
-  TokenSecurityLevel,
-} from '@/lib/utils/token-generator';
 
 // Add logging utility
 const logWebhookEvent = (message: string, data?: unknown) => {
-  console.warn(
-    `[Clerk Webhook] ${message}`,
-    data ? JSON.stringify(data, null, 2) : '',
-  );
+  console.warn(`[Clerk Webhook] ${message}`, data ? data : '');
 };
 
 export async function POST(req: Request) {
@@ -38,12 +31,6 @@ export async function POST(req: Request) {
   const svix_timestamp = req.headers.get('svix-timestamp');
   const svix_signature = req.headers.get('svix-signature');
 
-  logWebhookEvent('Webhook headers received', {
-    svix_id: !!svix_id,
-    svix_timestamp: !!svix_timestamp,
-    svix_signature: !!svix_signature,
-  });
-
   // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
     logWebhookEvent('ERROR: Missing required svix headers');
@@ -57,9 +44,6 @@ export async function POST(req: Request) {
   let payload: unknown;
   try {
     payload = await req.json();
-    logWebhookEvent('Payload parsed successfully', {
-      eventType: (payload as { type?: string })?.type,
-    });
   } catch (err) {
     logWebhookEvent('ERROR: Failed to parse request body', err);
     return NextResponse.json(
@@ -82,7 +66,6 @@ export async function POST(req: Request) {
       'svix-timestamp': svix_timestamp,
       'svix-signature': svix_signature,
     }) as { type: string; data: unknown };
-    logWebhookEvent('Webhook verification successful', { eventType: evt.type });
   } catch (err) {
     logWebhookEvent('ERROR: Webhook verification failed', err);
     return NextResponse.json(
@@ -98,7 +81,6 @@ export async function POST(req: Request) {
   logWebhookEvent('Processing event', {
     eventType,
     userId: (evt.data as { id?: string })?.id,
-    webhookId,
   });
 
   // Check if we've already processed this webhook
@@ -164,15 +146,7 @@ export async function POST(req: Request) {
         [first_name, last_name].filter(Boolean).join(' ') || null;
 
       if (eventType === 'user.created') {
-        // Generate unsubscribe token for new users
-        const unsubscribeToken = generateSecureToken(
-          TokenSecurityLevel.MEDIUM,
-          {
-            prefix: 'unsub',
-          },
-        );
-
-        // For new users, insert with all fields including unsubscribe token
+        // For new users, insert with all fields
         const result = await db
           .insert(users)
           .values({
@@ -180,7 +154,6 @@ export async function POST(req: Request) {
             email: primaryEmail.email_address,
             name: fullName,
             imageUrl: image_url || null,
-            unsubscribeToken,
           })
           .returning({
             id: users.id,
@@ -203,7 +176,7 @@ export async function POST(req: Request) {
 
         try {
           await emailService.sendWelcomeEmail(user.email, {
-            user: { email: user.email, name: user.name },
+            user: { id: user.id, email: user.email, name: user.name },
             dashboardUrl,
           });
 
@@ -224,27 +197,12 @@ export async function POST(req: Request) {
         }
       } else {
         // For user updates, find by clerk_id and update
-        // First check if user exists and if they need an unsubscribe token
-        const existingUser = await db.query.users.findFirst({
-          where: eq(users.clerkId, id),
-        });
-
         const updateData: Record<string, unknown> = {
           email: primaryEmail.email_address,
           name: fullName,
           imageUrl: image_url || null,
           updatedAt: new Date(),
         };
-
-        // Generate unsubscribe token if user doesn't have one
-        if (existingUser && !existingUser.unsubscribeToken) {
-          updateData.unsubscribeToken = generateSecureToken(
-            TokenSecurityLevel.MEDIUM,
-            {
-              prefix: 'unsub',
-            },
-          );
-        }
 
         const result = await db
           .update(users)
@@ -264,14 +222,6 @@ export async function POST(req: Request) {
             },
           );
 
-          // Generate unsubscribe token for new users
-          const unsubscribeToken = generateSecureToken(
-            TokenSecurityLevel.MEDIUM,
-            {
-              prefix: 'unsub',
-            },
-          );
-
           // If user doesn't exist, create them
           const createResult = await db
             .insert(users)
@@ -280,7 +230,6 @@ export async function POST(req: Request) {
               email: primaryEmail.email_address,
               name: fullName,
               imageUrl: image_url || null,
-              unsubscribeToken,
             })
             .returning({
               id: users.id,

@@ -4,7 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { users, userEmailPreferences } from '@/lib/db/schema';
 
 export async function GET() {
   try {
@@ -18,8 +18,7 @@ export async function GET() {
     const user = await db.query.users.findFirst({
       where: eq(users.clerkId, userId),
       columns: {
-        emailPreferences: true,
-        unsubscribeToken: true,
+        id: true,
       },
     });
 
@@ -27,13 +26,18 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Get user email preferences (defaults to enabled if no record exists)
+    const preferences = await db.query.userEmailPreferences.findFirst({
+      where: eq(userEmailPreferences.userId, user.id),
+    });
+
+    const emailPreferences = {
+      marketing: preferences?.marketingEnabled ?? true,
+      transactional: true, // Always enabled
+    };
+
     return NextResponse.json({
-      emailPreferences: user.emailPreferences || {
-        marketing: true,
-        productUpdates: true,
-        securityAlerts: true,
-      },
-      unsubscribeToken: user.unsubscribeToken,
+      emailPreferences,
     });
   } catch (error) {
     console.error('Failed to fetch email preferences:', error);
@@ -55,41 +59,55 @@ export async function PUT(request: NextRequest) {
     const { emailPreferences } = await request.json();
 
     // Validate the email preferences structure
-    if (
-      !emailPreferences ||
-      typeof emailPreferences.marketing !== 'boolean' ||
-      typeof emailPreferences.productUpdates !== 'boolean' ||
-      typeof emailPreferences.securityAlerts !== 'boolean'
-    ) {
+    if (!emailPreferences || typeof emailPreferences.marketing !== 'boolean') {
       return NextResponse.json(
         { error: 'Invalid email preferences format' },
         { status: 400 },
       );
     }
 
-    // Ensure security alerts are always enabled
-    emailPreferences.securityAlerts = true;
+    // Find user by Clerk ID
+    const user = await db.query.users.findFirst({
+      where: eq(users.clerkId, userId),
+      columns: {
+        id: true,
+      },
+    });
 
-    // Update user email preferences
-    const result = await db
-      .update(users)
-      .set({
-        emailPreferences,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.clerkId, userId))
-      .returning({
-        id: users.id,
-        emailPreferences: users.emailPreferences,
-      });
-
-    if (result.length === 0) {
+    if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Check if user preferences record exists
+    const existingPreferences = await db.query.userEmailPreferences.findFirst({
+      where: eq(userEmailPreferences.userId, user.id),
+    });
+
+    if (existingPreferences) {
+      // Update existing record
+      await db
+        .update(userEmailPreferences)
+        .set({
+          marketingEnabled: emailPreferences.marketing,
+        })
+        .where(eq(userEmailPreferences.userId, user.id));
+    } else {
+      // Create new record
+      await db.insert(userEmailPreferences).values({
+        userId: user.id,
+        marketingEnabled: emailPreferences.marketing,
+      });
+    }
+
+    // Return the updated preferences
+    const finalPreferences = {
+      marketing: emailPreferences.marketing,
+      transactional: true, // Always enabled
+    };
+
     return NextResponse.json({
       success: true,
-      emailPreferences: result[0].emailPreferences,
+      emailPreferences: finalPreferences,
     });
   } catch (error) {
     console.error('Failed to update email preferences:', error);

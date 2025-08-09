@@ -50,7 +50,13 @@ export async function initializeTestDatabase() {
       return false;
     }
     // Check if all required tables exist (updated for current schema)
-    const requiredTables = ['users', 'user_api_keys', 'webhook_events'];
+    const requiredTables = [
+      'users',
+      'user_api_keys',
+      'webhook_events',
+      'email_unsubscribe_tokens',
+      'user_email_preferences',
+    ];
 
     const missingTables = [];
 
@@ -81,15 +87,13 @@ export async function initializeTestDatabase() {
         // Create users table if it doesn't exist - MUST match actual schema
         await testClient`
           CREATE TABLE IF NOT EXISTS users (
-            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-            clerk_id text NOT NULL UNIQUE,
+            id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
+            clerk_id text UNIQUE,
             email text NOT NULL UNIQUE,
             name text,
             image_url text,
             created_at timestamp DEFAULT now() NOT NULL,
             updated_at timestamp DEFAULT now() NOT NULL,
-            email_preferences jsonb DEFAULT '{"marketing": true, "productUpdates": true, "securityAlerts": true}'::jsonb,
-            unsubscribe_token text UNIQUE,
             billing_customer_id text UNIQUE
           )
         `;
@@ -108,7 +112,7 @@ export async function initializeTestDatabase() {
         await testClient`
           CREATE TABLE IF NOT EXISTS user_api_keys (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-            user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             provider text NOT NULL,
             public_key text,
             private_key_encrypted text NOT NULL,
@@ -116,6 +120,24 @@ export async function initializeTestDatabase() {
             created_at timestamp DEFAULT now() NOT NULL,
             updated_at timestamp DEFAULT now() NOT NULL,
             UNIQUE(user_id, provider)
+          )
+        `;
+
+        // Create email_unsubscribe_tokens table if it doesn't exist
+        await testClient`
+          CREATE TABLE IF NOT EXISTS email_unsubscribe_tokens (
+            token text PRIMARY KEY,
+            user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            category text,
+            created_at timestamp DEFAULT now() NOT NULL
+          )
+        `;
+
+        // Create user_email_preferences table if it doesn't exist
+        await testClient`
+          CREATE TABLE IF NOT EXISTS user_email_preferences (
+            user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            marketing_enabled boolean DEFAULT true NOT NULL
           )
         `;
 
@@ -154,6 +176,12 @@ export async function clearTestDatabase() {
 
     // Clear user API keys (depends on users)
     await testClient`DELETE FROM user_api_keys`;
+
+    // Clear email unsubscribe tokens (depends on users)
+    await testClient`DELETE FROM email_unsubscribe_tokens`;
+
+    // Clear user email preferences (depends on users)
+    await testClient`DELETE FROM user_email_preferences`;
 
     // Core user table (delete last due to foreign key dependencies)
     await testClient`DELETE FROM users`;

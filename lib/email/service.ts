@@ -11,6 +11,7 @@ function createEmailService(): EmailService {
   // Use Resend service in production
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL || 'noreply@localhost';
+
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   if (!apiKey) {

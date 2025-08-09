@@ -8,13 +8,21 @@ import {
   Text,
 } from '@react-email/components';
 
+import { EmailType } from '@/lib/email/preferences';
+
 import { EmailLayout } from './components/layout';
 
 interface TestEmailProps {
   timestamp?: Date;
+  unsubscribeUrl?: string;
+  emailType?: EmailType;
 }
 
-export function TestEmail({ timestamp = new Date() }: TestEmailProps) {
+export function TestEmail({
+  timestamp = new Date(),
+  unsubscribeUrl,
+  emailType = EmailType.MARKETING,
+}: TestEmailProps) {
   return (
     <Html>
       <Head />
@@ -25,8 +33,11 @@ export function TestEmail({ timestamp = new Date() }: TestEmailProps) {
             <Section style={content}>
               <Text style={heading}>✅ Test Email Successful</Text>
               <Text style={paragraph}>
-                This is a test email to verify that your email service is
-                working correctly.
+                This is a test{' '}
+                {emailType === EmailType.MARKETING
+                  ? 'marketing'
+                  : 'transactional'}{' '}
+                email to verify that your email service is working correctly.
               </Text>
               <Section style={infoBox}>
                 <Text style={infoText}>
@@ -46,6 +57,15 @@ export function TestEmail({ timestamp = new Date() }: TestEmailProps) {
                 This test email was sent from your SaaS application&apos;s email
                 settings page.
               </Text>
+              {unsubscribeUrl && emailType === EmailType.MARKETING && (
+                <Section style={unsubscribeSection}>
+                  <Text style={unsubscribeText}>
+                    <a href={unsubscribeUrl} style={unsubscribeLink}>
+                      Test unsubscribe functionality
+                    </a>
+                  </Text>
+                </Section>
+              )}
             </Section>
           </EmailLayout>
         </Container>
@@ -106,4 +126,22 @@ const footnote = {
   color: '#9ca3af',
   marginTop: '30px',
   textAlign: 'center' as const,
+};
+
+const unsubscribeSection = {
+  marginTop: '30px',
+  paddingTop: '20px',
+  borderTop: '1px solid #eee',
+};
+
+const unsubscribeText = {
+  fontSize: '12px',
+  color: '#666',
+  textAlign: 'center' as const,
+  margin: '0',
+};
+
+const unsubscribeLink = {
+  color: '#666',
+  textDecoration: 'underline',
 };

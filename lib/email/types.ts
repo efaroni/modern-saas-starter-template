@@ -1,3 +1,5 @@
+import type { EmailType } from './preferences';
+
 export interface EmailResult {
   success: boolean;
   error?: string;
@@ -5,6 +7,7 @@ export interface EmailResult {
 
 export interface WelcomeEmailData {
   user: {
+    id: string;
     email: string;
     name?: string | null;
   };
@@ -47,5 +50,9 @@ export interface EmailService {
     email: string,
     data: PasswordResetNotificationData,
   ): Promise<EmailResult>;
-  sendTestEmail(email: string): Promise<EmailResult>;
+  sendTestEmail(
+    email: string,
+    userId?: string,
+    emailType?: EmailType,
+  ): Promise<EmailResult>;
 }

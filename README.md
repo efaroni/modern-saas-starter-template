@@ -434,7 +434,45 @@ This project includes a comprehensive email system using Resend and React Email 
    RESEND_API_KEY="re_YourApiKeyHere_1234567890abcdef"
    ```
 
-#### 2. Domain Verification (Required for Production)
+#### 2. Configure App URL for Unsubscribe Links
+
+**⚠️ Critical for Mobile and Cross-Device Access:** Unsubscribe links in emails use the `NEXT_PUBLIC_APP_URL` environment variable. If not properly configured, unsubscribe links will not work on mobile devices or other computers.
+
+**Development Environment:**
+
+```bash
+# Option 1: Use your local network IP (recommended for mobile testing)
+NEXT_PUBLIC_APP_URL="http://192.168.1.100:3000"
+
+# Option 2: Use localhost (only works on the same machine)
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+**Production Environment:**
+
+```bash
+# Must be your actual domain
+NEXT_PUBLIC_APP_URL="https://yourdomain.com"
+```
+
+**Finding Your Local IP for Development:**
+
+```bash
+# On macOS/Linux
+hostname -I | awk '{print $1}'
+
+# On Windows
+ipconfig | findstr IPv4
+```
+
+**⚠️ Important Notes:**
+
+- Without `NEXT_PUBLIC_APP_URL` set, unsubscribe links default to `localhost:3000`
+- Localhost URLs cannot be accessed from mobile devices or other computers
+- The development server warns you if this variable is not set
+- In production, failing to set this will break all unsubscribe functionality
+
+#### 3. Domain Verification (Required for Production)
 
 **⚠️ Critical:** You must verify your sending domain in Resend to send emails. Unverified domains will cause emails to fail silently.
 
@@ -478,7 +516,7 @@ Data: v=DMARC1; p=none;
 TTL: Auto
 ```
 
-#### 3. Configure From Email
+#### 4. Configure From Email
 
 Set your verified domain email in `.env.local`:
 
@@ -488,7 +526,7 @@ RESEND_FROM_EMAIL="your-app@yourdomain.com"
 
 **For Testing Only:** You can use `onboarding@resend.dev` for testing without domain verification, but this should never be used in production.
 
-#### 4. Test Your Configuration
+#### 5. Test Your Configuration
 
 1. Start your development server: `npm run dev`
 2. Navigate to `/emails` in your app

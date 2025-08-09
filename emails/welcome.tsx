@@ -3,9 +3,14 @@ import * as React from 'react';
 interface WelcomeEmailProps {
   userName: string;
   dashboardUrl: string;
+  unsubscribeUrl?: string;
 }
 
-export function WelcomeEmail({ userName, dashboardUrl }: WelcomeEmailProps) {
+export function WelcomeEmail({
+  userName,
+  dashboardUrl,
+  unsubscribeUrl,
+}: WelcomeEmailProps) {
   return (
     <div
       style={{
@@ -41,6 +46,21 @@ export function WelcomeEmail({ userName, dashboardUrl }: WelcomeEmailProps) {
         <br />
         The Team
       </p>
+      {unsubscribeUrl && (
+        <div
+          style={{
+            marginTop: '30px',
+            paddingTop: '20px',
+            borderTop: '1px solid #eee',
+            fontSize: '12px',
+            color: '#666',
+          }}
+        >
+          <a href={unsubscribeUrl} style={{ color: '#666' }}>
+            Unsubscribe from marketing emails
+          </a>
+        </div>
+      )}
     </div>
   );
 }

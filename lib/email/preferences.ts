@@ -1,13 +1,11 @@
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { users, userEmailPreferences } from '@/lib/db/schema';
 
 export enum EmailType {
-  MARKETING = 'marketing',
-  PRODUCT_UPDATES = 'productUpdates',
-  SECURITY_ALERTS = 'securityAlerts',
-  TRANSACTIONAL = 'transactional', // Always sent regardless of preferences
+  MARKETING = 'marketing', // Can unsubscribe
+  TRANSACTIONAL = 'transactional', // Cannot unsubscribe - always sent
 }
 
 export interface EmailPreferenceCheck {
@@ -15,7 +13,7 @@ export interface EmailPreferenceCheck {
   reason?: string;
   userEmail?: string;
   userName?: string;
-  unsubscribeUrl?: string;
+  userId?: string; // Added for token generation
 }
 
 /**
@@ -26,13 +24,13 @@ export async function canSendEmailToUser(
   emailType: EmailType,
 ): Promise<EmailPreferenceCheck> {
   try {
-    // Transactional emails (payment, password reset, etc.) are always sent
+    // Transactional emails are always sent regardless of preferences
     if (emailType === EmailType.TRANSACTIONAL) {
       const user = await db.query.users.findFirst({
         where: eq(users.email, userEmail),
         columns: {
+          id: true,
           name: true,
-          unsubscribeToken: true,
         },
       });
 
@@ -40,19 +38,16 @@ export async function canSendEmailToUser(
         canSend: true,
         userEmail,
         userName: user?.name || null,
-        unsubscribeUrl: user?.unsubscribeToken
-          ? getUnsubscribeUrl(user.unsubscribeToken)
-          : undefined,
+        userId: user?.id,
       };
     }
 
-    // For other email types, check user preferences
+    // For marketing emails, check user preferences
     const user = await db.query.users.findFirst({
       where: eq(users.email, userEmail),
       columns: {
+        id: true,
         name: true,
-        emailPreferences: true,
-        unsubscribeToken: true,
       },
     });
 
@@ -64,32 +59,23 @@ export async function canSendEmailToUser(
       };
     }
 
-    // Default preferences if not set
-    const preferences = user.emailPreferences || {
-      marketing: true,
-      productUpdates: true,
-      securityAlerts: true,
-    };
+    // Get user preferences (defaults to enabled if no record exists)
+    const preferences = await db.query.userEmailPreferences.findFirst({
+      where: eq(userEmailPreferences.userId, user.id),
+    });
+
+    // Default to enabled if no preferences record exists
+    const marketingEnabled = preferences?.marketingEnabled ?? true;
 
     let canSend = false;
     let reason = '';
 
-    switch (emailType) {
-      case EmailType.MARKETING:
-        canSend = preferences.marketing;
-        reason = canSend ? '' : 'User has opted out of marketing emails';
-        break;
-      case EmailType.PRODUCT_UPDATES:
-        canSend = preferences.productUpdates;
-        reason = canSend ? '' : 'User has opted out of product update emails';
-        break;
-      case EmailType.SECURITY_ALERTS:
-        canSend = preferences.securityAlerts;
-        reason = canSend ? '' : 'User has opted out of security alert emails';
-        break;
-      default:
-        canSend = false;
-        reason = 'Unknown email type';
+    if (emailType === EmailType.MARKETING) {
+      canSend = marketingEnabled;
+      reason = canSend ? '' : 'User has opted out of marketing emails';
+    } else {
+      canSend = false;
+      reason = 'Unknown email type';
     }
 
     return {
@@ -97,9 +83,7 @@ export async function canSendEmailToUser(
       reason: canSend ? undefined : reason,
       userEmail,
       userName: user.name || null,
-      unsubscribeUrl: user.unsubscribeToken
-        ? getUnsubscribeUrl(user.unsubscribeToken)
-        : undefined,
+      userId: user.id,
     };
   } catch (error) {
     console.error('Error checking email preferences:', error);
@@ -124,84 +108,6 @@ export async function filterUsersForEmail(
   );
 
   return results.filter(result => result.canSend);
-}
-
-/**
- * Get users who have opted in to a specific email type
- */
-export async function getUsersOptedInToEmailType(
-  emailType: EmailType,
-): Promise<EmailPreferenceCheck[]> {
-  try {
-    // Transactional emails can be sent to all users
-    if (emailType === EmailType.TRANSACTIONAL) {
-      const allUsers = await db
-        .select({
-          email: users.email,
-          name: users.name,
-          unsubscribeToken: users.unsubscribeToken,
-        })
-        .from(users);
-
-      return allUsers.map(user => ({
-        canSend: true,
-        userEmail: user.email,
-        userName: user.name || null,
-        unsubscribeUrl: user.unsubscribeToken
-          ? getUnsubscribeUrl(user.unsubscribeToken)
-          : undefined,
-      }));
-    }
-
-    // For other email types, filter by preferences
-    const allUsers = await db
-      .select({
-        email: users.email,
-        name: users.name,
-        emailPreferences: users.emailPreferences,
-        unsubscribeToken: users.unsubscribeToken,
-      })
-      .from(users);
-
-    return allUsers
-      .filter(user => {
-        const preferences = user.emailPreferences || {
-          marketing: true,
-          productUpdates: true,
-          securityAlerts: true,
-        };
-
-        switch (emailType) {
-          case EmailType.MARKETING:
-            return preferences.marketing;
-          case EmailType.PRODUCT_UPDATES:
-            return preferences.productUpdates;
-          case EmailType.SECURITY_ALERTS:
-            return preferences.securityAlerts;
-          default:
-            return false;
-        }
-      })
-      .map(user => ({
-        canSend: true,
-        userEmail: user.email,
-        userName: user.name || null,
-        unsubscribeUrl: user.unsubscribeToken
-          ? getUnsubscribeUrl(user.unsubscribeToken)
-          : undefined,
-      }));
-  } catch (error) {
-    console.error('Error fetching users for email type:', error);
-    return [];
-  }
-}
-
-/**
- * Generate unsubscribe URL from token
- */
-function getUnsubscribeUrl(token: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  return `${baseUrl}/unsubscribe?token=${token}`;
 }
 
 /**

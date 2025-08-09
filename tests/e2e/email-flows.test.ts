@@ -168,7 +168,9 @@ test.describe('Email E2E Tests', () => {
       ).toBeVisible();
     });
 
-    test('should show security alerts as always enabled', async ({ page }) => {
+    test('should show transactional emails as always enabled', async ({
+      page,
+    }) => {
       const testUser = await createTestUser();
 
       // Login and navigate to email management
@@ -178,15 +180,15 @@ test.describe('Email E2E Tests', () => {
       await page.click('button[type="submit"]');
       await page.goto('/emails');
 
-      // Find security alerts toggle
-      const securityToggle = page.locator(
-        'button:near(:text("Security Alerts"))',
+      // Find transactional emails toggle
+      const transactionalToggle = page.locator(
+        'button:near(:text("Transactional Emails"))',
       );
 
       // Verify it's always enabled and disabled from user interaction
-      await expect(securityToggle).toBeDisabled();
-      await expect(securityToggle).toHaveClass(/bg-blue-600/);
-      await expect(securityToggle).toHaveClass(/cursor-not-allowed/);
+      await expect(transactionalToggle).toBeDisabled();
+      await expect(transactionalToggle).toHaveClass(/bg-blue-600/);
+      await expect(transactionalToggle).toHaveClass(/cursor-not-allowed/);
 
       // Verify explanatory text
       await expect(page.locator('text=(always enabled)')).toBeVisible();
@@ -271,7 +273,7 @@ test.describe('Email E2E Tests', () => {
       ).toBeVisible();
 
       await expect(
-        page.locator('h3:has-text("Quick Unsubscribe")'),
+        page.locator('h3:has-text("Unsubscribe Information")'),
       ).toBeVisible();
 
       // Verify test email form
@@ -280,17 +282,9 @@ test.describe('Email E2E Tests', () => {
         page.locator('button:has-text("Send Test Email")'),
       ).toBeVisible();
 
-      // Verify preferences toggles
+      // Verify preferences toggles - only marketing and transactional now
       await expect(page.locator('text=Marketing Emails')).toBeVisible();
-
-      await expect(page.locator('text=Product Updates')).toBeVisible();
-
-      await expect(page.locator('text=Security Alerts')).toBeVisible();
-
-      // Verify unsubscribe section
-      await expect(
-        page.locator('a:has-text("Test Unsubscribe Link")'),
-      ).toBeVisible();
+      await expect(page.locator('text=Transactional Emails')).toBeVisible();
 
       // Verify important note section
       await expect(page.locator('h3:has-text("Important Note")')).toBeVisible();

@@ -5,6 +5,7 @@ import {
   jsonb,
   uuid,
   unique,
+  boolean,
 } from 'drizzle-orm/pg-core';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 
@@ -19,20 +20,6 @@ export const users = pgTable('users', {
   imageUrl: text('image_url'), // User's profile image from Clerk
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-
-  // Email preferences
-  emailPreferences: jsonb('email_preferences')
-    .$type<{
-      marketing: boolean;
-      productUpdates: boolean;
-      securityAlerts: boolean;
-    }>()
-    .default({
-      marketing: true,
-      productUpdates: true,
-      securityAlerts: true,
-    }),
-  unsubscribeToken: text('unsubscribe_token').unique(),
 
   // Billing fields - only store customer ID, query Stripe for status
   billingCustomerId: text('billing_customer_id').unique(),
@@ -66,6 +53,25 @@ export const webhookEvents = pgTable('webhook_events', {
   processedAt: timestamp('processed_at').defaultNow().notNull(),
 });
 
+// Email unsubscribe tokens - one-time use tokens for secure unsubscribe
+export const emailUnsubscribeTokens = pgTable('email_unsubscribe_tokens', {
+  token: text('token').primaryKey(),
+  userId: text('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
+  category: text('category'), // 'marketing', null = global
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// User email preferences - simple boolean flags
+export const userEmailPreferences = pgTable('user_email_preferences', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  marketingEnabled: boolean('marketing_enabled').default(true).notNull(),
+  // Transactional emails are always sent - no column needed
+});
+
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
@@ -73,6 +79,16 @@ export const insertUserApiKeySchema = createInsertSchema(userApiKeys);
 export const selectUserApiKeySchema = createSelectSchema(userApiKeys);
 export const insertWebhookEventSchema = createInsertSchema(webhookEvents);
 export const selectWebhookEventSchema = createSelectSchema(webhookEvents);
+export const insertEmailUnsubscribeTokenSchema = createInsertSchema(
+  emailUnsubscribeTokens,
+);
+export const selectEmailUnsubscribeTokenSchema = createSelectSchema(
+  emailUnsubscribeTokens,
+);
+export const insertUserEmailPreferencesSchema =
+  createInsertSchema(userEmailPreferences);
+export const selectUserEmailPreferencesSchema =
+  createSelectSchema(userEmailPreferences);
 
 // Export types using the table structure
 export type User = typeof users.$inferSelect;
@@ -81,3 +97,8 @@ export type InsertUserApiKey = typeof userApiKeys.$inferInsert;
 export type SelectUserApiKey = typeof userApiKeys.$inferSelect;
 export type WebhookEvent = typeof webhookEvents.$inferSelect;
 export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
+export type EmailUnsubscribeToken = typeof emailUnsubscribeTokens.$inferSelect;
+export type NewEmailUnsubscribeToken =
+  typeof emailUnsubscribeTokens.$inferInsert;
+export type UserEmailPreferences = typeof userEmailPreferences.$inferSelect;
+export type NewUserEmailPreferences = typeof userEmailPreferences.$inferInsert;

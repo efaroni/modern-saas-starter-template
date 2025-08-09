@@ -6,18 +6,18 @@ import { useUser } from '@clerk/nextjs';
 
 interface EmailPreferences {
   marketing: boolean;
-  productUpdates: boolean;
-  securityAlerts: boolean;
+  transactional: boolean;
 }
 
 interface UserData {
   emailPreferences: EmailPreferences;
-  unsubscribeToken: string;
 }
 
 export default function EmailsPage() {
   const { user, isLoaded } = useUser();
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [originalPreferences, setOriginalPreferences] =
+    useState<EmailPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{
@@ -27,7 +27,9 @@ export default function EmailsPage() {
 
   // Test email state
   const [testEmail, setTestEmail] = useState('');
-  const [sendingTest, setSendingTest] = useState(false);
+  const [sendingMarketingTest, setSendingMarketingTest] = useState(false);
+  const [sendingTransactionalTest, setSendingTransactionalTest] =
+    useState(false);
   const [testSendCount, setTestSendCount] = useState(0);
   const [lastTestSent, setLastTestSent] = useState<Date | null>(null);
   const [testTimeoutUntil, setTestTimeoutUntil] = useState<Date | null>(null);
@@ -53,6 +55,7 @@ export default function EmailsPage() {
       if (response.ok) {
         const data = await response.json();
         setUserData(data);
+        setOriginalPreferences(data.emailPreferences);
       } else {
         console.error('Failed to fetch user data');
       }
@@ -80,6 +83,7 @@ export default function EmailsPage() {
         setUserData(prev =>
           prev ? { ...prev, emailPreferences: newPreferences } : null,
         );
+        setOriginalPreferences(newPreferences);
         setMessage({
           type: 'success',
           text: 'Email preferences updated successfully',
@@ -98,28 +102,30 @@ export default function EmailsPage() {
     }
   };
 
-  const handlePreferenceChange = (
-    key: keyof EmailPreferences,
-    value: boolean,
-  ) => {
-    if (!userData) return;
-
-    const newPreferences = {
-      ...userData.emailPreferences,
-      [key]: value,
-    };
-
-    updateEmailPreferences(newPreferences);
+  const hasChanges = () => {
+    if (!userData || !originalPreferences) return false;
+    return (
+      userData.emailPreferences.marketing !== originalPreferences.marketing ||
+      userData.emailPreferences.transactional !==
+        originalPreferences.transactional
+    );
   };
 
-  const getUnsubscribeUrl = () => {
-    if (!userData?.unsubscribeToken) return '';
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-    return `${baseUrl}/unsubscribe?token=${userData.unsubscribeToken}`;
-  };
-
-  const sendTestEmail = async () => {
+  const sendTestEmail = async (emailType: 'marketing' | 'transactional') => {
     if (!testEmail) return;
+
+    // Check if marketing email is allowed (use saved preferences, not unsaved UI state)
+    if (
+      emailType === 'marketing' &&
+      originalPreferences &&
+      !originalPreferences.marketing
+    ) {
+      setTestMessage({
+        type: 'error',
+        text: 'Cannot send marketing test email - marketing emails are disabled in your preferences',
+      });
+      return;
+    }
 
     // Check timeout
     if (testTimeoutUntil && new Date() < testTimeoutUntil) {
@@ -145,7 +151,11 @@ export default function EmailsPage() {
       return;
     }
 
-    setSendingTest(true);
+    const setSending =
+      emailType === 'marketing'
+        ? setSendingMarketingTest
+        : setSendingTransactionalTest;
+    setSending(true);
     setTestMessage(null);
 
     try {
@@ -154,7 +164,10 @@ export default function EmailsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: testEmail }),
+        body: JSON.stringify({
+          email: testEmail,
+          emailType: emailType,
+        }),
       });
 
       const data = await response.json();
@@ -173,7 +186,7 @@ export default function EmailsPage() {
 
         setTestMessage({
           type: 'success',
-          text: data.message || 'Test email sent successfully!',
+          text: data.message || `Test ${emailType} email sent successfully!`,
         });
       } else {
         setTestMessage({
@@ -187,21 +200,36 @@ export default function EmailsPage() {
         text: 'Network error occurred while sending test email',
       });
     } finally {
-      setSendingTest(false);
+      setSending(false);
     }
   };
 
-  const isTestButtonDisabled = () => {
-    if (sendingTest) return true;
+  const isTestButtonDisabled = (emailType: 'marketing' | 'transactional') => {
+    const isSending =
+      emailType === 'marketing'
+        ? sendingMarketingTest
+        : sendingTransactionalTest;
+    if (isSending) return true;
     if (testTimeoutUntil && currentTime < testTimeoutUntil.getTime())
       return true;
     if (lastTestSent && currentTime - lastTestSent.getTime() < 5000)
       return true;
+    // Additional check for marketing emails (use saved preferences, not unsaved UI state)
+    if (
+      emailType === 'marketing' &&
+      originalPreferences &&
+      !originalPreferences.marketing
+    )
+      return true;
     return false;
   };
 
-  const getTestButtonText = () => {
-    if (sendingTest) return 'Sending...';
+  const getTestButtonText = (emailType: 'marketing' | 'transactional') => {
+    const isSending =
+      emailType === 'marketing'
+        ? sendingMarketingTest
+        : sendingTransactionalTest;
+    if (isSending) return 'Sending...';
     if (testTimeoutUntil && currentTime < testTimeoutUntil.getTime()) {
       const remainingTime = Math.ceil(
         (testTimeoutUntil.getTime() - currentTime) / 1000,
@@ -214,7 +242,16 @@ export default function EmailsPage() {
       );
       return `Wait ${remainingTime}s`;
     }
-    return 'Send Test Email';
+    if (
+      emailType === 'marketing' &&
+      originalPreferences &&
+      !originalPreferences.marketing
+    ) {
+      return 'Marketing Disabled';
+    }
+    return emailType === 'marketing'
+      ? 'Send Marketing Test'
+      : 'Send Transactional Test';
   };
 
   // Update button text every second when there's a cooldown
@@ -299,8 +336,8 @@ export default function EmailsPage() {
                     Test Email Service
                   </h3>
                   <p className='mb-4 text-sm text-gray-600'>
-                    Send a test email to verify your email configuration is
-                    working.
+                    Send test emails to verify your email configuration and see
+                    how different email types behave based on your preferences.
                   </p>
 
                   {testMessage && (
@@ -315,8 +352,8 @@ export default function EmailsPage() {
                     </div>
                   )}
 
-                  <div className='flex space-x-4'>
-                    <div className='flex-1'>
+                  <div className='space-y-4'>
+                    <div>
                       <label className='mb-2 block text-sm font-medium text-gray-700'>
                         Email Address
                       </label>
@@ -326,27 +363,60 @@ export default function EmailsPage() {
                         onChange={e => setTestEmail(e.target.value)}
                         placeholder='Enter email address'
                         className='block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-                        disabled={sendingTest}
+                        disabled={
+                          sendingMarketingTest || sendingTransactionalTest
+                        }
                       />
                     </div>
-                    <div className='flex items-end'>
-                      <button
-                        type='button'
-                        onClick={sendTestEmail}
-                        disabled={isTestButtonDisabled() || !testEmail}
-                        className={`rounded-md px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none ${
-                          isTestButtonDisabled() || !testEmail
-                            ? 'cursor-not-allowed bg-gray-300 text-gray-500'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                        }`}
-                      >
-                        {getTestButtonText()}
-                      </button>
+
+                    <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+                      <div className='space-y-2'>
+                        <button
+                          type='button'
+                          onClick={() => sendTestEmail('marketing')}
+                          disabled={
+                            isTestButtonDisabled('marketing') || !testEmail
+                          }
+                          className={`w-full rounded-md px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none ${
+                            isTestButtonDisabled('marketing') || !testEmail
+                              ? 'cursor-not-allowed bg-gray-300 text-gray-500'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          {getTestButtonText('marketing')}
+                        </button>
+                        <p className='text-xs text-gray-500'>
+                          Marketing test email - respects your marketing email
+                          preference
+                        </p>
+                      </div>
+
+                      <div className='space-y-2'>
+                        <button
+                          type='button'
+                          onClick={() => sendTestEmail('transactional')}
+                          disabled={
+                            isTestButtonDisabled('transactional') || !testEmail
+                          }
+                          className={`w-full rounded-md px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none ${
+                            isTestButtonDisabled('transactional') || !testEmail
+                              ? 'cursor-not-allowed bg-gray-300 text-gray-500'
+                              : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
+                        >
+                          {getTestButtonText('transactional')}
+                        </button>
+                        <p className='text-xs text-gray-500'>
+                          Transactional test email - always sends regardless of
+                          preferences
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <p className='mt-2 text-xs text-gray-500'>
-                    Rate limit: Maximum 5 test emails, then 2-minute cooldown.
+                  <p className='mt-4 text-xs text-gray-500'>
+                    Rate limit: Maximum 5 test emails total, then 2-minute
+                    cooldown.
                   </p>
                 </div>
 
@@ -355,120 +425,133 @@ export default function EmailsPage() {
                   <h3 className='mb-4 text-lg font-medium text-gray-900'>
                     Email Preferences
                   </h3>
-                  <div className='space-y-4'>
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <label className='text-sm font-medium text-gray-700'>
+                  <div className='space-y-6'>
+                    <div className='flex items-start'>
+                      <div className='flex h-5 items-center'>
+                        <input
+                          id='marketing'
+                          type='checkbox'
+                          checked={userData.emailPreferences.marketing}
+                          onChange={e =>
+                            setUserData(prev =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    emailPreferences: {
+                                      ...prev.emailPreferences,
+                                      marketing: e.target.checked,
+                                    },
+                                  }
+                                : null,
+                            )
+                          }
+                          className='h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                        />
+                      </div>
+                      <div className='ml-3 text-sm'>
+                        <label
+                          htmlFor='marketing'
+                          className='font-medium text-gray-700'
+                        >
                           Marketing Emails
                         </label>
-                        <p className='text-sm text-gray-500'>
-                          Product updates, feature announcements, and
-                          promotional content
+                        <p className='text-gray-500'>
+                          Receive emails about new features, product updates,
+                          and promotional content.
                         </p>
                       </div>
-                      <button
-                        type='button'
-                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none ${
-                          userData.emailPreferences.marketing
-                            ? 'bg-blue-600'
-                            : 'bg-gray-200'
-                        }`}
-                        onClick={() =>
-                          handlePreferenceChange(
-                            'marketing',
-                            !userData.emailPreferences.marketing,
-                          )
-                        }
-                        disabled={saving}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            userData.emailPreferences.marketing
-                              ? 'translate-x-5'
-                              : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
                     </div>
 
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <label className='text-sm font-medium text-gray-700'>
-                          Product Updates
+                    <div className='flex items-start'>
+                      <div className='flex h-5 items-center'>
+                        <input
+                          id='transactional'
+                          type='checkbox'
+                          checked={userData.emailPreferences.transactional}
+                          disabled
+                          className='h-4 w-4 cursor-not-allowed rounded border-gray-300 text-blue-600 opacity-50 focus:ring-blue-500'
+                        />
+                      </div>
+                      <div className='ml-3 text-sm'>
+                        <label
+                          htmlFor='transactional'
+                          className='font-medium text-gray-700'
+                        >
+                          Transactional Emails
                         </label>
-                        <p className='text-sm text-gray-500'>
-                          Important product changes and new features
+                        <p className='text-gray-500'>
+                          Essential emails including security notifications,
+                          billing updates, password resets, and account-related
+                          communications.
+                          <strong className='mt-1 block'>
+                            These emails cannot be disabled for your account
+                            security.
+                          </strong>
                         </p>
                       </div>
-                      <button
-                        type='button'
-                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none ${
-                          userData.emailPreferences.productUpdates
-                            ? 'bg-blue-600'
-                            : 'bg-gray-200'
-                        }`}
-                        onClick={() =>
-                          handlePreferenceChange(
-                            'productUpdates',
-                            !userData.emailPreferences.productUpdates,
-                          )
-                        }
-                        disabled={saving}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            userData.emailPreferences.productUpdates
-                              ? 'translate-x-5'
-                              : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
                     </div>
 
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <label className='text-sm font-medium text-gray-700'>
-                          Security Alerts
-                        </label>
-                        <p className='text-sm text-gray-500'>
-                          Account security notifications and alerts (always
-                          enabled)
-                        </p>
-                      </div>
+                    <div className='flex justify-end'>
                       <button
-                        type='button'
-                        className='relative inline-flex h-6 w-11 flex-shrink-0 cursor-not-allowed rounded-full border-2 border-transparent bg-blue-600 opacity-50'
-                        disabled
+                        onClick={() =>
+                          userData &&
+                          updateEmailPreferences(userData.emailPreferences)
+                        }
+                        disabled={saving || !userData || !hasChanges()}
+                        className='inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50'
                       >
-                        <span className='pointer-events-none inline-block h-5 w-5 translate-x-5 transform rounded-full bg-white shadow ring-0' />
+                        {(() => {
+                          if (saving) {
+                            return (
+                              <>
+                                <div className='mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white' />
+                                Saving...
+                              </>
+                            );
+                          }
+                          return hasChanges()
+                            ? 'Save Preferences'
+                            : 'No Changes to Save';
+                        })()}
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Unsubscribe Link */}
+                {/* Unsubscribe Information */}
                 <div className='border-t border-gray-200 pt-6'>
                   <h3 className='mb-4 text-lg font-medium text-gray-900'>
-                    Quick Unsubscribe
+                    Unsubscribe Information
                   </h3>
-                  <p className='mb-4 text-sm text-gray-600'>
-                    You can quickly unsubscribe from all marketing emails using
-                    this link:
-                  </p>
-                  <div className='rounded-md bg-gray-50 p-4'>
-                    <code className='text-sm break-all text-gray-800'>
-                      {getUnsubscribeUrl()}
-                    </code>
-                  </div>
-                  <div className='mt-4'>
-                    <a
-                      href={getUnsubscribeUrl()}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
-                    >
-                      Test Unsubscribe Link
-                    </a>
+                  <div className='rounded-md bg-blue-50 p-4'>
+                    <div className='flex'>
+                      <div className='flex-shrink-0'>
+                        <svg
+                          className='h-5 w-5 text-blue-400'
+                          viewBox='0 0 20 20'
+                          fill='currentColor'
+                        >
+                          <path
+                            fillRule='evenodd'
+                            d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z'
+                            clipRule='evenodd'
+                          />
+                        </svg>
+                      </div>
+                      <div className='ml-3'>
+                        <h4 className='text-sm font-medium text-blue-800'>
+                          How Unsubscribe Works
+                        </h4>
+                        <div className='mt-2 text-sm text-blue-700'>
+                          <p>
+                            Each marketing email includes a personalized, secure
+                            unsubscribe link. Test emails sent from this page
+                            also include unsubscribe links so you can test the
+                            functionality.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

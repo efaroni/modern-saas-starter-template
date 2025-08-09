@@ -71,6 +71,13 @@
       "when": 1753700000000,
       "tag": "0009_update_users_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1754697956017,
+      "tag": "0010_lethal_ben_grimm",
+      "breakpoints": true
     }
   ]
 }

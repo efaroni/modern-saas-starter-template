@@ -1,9 +1,13 @@
+import crypto from 'crypto';
+
 import { render } from '@react-email/render';
 import { Resend } from 'resend';
 
 import { PasswordResetNotificationEmail } from '@/emails/password-reset-notification';
 import { TestEmail } from '@/emails/test-email';
 import { WelcomeEmail } from '@/emails/welcome';
+import { db } from '@/lib/db';
+import { emailUnsubscribeTokens } from '@/lib/db/schema';
 
 import {
   filterUsersForEmail,
@@ -29,15 +33,37 @@ export class ResendEmailService implements EmailService {
     this.baseUrl = baseUrl;
   }
 
+  private async generateUnsubscribeToken(
+    userId: string,
+    category: string,
+  ): Promise<string> {
+    const token = crypto.randomBytes(16).toString('hex');
+
+    await db.insert(emailUnsubscribeTokens).values({
+      token,
+      userId,
+      category,
+    });
+
+    return `${this.baseUrl}/unsubscribe/${token}`;
+  }
+
   async sendWelcomeEmail(
     email: string,
     data: WelcomeEmailData,
   ): Promise<EmailResult> {
     try {
+      // Generate unsubscribe token for marketing emails
+      const unsubscribeUrl = await this.generateUnsubscribeToken(
+        data.user.id,
+        EmailType.MARKETING,
+      );
+
       const html = await render(
         WelcomeEmail({
           userName: data.user.name,
           dashboardUrl: data.dashboardUrl,
+          unsubscribeUrl,
         }),
       );
 
@@ -82,12 +108,20 @@ export class ResendEmailService implements EmailService {
 
       // Send individual emails with personalized unsubscribe links
       for (const user of allowedUsers) {
-        const personalizedUnsubscribeUrl =
-          user.unsubscribeUrl || data.unsubscribeUrl;
+        if (!user.userId) {
+          console.error('Missing userId for user:', user.userEmail);
+          continue;
+        }
+
+        // Generate one-time unsubscribe token for this specific email
+        const unsubscribeUrl = await this.generateUnsubscribeToken(
+          user.userId,
+          EmailType.MARKETING,
+        );
 
         await this.resend.emails.send({
           from: this.from,
-          to: user.userEmail,
+          to: user.userEmail!,
           subject: data.subject,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -102,14 +136,14 @@ export class ResendEmailService implements EmailService {
                   : ''
               }
               <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
-                <a href="${personalizedUnsubscribeUrl}" style="color: #666;">Unsubscribe</a>
+                <a href="${unsubscribeUrl}" style="color: #666;">Unsubscribe</a>
               </div>
             </div>
           `,
         });
       }
 
-      console.warn(
+      console.info(
         `Marketing email sent to ${allowedUsers.length} out of ${emails.length} recipients`,
       );
 
@@ -153,30 +187,45 @@ export class ResendEmailService implements EmailService {
     }
   }
 
-  async sendTestEmail(email: string): Promise<EmailResult> {
+  async sendTestEmail(
+    email: string,
+    userId?: string,
+    emailType: EmailType = EmailType.MARKETING,
+  ): Promise<EmailResult> {
     try {
-      console.warn('Attempting to send test email to:', email);
-      console.warn('From address:', this.from);
-      console.warn('API Key configured:', !!process.env.RESEND_API_KEY);
+      let unsubscribeUrl: string | undefined;
+
+      // Generate unsubscribe token only for marketing emails
+      if (userId && emailType === EmailType.MARKETING) {
+        unsubscribeUrl = await this.generateUnsubscribeToken(
+          userId,
+          EmailType.MARKETING,
+        );
+      }
+
+      const emailSubject =
+        emailType === EmailType.MARKETING
+          ? 'Test Marketing Email - Service Working'
+          : 'Test Transactional Email - Service Working';
 
       const html = await render(
         TestEmail({
           timestamp: new Date(),
+          unsubscribeUrl,
+          emailType,
         }),
       );
 
-      const result = await this.resend.emails.send({
+      await this.resend.emails.send({
         from: this.from,
         to: email,
-        subject: 'Test Email - Service Working',
+        subject: emailSubject,
         html,
       });
 
-      console.warn('Resend API response:', result);
       return { success: true };
     } catch (error) {
       console.error('Failed to send test email:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       return {
         success: false,
         error:
