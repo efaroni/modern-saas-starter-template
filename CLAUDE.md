@@ -253,6 +253,12 @@ await emailService.sendWelcomeEmail(user.email, {
 });
 ```
 
+## Git Commit Standards
+
+This project uses **Conventional Commits** with commitlint and Husky. Use format: `type(scope): description`
+
+Examples: `feat(auth): add oauth`, `fix(api): handle errors`, `docs: update readme`
+
 ## Key Files Reference
 
 - **Auth**: `lib/auth/` (providers, session management)

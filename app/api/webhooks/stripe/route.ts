@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
 
     if (!data) {
       console.warn('Invalid webhook event format: missing data.object');
-      return NextResponse.json({ error: 'Invalid event format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid event format' },
+        { status: 400 },
+      );
     }
 
     console.warn('Stripe webhook event received:', {
