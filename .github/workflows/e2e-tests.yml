@@ -230,6 +230,9 @@ jobs:
           PROD_DB_USER: mock
           PROD_DB_PASSWORD: mock
           PROD_DB_NAME: mock
+          # Clerk configuration for build process
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
 
       # Start the application server in background
       - name: Start application server
@@ -242,6 +245,12 @@ jobs:
             sleep 2
           done'
           echo "Application server is ready"
+        env:
+          # Database configuration for runtime
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saas_template_e2e
+          # Clerk configuration for runtime
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
 
       # Run E2E tests with specific configuration
       - name: Run Playwright E2E tests
