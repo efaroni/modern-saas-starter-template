@@ -110,3 +110,41 @@ export const lenientRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   maxRequests: 1000,
 });
+
+/**
+ * Wrap a handler with rate limiting
+ */
+export function withRateLimit(
+  rateLimiter: (request: NextRequest) => RateLimitResult,
+  handler: (request: NextRequest) => Promise<Response>,
+) {
+  return async (request: NextRequest): Promise<Response> => {
+    const result = rateLimiter(request);
+
+    if (!result.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'Too many requests',
+          retryAfter: result.retryAfter,
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': result.retryAfter.toString(),
+          },
+        },
+      );
+    }
+
+    // Add rate limit headers to successful responses
+    const response = await handler(request);
+    response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
+    response.headers.set(
+      'X-RateLimit-Reset',
+      new Date(result.resetTime).toISOString(),
+    );
+
+    return response;
+  };
+}

@@ -125,7 +125,7 @@ export async function POST(_request: NextRequest) {
     console.error('Portal session creation failed:', error);
 
     // Enhanced error handling for Stripe-specific errors
-    if (error instanceof Stripe.StripeError) {
+    if (error instanceof Stripe.errors.StripeError) {
       console.error('Stripe API Error Details:', {
         type: error.type,
         code: error.code,

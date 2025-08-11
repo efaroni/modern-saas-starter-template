@@ -41,19 +41,24 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Parse event
-    const event = billingService.parseWebhookEvent(body);
-    const data = event.data as Record<string, unknown>;
+    // Parse raw event first to handle all Stripe event types
+    const stripeEvent = JSON.parse(body);
+    const data = stripeEvent.data?.object as Record<string, unknown>;
+
+    if (!data) {
+      console.warn('Invalid webhook event format: missing data.object');
+      return NextResponse.json({ error: 'Invalid event format' }, { status: 400 });
+    }
 
     console.warn('Stripe webhook event received:', {
-      type: event.type,
+      type: stripeEvent.type,
       id: data.id,
       customer: data.customer,
     });
 
     // Check for idempotency
     const existingEvent = await db.query.webhookEvents.findFirst({
-      where: eq(webhookEvents.id, data.id),
+      where: eq(webhookEvents.id, data.id as string),
     });
 
     if (existingEvent) {
@@ -64,15 +69,15 @@ export async function POST(request: NextRequest) {
     // Store event for idempotency with retry
     await retryDbOperation(() =>
       db.insert(webhookEvents).values({
-        id: data.id,
+        id: data.id as string,
         provider: 'stripe',
-        eventType: event.type,
+        eventType: stripeEvent.type,
       }),
     );
 
     // Handle only the critical events (lean approach)
-    switch (event.type) {
-      case 'checkout.completed':
+    switch (stripeEvent.type) {
+      case 'checkout.session.completed':
         console.warn('Processing checkout completion:', data.id);
 
         // Store billing customer ID using client_reference_id from checkout
@@ -81,9 +86,9 @@ export async function POST(request: NextRequest) {
             db
               .update(users)
               .set({
-                billingCustomerId: data.customer,
+                billingCustomerId: data.customer as string,
               })
-              .where(eq(users.id, data.client_reference_id)),
+              .where(eq(users.id, data.client_reference_id as string)),
           );
 
           console.warn(
@@ -105,9 +110,9 @@ export async function POST(request: NextRequest) {
             db
               .update(users)
               .set({
-                billingCustomerId: data.id,
+                billingCustomerId: data.id as string,
               })
-              .where(eq(users.email, data.email)),
+              .where(eq(users.email, data.email as string)),
           );
 
           console.warn(
@@ -124,7 +129,7 @@ export async function POST(request: NextRequest) {
         }
         break;
 
-      case 'subscription.deleted':
+      case 'customer.subscription.deleted':
         console.warn('Processing subscription deletion:', data.id);
         // Just log for audit - we query Stripe directly for access control
         console.warn('Subscription ended for customer:', data.customer);
@@ -137,7 +142,7 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        console.warn('Ignoring webhook event type:', event.type);
+        console.warn('Ignoring webhook event type:', stripeEvent.type);
     }
 
     return NextResponse.json({ received: true });

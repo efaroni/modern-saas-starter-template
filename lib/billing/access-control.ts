@@ -110,7 +110,11 @@ export async function getSubscriptionDetails(userId: string): Promise<{
       return null;
     }
 
-    const subscription = subscriptions.data[0];
+    const subscription = subscriptions.data[0] as unknown as {
+      status: string;
+      current_period_end: number;
+      cancel_at_period_end: boolean;
+    };
 
     return {
       status: subscription.status,
