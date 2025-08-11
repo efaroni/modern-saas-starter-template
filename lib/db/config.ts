@@ -39,13 +39,21 @@ interface EnvironmentDatabaseConfig {
 function getDatabaseEnvironment(env: string): EnvironmentDatabaseConfig {
   switch (env) {
     case 'development':
-    case 'test': // Tests now use development environment
       return {
         host: process.env.DEV_DB_HOST || 'localhost',
         port: parseEnvInt('DEV_DB_PORT', 5432),
         username: process.env.DEV_DB_USER,
         password: process.env.DEV_DB_PASSWORD || '',
         database: process.env.DEV_DB_NAME,
+        ssl: false,
+      };
+    case 'test':
+      return {
+        host: process.env.TEST_DB_HOST || 'localhost',
+        port: parseEnvInt('TEST_DB_PORT', 5432),
+        username: process.env.TEST_DB_USER,
+        password: process.env.TEST_DB_PASSWORD || '',
+        database: process.env.TEST_DB_NAME,
         ssl: false,
       };
     case 'production':
@@ -237,7 +245,7 @@ export function getDatabaseConfig(): DatabaseConfig {
   switch (process.env.NODE_ENV) {
     case 'test':
       // Test environment: smaller pool, faster timeouts for parallel execution
-      // Tests now use development database but with optimized settings
+      // Uses isolated test database with optimized settings
       return {
         ...baseConfig,
         poolSize: parseEnvInt('DB_MAX_CONNECTIONS', 3),

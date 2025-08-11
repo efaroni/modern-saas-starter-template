@@ -16,6 +16,13 @@ const envSchema = z
     DEV_DB_NAME: z.string().optional(),
     DATABASE_URL: z.string().url().optional(),
 
+    // Test database (isolated test environment)
+    TEST_DB_HOST: z.string().optional(),
+    TEST_DB_PORT: z.string().transform(Number).optional(),
+    TEST_DB_USER: z.string().optional(),
+    TEST_DB_PASSWORD: z.string().optional(),
+    TEST_DB_NAME: z.string().optional(),
+
     // Production database (required in production)
     PROD_DB_HOST: z.string().optional(),
     PROD_DB_PORT: z.string().transform(Number).optional(),
@@ -63,12 +70,20 @@ const envSchema = z
         );
       }
 
-      // In development/test, require either component variables or DATABASE_URL
-      if (data.NODE_ENV === 'development' || data.NODE_ENV === 'test') {
+      // In development, require development database variables
+      if (data.NODE_ENV === 'development') {
         const hasComponentVars =
           data.DEV_DB_HOST && data.DEV_DB_USER && data.DEV_DB_NAME;
         const hasFullUrl = data.DATABASE_URL;
         return hasComponentVars || hasFullUrl;
+      }
+
+      // In test, require test database variables
+      if (data.NODE_ENV === 'test') {
+        const hasTestComponentVars =
+          data.TEST_DB_HOST && data.TEST_DB_USER && data.TEST_DB_NAME;
+        const hasFullUrl = data.DATABASE_URL;
+        return hasTestComponentVars || hasFullUrl;
       }
 
       return true;
