@@ -1,0 +1,1 @@
+ALTER TABLE "user_email_preferences" DROP COLUMN "product_updates_enabled";

@@ -417,3 +417,157 @@ emails/                 # React Email templates
 ```
 
 For detailed implementation guide, see [`SECTION_3_TODOS.md`](./SECTION_3_TODOS.md).
+
+## Email Service Configuration
+
+This project includes a comprehensive email system using Resend and React Email templates for transactional emails, user notifications, and test email functionality.
+
+### Email Setup Requirements
+
+#### 1. Get Resend API Key
+
+1. Visit [resend.com/api-keys](https://resend.com/api-keys)
+2. Create a new API key
+3. Add it to your `.env.local`:
+
+   ```bash
+   RESEND_API_KEY="re_YourApiKeyHere_1234567890abcdef"
+   ```
+
+#### 2. Configure App URL for Unsubscribe Links
+
+**⚠️ Critical for Mobile and Cross-Device Access:** Unsubscribe links in emails use the `NEXT_PUBLIC_APP_URL` environment variable. If not properly configured, unsubscribe links will not work on mobile devices or other computers.
+
+**Development Environment:**
+
+```bash
+# Option 1: Use your local network IP (recommended for mobile testing)
+NEXT_PUBLIC_APP_URL="http://192.168.1.100:3000"
+
+# Option 2: Use localhost (only works on the same machine)
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
+
+**Production Environment:**
+
+```bash
+# Must be your actual domain
+NEXT_PUBLIC_APP_URL="https://yourdomain.com"
+```
+
+**Finding Your Local IP for Development:**
+
+```bash
+# On macOS/Linux
+hostname -I | awk '{print $1}'
+
+# On Windows
+ipconfig | findstr IPv4
+```
+
+**⚠️ Important Notes:**
+
+- Without `NEXT_PUBLIC_APP_URL` set, unsubscribe links default to `localhost:3000`
+- Localhost URLs cannot be accessed from mobile devices or other computers
+- The development server warns you if this variable is not set
+- In production, failing to set this will break all unsubscribe functionality
+
+#### 3. Domain Verification (Required for Production)
+
+**⚠️ Critical:** You must verify your sending domain in Resend to send emails. Unverified domains will cause emails to fail silently.
+
+1. **Add Your Domain**: Visit [resend.com/domains](https://resend.com/domains) and add your domain
+2. **Configure DNS Records**: Add the following DNS records to your domain (values are examples - use your actual records from Resend):
+
+**MX Record (Required for email delivery):**
+
+```
+Host: send
+Type: MX
+Priority: 10
+Data: feedback-smtp.us-east-1.amazonses.com
+TTL: Auto
+```
+
+**SPF Record (Required - prevents spam filtering):**
+
+```
+Host: send
+Type: TXT
+Data: v=spf1 include:amazonses.com ~all
+TTL: Auto
+```
+
+**DKIM Record (Required for email signing):**
+
+```
+Host: resend._domainkey
+Type: TXT
+Data: p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8kfXx9BmQNy8fVjRMzc1x+8+L5wnD9hRw2izUR0v7HmXGvL2pYyDuPLRNZqpWV6Hx77gqJL60p/uedtrWPH3+IoxBM6sjweLYBISYLlVfO8OBKBRuuqNEuGKCpYxpwoEbUft7n7/x9ylRVpqioQIDAQAB
+TTL: Auto
+```
+
+**DMARC Record (Recommended for security):**
+
+```
+Host: _dmarc
+Type: TXT
+Data: v=DMARC1; p=none;
+TTL: Auto
+```
+
+#### 4. Configure From Email
+
+Set your verified domain email in `.env.local`:
+
+```bash
+RESEND_FROM_EMAIL="your-app@yourdomain.com"
+```
+
+**For Testing Only:** You can use `onboarding@resend.dev` for testing without domain verification, but this should never be used in production.
+
+#### 5. Test Your Configuration
+
+1. Start your development server: `npm run dev`
+2. Navigate to `/emails` in your app
+3. Use the "Test Email Service" section to send a test email
+4. Check the browser console and server logs for any errors
+
+### Email Features
+
+- ✅ **Welcome Emails** - Automatically sent when users sign up via Clerk webhook
+- ✅ **Test Email Service** - Send test emails with rate limiting (5 emails max, then 2-minute cooldown)
+- ✅ **Email Preferences** - User-controlled settings for marketing, product updates, and security alerts
+- ✅ **Payment Notifications** - Automatic emails for successful payments, failed payments, and subscription changes
+- ✅ **Unsubscribe System** - One-click unsubscribe with re-subscribe option
+- ✅ **React Email Templates** - Professional, responsive email templates
+
+### Email Management Interface
+
+Visit `/emails` to access:
+
+- Send test emails to any address
+- Manage email preferences (marketing, product updates)
+- View and test unsubscribe links
+- See important notices about critical emails (security, billing)
+
+### Common Issues
+
+**❌ Emails not sending:**
+
+- Verify your domain is added and verified in Resend dashboard
+- Check that DNS records are correctly configured (can take up to 48 hours to propagate)
+- Ensure `RESEND_API_KEY` is valid and not expired
+
+**❌ "Button stays disabled" after sending test email:**
+
+- This is expected behavior - there's a 5-second cooldown between test emails
+- After 5 test emails, there's a 2-minute timeout period
+
+**❌ Domain verification fails:**
+
+- DNS changes can take 24-48 hours to propagate globally
+- Use DNS checker tools to verify your records are correctly set
+- Contact Resend support if issues persist after 48 hours
+
+For detailed email implementation guide, see [`SECTION_4_TODOS.md`](./SECTION_4_TODOS.md).

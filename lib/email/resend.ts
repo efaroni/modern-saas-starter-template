@@ -1,21 +1,25 @@
+import crypto from 'crypto';
+
 import { render } from '@react-email/render';
 import { Resend } from 'resend';
 
-import { PasswordResetEmail } from '@/emails/password-reset';
-import { PaymentFailedEmail } from '@/emails/payment-failed';
-import { PaymentSuccessEmail } from '@/emails/payment-success';
-import { VerifyEmail } from '@/emails/verify-email';
+import { PasswordResetNotificationEmail } from '@/emails/password-reset-notification';
+import { TestEmail } from '@/emails/test-email';
 import { WelcomeEmail } from '@/emails/welcome';
+import { db } from '@/lib/db';
+import { emailUnsubscribeTokens } from '@/lib/db/schema';
 
+import {
+  filterUsersForEmail,
+  EmailType,
+  logEmailPreferenceCheck,
+} from './preferences';
 import {
   type EmailService,
   type EmailResult,
-  type PasswordResetEmailData,
-  type EmailVerificationData,
   type WelcomeEmailData,
-  type PaymentEmailData,
-  type SubscriptionChangeEmailData,
   type MarketingEmailData,
+  type PasswordResetNotificationData,
 } from './types';
 
 export class ResendEmailService implements EmailService {
@@ -29,60 +33,19 @@ export class ResendEmailService implements EmailService {
     this.baseUrl = baseUrl;
   }
 
-  async sendPasswordResetEmail(
-    email: string,
-    data: PasswordResetEmailData,
-  ): Promise<EmailResult> {
-    try {
-      const html = await render(
-        PasswordResetEmail({
-          resetUrl: data.resetUrl,
-          userName: data.user.name,
-        }),
-      );
+  private async generateUnsubscribeToken(
+    userId: string,
+    category: string,
+  ): Promise<string> {
+    const token = crypto.randomBytes(16).toString('hex');
 
-      await this.resend.emails.send({
-        from: this.from,
-        to: email,
-        subject: 'Reset your password',
-        html,
-      });
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to send password reset email:', error);
-      return {
-        success: false,
-        error: 'Failed to send password reset email',
-      };
-    }
-  }
+    await db.insert(emailUnsubscribeTokens).values({
+      token,
+      userId,
+      category,
+    });
 
-  async sendVerificationEmail(
-    email: string,
-    data: EmailVerificationData,
-  ): Promise<EmailResult> {
-    try {
-      const html = await render(
-        VerifyEmail({
-          verificationUrl: data.verificationUrl,
-          userName: data.user.name,
-        }),
-      );
-
-      await this.resend.emails.send({
-        from: this.from,
-        to: email,
-        subject: 'Verify your email address',
-        html,
-      });
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to send verification email:', error);
-      return {
-        success: false,
-        error: 'Failed to send verification email',
-      };
-    }
+    return `${this.baseUrl}/unsubscribe/${token}`;
   }
 
   async sendWelcomeEmail(
@@ -90,10 +53,17 @@ export class ResendEmailService implements EmailService {
     data: WelcomeEmailData,
   ): Promise<EmailResult> {
     try {
+      // Generate unsubscribe token for marketing emails
+      const unsubscribeUrl = await this.generateUnsubscribeToken(
+        data.user.id,
+        EmailType.MARKETING,
+      );
+
       const html = await render(
         WelcomeEmail({
           userName: data.user.name,
           dashboardUrl: data.dashboardUrl,
+          unsubscribeUrl,
         }),
       );
 
@@ -113,130 +83,153 @@ export class ResendEmailService implements EmailService {
     }
   }
 
-  async sendPaymentSuccessEmail(
-    email: string,
-    data: PaymentEmailData,
-  ): Promise<EmailResult> {
-    try {
-      const html = await render(
-        PaymentSuccessEmail({
-          userName: data.user.name,
-          amount: data.amount,
-          currency: data.currency,
-          invoiceUrl: data.invoiceUrl,
-        }),
-      );
-
-      await this.resend.emails.send({
-        from: this.from,
-        to: email,
-        subject: 'Payment Successful',
-        html,
-      });
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to send payment success email:', error);
-      return {
-        success: false,
-        error: 'Failed to send payment success email',
-      };
-    }
-  }
-
-  async sendPaymentFailedEmail(
-    email: string,
-    data: PaymentEmailData,
-  ): Promise<EmailResult> {
-    try {
-      const html = await render(
-        PaymentFailedEmail({
-          userName: data.user.name,
-          amount: data.amount,
-          currency: data.currency,
-          retryUrl: data.retryUrl,
-        }),
-      );
-
-      await this.resend.emails.send({
-        from: this.from,
-        to: email,
-        subject: 'Payment Failed',
-        html,
-      });
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to send payment failed email:', error);
-      return {
-        success: false,
-        error: 'Failed to send payment failed email',
-      };
-    }
-  }
-
-  async sendSubscriptionChangeEmail(
-    email: string,
-    data: SubscriptionChangeEmailData,
-  ): Promise<EmailResult> {
-    try {
-      // For now, use a simple inline template since we haven't created the component yet
-      await this.resend.emails.send({
-        from: this.from,
-        to: email,
-        subject: 'Subscription Updated',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2>Subscription Updated</h2>
-            <p>Hello ${data.user.name || 'there'},</p>
-            <p>Your subscription has been updated from ${data.previousPlan} to ${data.newPlan}.</p>
-            <p>This change will take effect on ${data.effectiveDate.toLocaleDateString()}.</p>
-            <p>Thank you for your business!</p>
-          </div>
-        `,
-      });
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to send subscription change email:', error);
-      return {
-        success: false,
-        error: 'Failed to send subscription change email',
-      };
-    }
-  }
-
   async sendMarketingEmail(
     emails: string[],
     data: MarketingEmailData,
   ): Promise<EmailResult> {
     try {
-      // Send to multiple recipients
-      await this.resend.emails.send({
-        from: this.from,
-        to: emails,
-        subject: data.subject,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="margin-bottom: 20px;">${data.content}</div>
-            ${
-              data.ctaText && data.ctaUrl
-                ? `
-              <a href="${data.ctaUrl}" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; margin: 16px 0;">
-                ${data.ctaText}
-              </a>
-            `
-                : ''
-            }
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
-              <a href="${data.unsubscribeUrl}" style="color: #666;">Unsubscribe</a>
-            </div>
-          </div>
-        `,
+      // Filter users based on their email preferences
+      const allowedUsers = await filterUsersForEmail(
+        emails,
+        EmailType.MARKETING,
+      );
+
+      if (allowedUsers.length === 0) {
+        return {
+          success: false,
+          error: 'No users have opted in to receive marketing emails',
+        };
+      }
+
+      // Log preference checks for debugging
+      allowedUsers.forEach(user => {
+        logEmailPreferenceCheck(user, EmailType.MARKETING);
       });
+
+      // Send individual emails with personalized unsubscribe links
+      for (const user of allowedUsers) {
+        if (!user.userId) {
+          console.error('Missing userId for user:', user.userEmail);
+          continue;
+        }
+
+        // Generate one-time unsubscribe token for this specific email
+        const unsubscribeUrl = await this.generateUnsubscribeToken(
+          user.userId,
+          EmailType.MARKETING,
+        );
+
+        await this.resend.emails.send({
+          from: this.from,
+          to: user.userEmail!,
+          subject: data.subject,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="margin-bottom: 20px;">${data.content}</div>
+              ${
+                data.ctaText && data.ctaUrl
+                  ? `
+                <a href="${data.ctaUrl}" style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; margin: 16px 0;">
+                  ${data.ctaText}
+                </a>
+              `
+                  : ''
+              }
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
+                <a href="${unsubscribeUrl}" style="color: #666;">Unsubscribe</a>
+              </div>
+            </div>
+          `,
+        });
+      }
+
+      console.info(
+        `Marketing email sent to ${allowedUsers.length} out of ${emails.length} recipients`,
+      );
+
       return { success: true };
     } catch (error) {
       console.error('Failed to send marketing email:', error);
       return {
         success: false,
         error: 'Failed to send marketing email',
+      };
+    }
+  }
+
+  async sendPasswordResetNotificationEmail(
+    email: string,
+    data: PasswordResetNotificationData,
+  ): Promise<EmailResult> {
+    try {
+      const html = await render(
+        PasswordResetNotificationEmail({
+          userName: data.user.name,
+          resetTime: data.resetTime,
+          ipAddress: data.ipAddress,
+          userAgent: data.userAgent,
+        }),
+      );
+
+      await this.resend.emails.send({
+        from: this.from,
+        to: email,
+        subject: 'Password Reset Confirmation',
+        html,
+      });
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to send password reset notification email:', error);
+      return {
+        success: false,
+        error: 'Failed to send password reset notification email',
+      };
+    }
+  }
+
+  async sendTestEmail(
+    email: string,
+    userId?: string,
+    emailType: EmailType = EmailType.MARKETING,
+  ): Promise<EmailResult> {
+    try {
+      let unsubscribeUrl: string | undefined;
+
+      // Generate unsubscribe token only for marketing emails
+      if (userId && emailType === EmailType.MARKETING) {
+        unsubscribeUrl = await this.generateUnsubscribeToken(
+          userId,
+          EmailType.MARKETING,
+        );
+      }
+
+      const emailSubject =
+        emailType === EmailType.MARKETING
+          ? 'Test Marketing Email - Service Working'
+          : 'Test Transactional Email - Service Working';
+
+      const html = await render(
+        TestEmail({
+          timestamp: new Date(),
+          unsubscribeUrl,
+          emailType,
+        }),
+      );
+
+      await this.resend.emails.send({
+        from: this.from,
+        to: email,
+        subject: emailSubject,
+        html,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to send test email:', error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to send test email',
       };
     }
   }

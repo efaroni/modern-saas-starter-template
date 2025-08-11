@@ -17,15 +17,6 @@ jest.mock('@/lib/billing/service', () => ({
   },
 }));
 
-// Mock email service
-jest.mock('@/lib/email/service', () => ({
-  emailService: {
-    sendSubscriptionChangeEmail: jest.fn(),
-    sendPaymentSuccessEmail: jest.fn(),
-    sendPaymentFailedEmail: jest.fn(),
-  },
-}));
-
 // Mock Next.js headers function
 jest.mock('next/headers', () => ({
   headers: jest.fn(),

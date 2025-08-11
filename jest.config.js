@@ -12,6 +12,7 @@ const customJestConfig = {
     '^@/components/(.*)$': '<rootDir>/components/$1',
     '^@/lib/(.*)$': '<rootDir>/lib/$1',
     '^@/app/(.*)$': '<rootDir>/app/$1',
+    '^@/emails/(.*)$': '<rootDir>/emails/$1',
   },
   testEnvironment: 'jsdom',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
@@ -37,7 +38,7 @@ const customJestConfig = {
   ],
   // Handle ES modules from next-auth and related packages
   transformIgnorePatterns: [
-    'node_modules/(?!(next-auth|@auth|@node-rs|jose)/)',
+    'node_modules/(?!(next-auth|@auth|@node-rs|jose|@clerk)/)',
   ],
   // Enable ES modules support
   extensionsToTreatAsEsm: ['.ts', '.tsx'],

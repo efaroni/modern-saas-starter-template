@@ -3,24 +3,15 @@
  * Tests the complete flow from UI to database
  */
 
-import { getUserApiKeys, createUserApiKey } from '@/app/actions/user-api-keys';
-import { validateApiKey } from '@/lib/api-keys/validators';
-import { users, userApiKeys } from '@/lib/db/schema';
-import { testDb } from '@/lib/db/test';
+// Mock Clerk auth FIRST to prevent ES module issues
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: jest.fn(),
+}));
 
-// Setup Clerk mocks
-import {
-  mockAuth,
-  mockAuthenticatedUser,
-  setupClerkMocks,
-} from '@/tests/mocks/clerk';
-import { testUsers } from '@/tests/fixtures/clerk';
-
-setupClerkMocks();
-
-// Setup authenticated user for tests
-const testUserId = '550e8400-e29b-41d4-a716-446655440000';
-mockAuthenticatedUser({ ...testUsers.basic, id: testUserId });
+// Mock next/cache to avoid Next.js specific functionality
+jest.mock('next/cache', () => ({
+  revalidatePath: jest.fn(),
+}));
 
 // Mock the API validation to avoid real API calls
 jest.mock('@/lib/api-keys/validators', () => ({
@@ -30,18 +21,27 @@ jest.mock('@/lib/api-keys/validators', () => ({
   validateStripeKey: jest.fn(),
 }));
 
-// Mock revalidatePath to avoid Next.js specific functionality in tests
-jest.mock('next/cache', () => ({
-  revalidatePath: jest.fn(),
-}));
+// THEN import modules
+import { getUserApiKeys, createUserApiKey } from '@/app/actions/user-api-keys';
+import { validateApiKey } from '@/lib/api-keys/validators';
+import { users, userApiKeys } from '@/lib/db/schema';
+import { testDb } from '@/lib/db/test';
+import { testUsers as _testUsers } from '@/tests/fixtures/clerk';
+
+// Get mocked auth
+const { auth } = jest.requireMock('@clerk/nextjs/server');
+
+// Setup authenticated user for tests
+const testUserId = '550e8400-e29b-41d4-a716-446655440000';
 
 describe('User API Keys Integration Flow', () => {
-  // testUserId is already defined above when setting up the mock
   const mockValidateApiKey = validateApiKey as jest.MockedFunction<
     typeof validateApiKey
   >;
 
   beforeEach(async () => {
+    // Mock authenticated user for each test
+    auth.mockResolvedValue({ userId: testUserId });
     // Clean up database - handle if tables don't exist
     try {
       await testDb.delete(userApiKeys);

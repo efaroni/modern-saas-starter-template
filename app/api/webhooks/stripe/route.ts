@@ -6,7 +6,6 @@ import { eq } from 'drizzle-orm';
 import { billingService } from '@/lib/billing/service';
 import { db } from '@/lib/db';
 import { users, webhookEvents } from '@/lib/db/schema';
-import { emailService } from '@/lib/email/service';
 
 // Simple retry wrapper for database operations
 async function retryDbOperation<T>(
@@ -95,22 +94,6 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Send confirmation emails
-        if (data.mode === 'subscription' && data.customer_email) {
-          await emailService.sendSubscriptionChangeEmail(data.customer_email, {
-            user: { email: data.customer_email, name: null },
-            previousPlan: 'Free',
-            newPlan: 'Pro', // TODO: Get from price metadata
-            effectiveDate: new Date(),
-          });
-        } else if (data.mode === 'payment' && data.customer_email) {
-          await emailService.sendPaymentSuccessEmail(data.customer_email, {
-            user: { email: data.customer_email, name: null },
-            amount: data.amount_total || 0,
-            currency: data.currency || 'usd',
-            invoiceUrl: data.invoice?.hosted_invoice_url,
-          });
-        }
         break;
 
       case 'customer.created':
@@ -149,15 +132,8 @@ export async function POST(request: NextRequest) {
 
       case 'payment_intent.payment_failed':
         console.warn('Processing payment failure:', data.id);
-        // Send payment failed email
-        if (data.receipt_email) {
-          await emailService.sendPaymentFailedEmail(data.receipt_email, {
-            user: { email: data.receipt_email, name: null },
-            amount: data.amount || 0,
-            currency: data.currency || 'usd',
-            retryUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
-          });
-        }
+        // Payment failed emails are handled by Stripe
+        console.warn('Payment failed for customer:', data.receipt_email);
         break;
 
       default:
