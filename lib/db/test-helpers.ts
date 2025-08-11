@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs';
+// import bcrypt from 'bcryptjs'; // Removed - auth handled by Clerk
 
 import {
   userApiKeys,
@@ -36,12 +36,10 @@ export const testDataFactories = {
   }),
 
   // Auth user factory with password
-  createAuthUser: async (
-    overrides: Partial<InsertUser> = {},
-  ): Promise<InsertUser> => {
+  createAuthUser: (overrides: Partial<InsertUser> = {}): InsertUser => {
     const password = overrides.password || 'password123';
     const hashedPassword =
-      typeof password === 'string' ? await bcrypt.hash(password, 10) : password;
+      typeof password === 'string' ? `hashed_${password}` : password; // Simple test hash - auth handled by Clerk
 
     return {
       id: TEST_USER_ID,
@@ -377,9 +375,9 @@ export const authTestHelpers = {
     return testDb.insert(users).values(userData).returning();
   },
 
-  // Verify password hashing
+  // Verify password hashing (simplified for tests - auth handled by Clerk)
   verifyPasswordHash(plainPassword: string, hashedPassword: string): boolean {
-    return bcrypt.compareSync(plainPassword, hashedPassword);
+    return hashedPassword === `hashed_${plainPassword}`;
   },
 
   // Test data for auth scenarios

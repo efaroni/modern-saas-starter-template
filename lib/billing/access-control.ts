@@ -166,7 +166,7 @@ export async function verifyStripeCustomer(customerId: string): Promise<{
   } catch (error) {
     console.error('Error verifying Stripe customer:', error);
 
-    if (error instanceof Stripe.StripeError) {
+    if (error instanceof Stripe.errors.StripeError) {
       console.error('Stripe customer verification error:', {
         type: error.type,
         code: error.code,
