@@ -114,8 +114,8 @@ export async function getSubscriptionDetails(userId: string): Promise<{
 
     return {
       status: subscription.status,
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+      cancelAtPeriodEnd: (subscription as any).cancel_at_period_end,
     };
   } catch (error) {
     console.error('Error getting subscription details:', error);
@@ -162,7 +162,7 @@ export async function verifyStripeCustomer(customerId: string): Promise<{
   } catch (error) {
     console.error('Error verifying Stripe customer:', error);
 
-    if (error instanceof Stripe.StripeError) {
+    if (error instanceof Stripe.errors.StripeError) {
       console.error('Stripe customer verification error:', {
         type: error.type,
         code: error.code,

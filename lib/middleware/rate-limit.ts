@@ -110,3 +110,10 @@ export const lenientRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   maxRequests: 1000,
 });
+
+// Export presets for backward compatibility
+export const rateLimitPresets = {
+  strict: strictRateLimit,
+  moderate: moderateRateLimit,
+  lenient: lenientRateLimit,
+};

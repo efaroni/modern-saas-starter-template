@@ -29,7 +29,12 @@ export interface DesignAnalysisResult {
 }
 
 export interface VisionError {
-  code: 'INVALID_IMAGE' | 'API_ERROR' | 'RATE_LIMIT' | 'INVALID_RESPONSE';
+  code:
+    | 'INVALID_IMAGE'
+    | 'API_ERROR'
+    | 'RATE_LIMIT'
+    | 'INVALID_RESPONSE'
+    | 'PARSE_ERROR';
   message: string;
 }
 

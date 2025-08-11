@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Check for idempotency
     const existingEvent = await db.query.webhookEvents.findFirst({
-      where: eq(webhookEvents.id, data.id),
+      where: eq(webhookEvents.id, data.id as string),
     });
 
     if (existingEvent) {
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     // Store event for idempotency with retry
     await retryDbOperation(() =>
       db.insert(webhookEvents).values({
-        id: data.id,
+        id: data.id as string,
         provider: 'stripe',
         eventType: event.type,
       }),
@@ -81,9 +81,9 @@ export async function POST(request: NextRequest) {
             db
               .update(users)
               .set({
-                billingCustomerId: data.customer,
+                billingCustomerId: data.customer as string,
               })
-              .where(eq(users.id, data.client_reference_id)),
+              .where(eq(users.id, data.client_reference_id as string)),
           );
 
           console.warn(
@@ -100,14 +100,14 @@ export async function POST(request: NextRequest) {
         console.warn('Processing customer creation:', data.id);
 
         // Update user with billing customer ID using email
-        if (data.email) {
+        if (data.email && typeof data.email === 'string') {
           await retryDbOperation(() =>
             db
               .update(users)
               .set({
-                billingCustomerId: data.id,
+                billingCustomerId: data.id as string,
               })
-              .where(eq(users.email, data.email)),
+              .where(eq(users.email, data.email as string)),
           );
 
           console.warn(

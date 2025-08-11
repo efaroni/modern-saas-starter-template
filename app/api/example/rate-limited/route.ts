@@ -2,11 +2,17 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { rateLimitPresets } from '@/lib/middleware/rate-limit';
 
-// Apply rate limiting to this API route
-const withRateLimit = rateLimitPresets.api('api');
-
 // eslint-disable-next-line require-await
 async function handler(req: NextRequest): Promise<NextResponse> {
+  // Apply rate limiting to this API route
+  const rateLimitResult = rateLimitPresets.strict(req);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
+      { status: 429 },
+    );
+  }
+
   // Your API logic here
   return NextResponse.json({
     message: 'This endpoint is rate limited',
@@ -15,8 +21,8 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   });
 }
 
-// Export rate-limited handlers
-export const GET = withRateLimit(handler);
-export const POST = withRateLimit(handler);
-export const PUT = withRateLimit(handler);
-export const DELETE = withRateLimit(handler);
+// Export handlers
+export const GET = handler;
+export const POST = handler;
+export const PUT = handler;
+export const DELETE = handler;

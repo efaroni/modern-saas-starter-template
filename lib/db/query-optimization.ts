@@ -1,8 +1,8 @@
-import { eq, and, gte, desc, lte, count, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import { getDatabaseConfig } from './config';
-import { db, getDatabasePool } from './connection-pool';
-import { users, authAttempts, passwordHistory, userSessions } from './schema';
+import { db } from './connection-pool';
+import { users } from './schema';
 
 export interface QueryOptimizationConfig {
   // Cache settings
@@ -220,183 +220,6 @@ export class QueryOptimizer {
     );
   }
 
-  // Optimized auth attempt queries with proper indexing
-  getRecentAuthAttempts(
-    identifier: string,
-    type: string,
-    timeWindowMinutes: number = 15,
-    limit: number = 100,
-  ): Promise<(typeof authAttempts.$inferSelect)[]> {
-    const cacheKey = `auth_attempts:${identifier}:${type}:${timeWindowMinutes}`;
-
-    return this.executeQuery(
-      'getRecentAuthAttempts',
-      () => {
-        const timeWindow = new Date(Date.now() - timeWindowMinutes * 60 * 1000);
-
-        return db
-          .select()
-          .from(authAttempts)
-          .where(
-            and(
-              eq(authAttempts.identifier, identifier),
-              eq(authAttempts.type, type),
-              gte(authAttempts.createdAt, timeWindow),
-            ),
-          )
-          .orderBy(desc(authAttempts.createdAt))
-          .limit(limit);
-      },
-      cacheKey,
-    );
-  }
-
-  // Optimized password history queries
-  getRecentPasswordHistory(
-    userId: string,
-    limit: number = 5,
-  ): Promise<(typeof passwordHistory.$inferSelect)[]> {
-    return this.executeQuery('getRecentPasswordHistory', () => {
-      return db
-        .select()
-        .from(passwordHistory)
-        .where(eq(passwordHistory.userId, userId))
-        .orderBy(desc(passwordHistory.createdAt))
-        .limit(limit);
-    });
-  }
-
-  // Batch operations for better performance
-  batchCreateAuthAttempts(
-    attempts: (typeof authAttempts.$inferInsert)[],
-  ): Promise<void> {
-    const batchSize = Math.min(attempts.length, this.config.maxBatchSize);
-
-    return this.executeQuery('batchCreateAuthAttempts', async () => {
-      // Process in batches to avoid overwhelming the database
-      for (let i = 0; i < attempts.length; i += batchSize) {
-        const batch = attempts.slice(i, i + batchSize);
-        await db.insert(authAttempts).values(batch);
-      }
-    });
-  }
-
-  // Optimized session queries
-  getActiveSessions(
-    userId: string,
-    useCache = true,
-  ): Promise<(typeof userSessions.$inferSelect)[]> {
-    const cacheKey = useCache ? `active_sessions:${userId}` : undefined;
-
-    return this.executeQuery(
-      'getActiveSessions',
-      () => {
-        const now = new Date();
-
-        return db
-          .select()
-          .from(userSessions)
-          .where(
-            and(
-              eq(userSessions.userId, userId),
-              eq(userSessions.isActive, true),
-              gte(userSessions.expiresAt, now),
-            ),
-          )
-          .orderBy(desc(userSessions.lastActivity));
-      },
-      cacheKey,
-    );
-  }
-
-  // Aggregated queries for analytics
-  getAuthAttemptStats(timeWindowHours: number = 24): Promise<{
-    totalAttempts: number;
-    successfulAttempts: number;
-    failedAttempts: number;
-    uniqueUsers: number;
-    topFailedEmails: Array<{ email: string; count: number }>;
-  }> {
-    const cacheKey = `auth_stats:${timeWindowHours}h`;
-
-    return this.executeQuery(
-      'getAuthAttemptStats',
-      async () => {
-        const timeWindow = new Date(
-          Date.now() - timeWindowHours * 60 * 60 * 1000,
-        );
-
-        // Get basic stats
-        const [stats] = await db
-          .select({
-            totalAttempts: count(),
-            successfulAttempts: count(sql`CASE WHEN success = true THEN 1 END`),
-            failedAttempts: count(sql`CASE WHEN success = false THEN 1 END`),
-            uniqueUsers: sql<number>`COUNT(DISTINCT identifier)`,
-          })
-          .from(authAttempts)
-          .where(gte(authAttempts.createdAt, timeWindow));
-
-        // Get top failed emails
-        const topFailedEmails = await db
-          .select({
-            email: authAttempts.identifier,
-            count: count(),
-          })
-          .from(authAttempts)
-          .where(
-            and(
-              eq(authAttempts.success, false),
-              gte(authAttempts.createdAt, timeWindow),
-            ),
-          )
-          .groupBy(authAttempts.identifier)
-          .orderBy(desc(count()))
-          .limit(10);
-
-        return {
-          totalAttempts: stats.totalAttempts,
-          successfulAttempts: stats.successfulAttempts,
-          failedAttempts: stats.failedAttempts,
-          uniqueUsers: Number(stats.uniqueUsers),
-          topFailedEmails: topFailedEmails.map(item => ({
-            email: item.email,
-            count: item.count,
-          })),
-        };
-      },
-      cacheKey,
-    );
-  }
-
-  // Cleanup operations
-  cleanupExpiredTokens(): Promise<number> {
-    return this.executeQuery('cleanupExpiredTokens', async () => {
-      const now = new Date();
-      const result = await db
-        .delete(authAttempts)
-        .where(
-          lte(
-            authAttempts.createdAt,
-            new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
-          ),
-        ); // 90 days ago
-
-      return result.length;
-    });
-  }
-
-  cleanupExpiredSessions(): Promise<number> {
-    return this.executeQuery('cleanupExpiredSessions', async () => {
-      const now = new Date();
-      const result = await db
-        .delete(userSessions)
-        .where(lte(userSessions.expiresAt, now));
-
-      return result.length;
-    });
-  }
-
   // Performance monitoring
   getQueryMetrics(): Array<{
     queryName: string;
@@ -426,12 +249,6 @@ export class QueryOptimizer {
       this.cache.clear();
     }
   }
-
-  // Get database connection health
-  getDatabaseHealth() {
-    const dbPool = getDatabasePool();
-    return dbPool.getHealth();
-  }
 }
 
 // Export singleton instance
@@ -443,24 +260,4 @@ export const optimizedQueries = {
     queryOptimizer.findUserByEmail(email, useCache),
   findUserById: (id: string, useCache = true) =>
     queryOptimizer.findUserById(id, useCache),
-  getRecentAuthAttempts: (
-    identifier: string,
-    type: string,
-    timeWindowMinutes = 15,
-    limit = 100,
-  ) =>
-    queryOptimizer.getRecentAuthAttempts(
-      identifier,
-      type,
-      timeWindowMinutes,
-      limit,
-    ),
-  getRecentPasswordHistory: (userId: string, limit = 5) =>
-    queryOptimizer.getRecentPasswordHistory(userId, limit),
-  getActiveSessions: (userId: string, useCache = true) =>
-    queryOptimizer.getActiveSessions(userId, useCache),
-  getAuthAttemptStats: (timeWindowHours = 24) =>
-    queryOptimizer.getAuthAttemptStats(timeWindowHours),
-  cleanupExpiredTokens: () => queryOptimizer.cleanupExpiredTokens(),
-  cleanupExpiredSessions: () => queryOptimizer.cleanupExpiredSessions(),
 };

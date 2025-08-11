@@ -1,15 +1,17 @@
-import bcrypt from 'bcryptjs';
+// Simple hash function for testing (not for production)
+import { createHash } from 'crypto';
+
+function simpleHash(text: string): string {
+  return createHash('sha256').update(text).digest('hex');
+}
+
+function simpleCompare(plaintext: string, hash: string): boolean {
+  return simpleHash(plaintext) === hash;
+}
 
 import {
   userApiKeys,
   users,
-  authAttempts,
-  passwordHistory,
-  userSessions,
-  sessionActivity,
-  accounts,
-  sessions,
-  verificationTokens,
   type InsertUserApiKey,
 } from './schema';
 import {
@@ -41,7 +43,7 @@ export const testDataFactories = {
   ): Promise<InsertUser> => {
     const password = overrides.password || 'password123';
     const hashedPassword =
-      typeof password === 'string' ? await bcrypt.hash(password, 10) : password;
+      typeof password === 'string' ? simpleHash(password) : password;
 
     return {
       id: TEST_USER_ID,
@@ -379,7 +381,7 @@ export const authTestHelpers = {
 
   // Verify password hashing
   verifyPasswordHash(plainPassword: string, hashedPassword: string): boolean {
-    return bcrypt.compareSync(plainPassword, hashedPassword);
+    return simpleCompare(plainPassword, hashedPassword);
   },
 
   // Test data for auth scenarios

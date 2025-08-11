@@ -54,7 +54,7 @@ export interface DatabaseHealth {
 
 export class DatabaseConnectionPool {
   private sql: postgres.Sql;
-  private db: ReturnType<typeof drizzle>;
+  private db: ReturnType<typeof drizzle<typeof schema>>;
   private config: ConnectionPoolConfig;
   private healthStats!: DatabaseHealth;
   private dbConfig = getDatabaseConfig();
@@ -306,7 +306,7 @@ export class DatabaseConnectionPool {
   }
 
   // Get the Drizzle database instance
-  get database() {
+  get database(): ReturnType<typeof drizzle<typeof schema>> {
     return this.db;
   }
 

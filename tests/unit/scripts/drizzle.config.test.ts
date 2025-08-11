@@ -2,7 +2,9 @@
 import { defineConfig } from 'drizzle-kit';
 
 // Set NODE_ENV to test to ensure we get the test database URL
-process.env.NODE_ENV = 'test';
+if (!process.env.NODE_ENV) {
+  (process.env as any).NODE_ENV = 'test';
+}
 
 // Import centralized database configuration
 import { getDatabaseUrl } from '@/lib/db/config';

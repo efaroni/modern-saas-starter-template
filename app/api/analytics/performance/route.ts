@@ -32,10 +32,16 @@ interface PerformanceMetricsPayload {
   sessionId?: string;
 }
 
-// Apply rate limiting to prevent abuse
-const withRateLimit = rateLimitPresets.api('api');
-
 async function handler(request: NextRequest) {
+  // Apply rate limiting to prevent abuse
+  const rateLimitResult = rateLimitPresets.moderate(request);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
+      { status: 429 },
+    );
+  }
+
   try {
     const body: PerformanceMetricsPayload = await request.json();
 
@@ -211,8 +217,8 @@ function categorizeUrl(url: string) {
   }
 }
 
-// Export rate-limited handlers
-export const POST = withRateLimit(handler);
+// Export handlers
+export const POST = handler;
 
 // GET endpoint for retrieving aggregated performance data
 export function GET(request: NextRequest) {

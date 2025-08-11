@@ -168,10 +168,9 @@ export async function testUserApiKey(provider: string, privateKey?: string) {
 
     // If no key provided, try to get the existing key for this provider
     if (!keyToTest) {
-      keyToTest = await userApiKeyService.getDecryptedPrivateKey(
-        provider,
-        userId,
-      );
+      keyToTest =
+        (await userApiKeyService.getDecryptedPrivateKey(provider, userId)) ??
+        undefined;
       if (!keyToTest) {
         return { success: false, error: 'No API key found for this provider' };
       }

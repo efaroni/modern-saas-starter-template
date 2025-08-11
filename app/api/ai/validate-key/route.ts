@@ -18,16 +18,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Apply rate limiting - 10 requests per hour per user
-    const rateLimitResult = await applyRateLimit(
-      request,
-      'ai-key-validation',
-      userId,
-    );
+    const rateLimitResult = applyRateLimit(request, {
+      windowMs: 60 * 60 * 1000, // 1 hour
+      maxRequests: 10,
+      keyGenerator: () => `ai-key-validation:${userId}`,
+    });
 
     if (!rateLimitResult.allowed) {
-      return (
-        rateLimitResult.response ??
-        NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        { status: 429 },
       );
     }
 

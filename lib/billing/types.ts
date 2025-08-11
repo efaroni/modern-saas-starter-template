@@ -22,9 +22,11 @@ export interface BillingService {
 export interface BillingEvent {
   type:
     | 'checkout.completed'
+    | 'customer.created'
     | 'subscription.updated'
     | 'subscription.deleted'
-    | 'payment.succeeded';
+    | 'payment.succeeded'
+    | 'payment_intent.payment_failed';
   data: unknown; // Provider-specific data
 }
 
