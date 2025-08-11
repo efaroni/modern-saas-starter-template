@@ -62,6 +62,8 @@
     "prismjs": ">=1.30.0"
   },
   "devDependencies": {
+    "@clerk/backend": "^2.7.0",
+    "@clerk/testing": "^1.10.11",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@eslint/eslintrc": "^3",
