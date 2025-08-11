@@ -16,21 +16,23 @@ export async function POST(request: NextRequest) {
 
     // Apply rate limiting - strict limit for AI requests
     try {
-      const rateLimitResult = strictRateLimit(request);
+      if (typeof strictRateLimit === 'function') {
+        const rateLimitResult = strictRateLimit(request);
 
-      if (!rateLimitResult.allowed) {
-        return NextResponse.json(
-          {
-            error: 'Too many AI requests. Please wait before trying again.',
-            retryAfter: rateLimitResult.retryAfter,
-          },
-          {
-            status: 429,
-            headers: {
-              'Retry-After': rateLimitResult.retryAfter.toString(),
+        if (!rateLimitResult.allowed) {
+          return NextResponse.json(
+            {
+              error: 'Too many AI requests. Please wait before trying again.',
+              retryAfter: rateLimitResult.retryAfter,
             },
-          },
-        );
+            {
+              status: 429,
+              headers: {
+                'Retry-After': rateLimitResult.retryAfter.toString(),
+              },
+            },
+          );
+        }
       }
     } catch (rateLimitError) {
       // If rate limiting fails (e.g., in test environment), continue without it
