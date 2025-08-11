@@ -37,7 +37,7 @@ export async function canSendEmailToUser(
       return {
         canSend: true,
         userEmail,
-        userName: user?.name || null,
+        userName: user?.name || undefined,
         userId: user?.id,
       };
     }
@@ -82,7 +82,7 @@ export async function canSendEmailToUser(
       canSend,
       reason: canSend ? undefined : reason,
       userEmail,
-      userName: user.name || null,
+      userName: user.name || undefined,
       userId: user.id,
     };
   } catch (error) {

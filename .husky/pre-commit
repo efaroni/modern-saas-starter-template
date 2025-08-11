@@ -1,0 +1,2 @@
+# Run the existing pre-commit hook
+.git/hooks/pre-commit

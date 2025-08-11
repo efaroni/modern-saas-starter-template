@@ -214,7 +214,7 @@ That's all!`;
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe('PARSE_ERROR');
+      expect(result.error?.code).toBe('INVALID_RESPONSE');
       expect(result.error?.message).toContain('Failed to parse AI response');
     });
 

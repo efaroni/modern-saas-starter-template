@@ -5,6 +5,8 @@
  * best practices with proper validation and environment detection.
  */
 
+import { getEnv } from '@/lib/config/env-validation';
+
 // Helper function to parse environment variables with defaults
 function parseEnvInt(envVar: string, defaultValue: number): number {
   const value = process.env[envVar];
@@ -148,33 +150,16 @@ export interface DatabaseConfig {
  * ```
  */
 export function getDatabaseUrl(): string {
-  const env = process.env.NODE_ENV || 'development';
+  // Validate environment variables first
+  const validatedEnv = getEnv();
+  const env = validatedEnv.NODE_ENV;
 
   // Safety check: Prevent production database access in non-production environments
-  // Skip this check in test environment to avoid conflicts with TEST_DB_* variables
   if (env === 'development' && process.env.NODE_ENV === 'production') {
     throw new Error(
       '⚠️  SECURITY ERROR: NODE_ENV=production detected in development environment! ' +
         'Refusing to continue to prevent accidental production data access.',
     );
-  }
-
-  // Safety check: Require explicit production configuration
-  if (env === 'production') {
-    const required = [
-      'PROD_DB_HOST',
-      'PROD_DB_USER',
-      'PROD_DB_PASSWORD',
-      'PROD_DB_NAME',
-    ];
-    const missing = required.filter(key => !process.env[key]);
-
-    if (missing.length > 0) {
-      throw new Error(
-        `Missing required production database configuration: ${missing.join(', ')}. ` +
-          'Production requires explicit database credentials for safety.',
-      );
-    }
   }
 
   try {
@@ -198,19 +183,15 @@ export function getDatabaseUrl(): string {
   }
 
   // Fallback to legacy environment variables for backwards compatibility
-  if (env === 'test' && process.env.TEST_DATABASE_URL) {
-    return process.env.TEST_DATABASE_URL;
-  }
-
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
+  if (validatedEnv.DATABASE_URL) {
+    return validatedEnv.DATABASE_URL;
   }
 
   // If we get here, no valid configuration was found
   throw new Error(
     'Database configuration is missing. Please set either:\n' +
-      '1. Component variables: DEV_DB_* (development), TEST_DB_* (test), PROD_DB_* (production)\n' +
-      '2. Or full URL: DATABASE_URL (TEST_DATABASE_URL for tests)\n' +
+      '1. Component variables: DEV_DB_* (development), PROD_DB_* (production)\n' +
+      '2. Or full URL: DATABASE_URL\n' +
       'See documentation for complete setup instructions.',
   );
 }
@@ -264,6 +245,7 @@ export function getDatabaseConfig(): DatabaseConfig {
   switch (process.env.NODE_ENV) {
     case 'test':
       // Test environment: smaller pool, faster timeouts for parallel execution
+      // Uses isolated test database with optimized settings
       return {
         ...baseConfig,
         poolSize: parseEnvInt('DB_MAX_CONNECTIONS', 3),

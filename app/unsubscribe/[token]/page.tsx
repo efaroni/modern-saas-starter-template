@@ -10,15 +10,22 @@ interface UnsubscribeResult {
 }
 
 interface UnsubscribePageProps {
-  params: {
+  params: Promise<{
     token: string;
-  };
+  }>;
 }
 
 export default function UnsubscribeTokenPage({ params }: UnsubscribePageProps) {
-  const { token } = params;
+  const [token, setToken] = useState<string | null>(null);
   const [result, setResult] = useState<UnsubscribeResult | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Extract token from params and set it
+    params.then(({ token: paramToken }) => {
+      setToken(paramToken);
+    });
+  }, [params]);
 
   useEffect(() => {
     // Automatically process the token on page load

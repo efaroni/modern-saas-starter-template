@@ -5,7 +5,8 @@ import { getDatabaseUrl, getDatabaseConfig } from './config';
 import * as schema from './schema';
 
 // Test database configuration with worker isolation
-const TEST_DATABASE_URL = getDatabaseUrl();
+// Delay URL resolution until runtime to ensure environment is loaded
+const getTestDatabaseUrl = () => getDatabaseUrl();
 
 // Get worker ID for isolation (Jest sets JEST_WORKER_ID)
 const getWorkerId = () => {
@@ -17,8 +18,9 @@ const getWorkerId = () => {
 const createWorkerTestClient = () => {
   const workerId = getWorkerId();
   const config = getDatabaseConfig();
+  const testDatabaseUrl = getTestDatabaseUrl();
 
-  return postgres(TEST_DATABASE_URL, {
+  return postgres(testDatabaseUrl, {
     max: config.poolSize || 3, // Allow more connections per worker
     idle_timeout: config.idleTimeout || 20,
     connect_timeout: config.connectTimeout || 10,
@@ -29,18 +31,43 @@ const createWorkerTestClient = () => {
   });
 };
 
-// Create test database client for this worker
-const testClient = createWorkerTestClient();
-export const testDb = drizzle(testClient, { schema });
+// Create test database client for this worker (lazy initialization)
+let testClient: ReturnType<typeof createWorkerTestClient> | null = null;
+let testDbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;
+
+const getTestClient = () => {
+  if (!testClient) {
+    testClient = createWorkerTestClient();
+  }
+  return testClient;
+};
+
+export const getTestDb = () => {
+  if (!testDbInstance) {
+    testDbInstance = drizzle(getTestClient(), { schema });
+  }
+  return testDbInstance;
+};
+
+// For backward compatibility
+export const testDb = new Proxy(
+  {} as ReturnType<typeof drizzle<typeof schema>>,
+  {
+    get(_, prop) {
+      return getTestDb()[prop];
+    },
+  },
+);
 
 // Initialize test database (run migrations)
 export async function initializeTestDatabase() {
   try {
     // First, validate the test database connection
-    console.debug('Validating test database connection...');
+    console.warn('Validating test database connection...');
     try {
-      await testClient`SELECT 1 as test`;
-      console.debug('Test database connection successful');
+      const client = getTestClient();
+      await client`SELECT 1 as test`;
+      console.warn('Test database connection successful');
     } catch (connectionError) {
       console.error(
         'Cannot connect to test database:',
@@ -60,13 +87,14 @@ export async function initializeTestDatabase() {
 
     const missingTables = [];
 
+    const client = getTestClient();
     for (const table of requiredTables) {
       try {
-        await testClient`SELECT 1 FROM ${testClient(table)} LIMIT 1`;
+        await client`SELECT 1 FROM ${client(table)} LIMIT 1`;
       } catch {
         // Use a more specific check for table existence
         try {
-          await testClient`SELECT to_regclass(${table})`;
+          await client`SELECT to_regclass(${table})`;
         } catch {
           missingTables.push(table);
         }
@@ -85,7 +113,7 @@ export async function initializeTestDatabase() {
         console.warn('Creating tables directly...');
 
         // Create users table if it doesn't exist - MUST match actual schema
-        await testClient`
+        await client`
           CREATE TABLE IF NOT EXISTS users (
             id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
             clerk_id text UNIQUE,
@@ -99,7 +127,7 @@ export async function initializeTestDatabase() {
         `;
 
         // Create webhook_events table if it doesn't exist
-        await testClient`
+        await client`
           CREATE TABLE IF NOT EXISTS webhook_events (
             id text PRIMARY KEY,
             provider text DEFAULT 'clerk' NOT NULL,
@@ -109,7 +137,7 @@ export async function initializeTestDatabase() {
         `;
 
         // Create user_api_keys table if it doesn't exist - MUST match actual schema
-        await testClient`
+        await client`
           CREATE TABLE IF NOT EXISTS user_api_keys (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -124,7 +152,7 @@ export async function initializeTestDatabase() {
         `;
 
         // Create email_unsubscribe_tokens table if it doesn't exist
-        await testClient`
+        await client`
           CREATE TABLE IF NOT EXISTS email_unsubscribe_tokens (
             token text PRIMARY KEY,
             user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -134,7 +162,7 @@ export async function initializeTestDatabase() {
         `;
 
         // Create user_email_preferences table if it doesn't exist
-        await testClient`
+        await client`
           CREATE TABLE IF NOT EXISTS user_email_preferences (
             user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
             marketing_enabled boolean DEFAULT true NOT NULL
@@ -168,23 +196,25 @@ export async function resetTestDatabase() {
 // Helper to clear test database tables (no schema drop)
 export async function clearTestDatabase() {
   try {
+    const client = getTestClient();
+
     // Clear in dependency order (foreign keys)
     // Child tables first, then parent tables
 
     // Clear webhook events (no dependencies)
-    await testClient`DELETE FROM webhook_events`;
+    await client`DELETE FROM webhook_events`;
 
     // Clear user API keys (depends on users)
-    await testClient`DELETE FROM user_api_keys`;
+    await client`DELETE FROM user_api_keys`;
 
     // Clear email unsubscribe tokens (depends on users)
-    await testClient`DELETE FROM email_unsubscribe_tokens`;
+    await client`DELETE FROM email_unsubscribe_tokens`;
 
     // Clear user email preferences (depends on users)
-    await testClient`DELETE FROM user_email_preferences`;
+    await client`DELETE FROM user_email_preferences`;
 
     // Core user table (delete last due to foreign key dependencies)
-    await testClient`DELETE FROM users`;
+    await client`DELETE FROM users`;
 
     console.warn('Test database cleared successfully');
   } catch (error) {
@@ -195,8 +225,9 @@ export async function clearTestDatabase() {
     );
     // Try to clear just the core tables that should exist
     try {
-      await testClient`DELETE FROM user_api_keys`;
-      await testClient`DELETE FROM users`;
+      const client = getTestClient();
+      await client`DELETE FROM user_api_keys`;
+      await client`DELETE FROM users`;
     } catch {
       console.warn('Core tables not found during cleanup');
     }
@@ -206,6 +237,7 @@ export async function clearTestDatabase() {
 // Worker-specific test data cleanup (safer for parallel execution)
 export async function clearWorkerTestData() {
   try {
+    const client = getTestClient();
     const workerId = getWorkerId();
     const workerPrefix = `test-worker${workerId}-%`;
 
@@ -213,7 +245,7 @@ export async function clearWorkerTestData() {
     // Use simpler queries that are more reliable
 
     // First get worker-specific user IDs
-    const workerUsers = await testClient`
+    const workerUsers = await client`
       SELECT id FROM users WHERE email LIKE ${workerPrefix}
     `;
 
@@ -224,7 +256,7 @@ export async function clearWorkerTestData() {
       for (const userId of userIds) {
         // Clear user API keys
         try {
-          await testClient`DELETE FROM user_api_keys WHERE user_id = ${userId}`;
+          await client`DELETE FROM user_api_keys WHERE user_id = ${userId}`;
         } catch {
           /* Table may not exist */
         }
@@ -232,7 +264,7 @@ export async function clearWorkerTestData() {
     }
 
     // Clear users with worker prefix
-    await testClient`DELETE FROM users WHERE email LIKE ${workerPrefix}`;
+    await client`DELETE FROM users WHERE email LIKE ${workerPrefix}`;
   } catch (error) {
     console.warn('Worker test data cleanup failed:', error);
   }
@@ -241,9 +273,13 @@ export async function clearWorkerTestData() {
 // Close test database connection
 export async function closeTestDatabase() {
   try {
-    console.debug('Closing test database connection...');
-    await testClient.end();
-    console.debug('Test database connection closed successfully');
+    console.warn('Closing test database connection...');
+    if (testClient) {
+      await testClient.end();
+      testClient = null;
+      testDbInstance = null;
+    }
+    console.warn('Test database connection closed successfully');
   } catch (error) {
     console.error('Error closing test database:', error);
   }
@@ -254,13 +290,14 @@ export async function closeTestDatabase() {
 
 // Test database helpers for isolation
 export function withTestTransaction<T>(
-  fn: (db: typeof testDb) => Promise<T>,
+  fn: (db: ReturnType<typeof getTestDb>) => Promise<T>,
 ): Promise<T> {
   // Use actual database transactions for test isolation
-  return testDb
+  const db = getTestDb();
+  return db
     .transaction(async tx => {
       // Type assertion needed due to transaction type differences
-      const result = await fn(tx as unknown as typeof testDb);
+      const result = await fn(tx as unknown as ReturnType<typeof getTestDb>);
       // Throw an error to force rollback and maintain test isolation
       throw new TestTransactionRollback(result);
     })

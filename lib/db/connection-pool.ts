@@ -54,7 +54,7 @@ export interface DatabaseHealth {
 
 export class DatabaseConnectionPool {
   private sql: postgres.Sql;
-  private db: ReturnType<typeof drizzle>;
+  private db: ReturnType<typeof drizzle<typeof schema>>;
   private config: ConnectionPoolConfig;
   private healthStats!: DatabaseHealth;
   private dbConfig = getDatabaseConfig();
@@ -372,8 +372,38 @@ export function getDatabasePool(): DatabaseConnectionPool {
   return dbPool;
 }
 
-// Export the database instance (backward compatibility)
-export const db = getDatabasePool().database;
+// Environment-aware database instance selection
+function getEnvironmentDatabase() {
+  // In test environment, use test database from lib/db/test
+  if (process.env.NODE_ENV === 'test') {
+    try {
+      // Lazy import to avoid circular dependencies and ensure test env is loaded
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const testModule = require('./test');
+      return testModule.testDb;
+    } catch (error) {
+      console.warn(
+        'Failed to load test database, falling back to development database:',
+        error,
+      );
+      return getDatabasePool().database;
+    }
+  }
+
+  // For development and production, use the standard connection pool
+  return getDatabasePool().database;
+}
+
+// Export the environment-appropriate database instance
+export const db = new Proxy(
+  {} as ReturnType<typeof getDatabasePool>['database'],
+  {
+    get(_, prop) {
+      const dbInstance = getEnvironmentDatabase();
+      return dbInstance[prop];
+    },
+  },
+);
 
 // Graceful shutdown handler
 if (typeof process !== 'undefined') {

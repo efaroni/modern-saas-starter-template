@@ -26,7 +26,7 @@
     "db:push": "drizzle-kit push --force",
     "db:studio": "drizzle-kit studio",
     "seed": "tsx scripts/seed-database.ts",
-    "prepare": "sh setup-git-hooks.sh",
+    "prepare": "husky",
     "check-all": "npm run type-check && npm run lint && npm run format:check",
     "email:dev": "email dev --dir emails --port 3001"
   },
@@ -57,7 +57,15 @@
     "svix": "^1.69.0",
     "zod": "^3.25.70"
   },
+  "overrides": {
+    "esbuild": ">=0.24.3",
+    "prismjs": ">=1.30.0"
+  },
   "devDependencies": {
+    "@clerk/backend": "^2.7.0",
+    "@clerk/testing": "^1.10.11",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@eslint/eslintrc": "^3",
     "@jest/globals": "^30.0.4",
     "@playwright/test": "^1.53.2",
@@ -76,6 +84,7 @@
     "eslint-config-next": "15.3.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.31.0",
+    "husky": "^9.1.7",
     "jest": "^30.0.4",
     "jest-environment-jsdom": "^30.0.4",
     "null-loader": "^4.0.1",

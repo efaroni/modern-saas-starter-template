@@ -6,10 +6,16 @@ Quick reference for building features correctly in this Next.js SaaS template.
 
 - **Frontend**: Next.js 15 (App Router), TypeScript 5.0+, Tailwind CSS v4, React 19
 - **Backend**: PostgreSQL + Drizzle ORM, Redis
-- **Auth**: Clerk (webhook sync to local DB)
-- **Payments**: Stripe (abstracted service layer)
+- **Auth**: Clerk for authentication (webhook sync to local DB)
+- **Payments**: Stripe for payments (abstracted service layer)
 - **Email**: Resend + React Email templates
 - **AI**: OpenAI with Vercel AI SDK
+
+## Environment Configuration
+
+- **Local Development**: Uses local database configured in `.env.local`
+- **Testing**: Uses isolated test database via `.env.test` - tests wipe database after each run
+- **Database Isolation**: Test and local databases are completely separate to prevent data conflicts
 
 ## Architecture Principles
 
@@ -252,6 +258,12 @@ await emailService.sendWelcomeEmail(user.email, {
   dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
 });
 ```
+
+## Git Commit Standards
+
+This project uses **Conventional Commits** with commitlint and Husky. Use format: `type(scope): description`
+
+Examples: `feat(auth): add oauth`, `fix(api): handle errors`, `docs: update readme`
 
 ## Key Files Reference
 

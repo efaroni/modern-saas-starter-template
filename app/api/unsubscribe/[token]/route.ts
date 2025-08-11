@@ -10,13 +10,13 @@ import {
 } from '@/lib/db/schema';
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     token: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteContext) {
-  const { token } = params;
+  const { token } = await params;
 
   if (!token) {
     return NextResponse.json(

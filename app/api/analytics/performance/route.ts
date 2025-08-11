@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { rateLimitPresets } from '@/lib/middleware/rate-limit';
+import { moderateRateLimit, withRateLimit } from '@/lib/middleware/rate-limit';
 
 interface PerformanceMetricsPayload {
   metrics: {
@@ -33,7 +33,6 @@ interface PerformanceMetricsPayload {
 }
 
 // Apply rate limiting to prevent abuse
-const withRateLimit = rateLimitPresets.api('api');
 
 async function handler(request: NextRequest) {
   try {
@@ -212,7 +211,7 @@ function categorizeUrl(url: string) {
 }
 
 // Export rate-limited handlers
-export const POST = withRateLimit(handler);
+export const POST = withRateLimit(moderateRateLimit, handler);
 
 // GET endpoint for retrieving aggregated performance data
 export function GET(request: NextRequest) {
