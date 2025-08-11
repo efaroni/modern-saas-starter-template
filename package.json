@@ -57,6 +57,10 @@
     "svix": "^1.69.0",
     "zod": "^3.25.70"
   },
+  "overrides": {
+    "esbuild": ">=0.24.3",
+    "prismjs": ">=1.30.0"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@jest/globals": "^30.0.4",
