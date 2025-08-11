@@ -56,7 +56,7 @@
 
 - **Package Manager**: npm
 - **Build Tool**: Turbopack (unified dev + prod)
-- **Code Editor**: Cursor + Claude Sonnet 4
+- **Code Editor**: Cursor + Claude Code
 - **Environment**: Vercel Environment Variables
 
 ## Service Abstractions

@@ -1,139 +1,57 @@
 # Claude Code Development Guide
 
-Comprehensive guide for rapid SaaS development with this modern Next.js template. This file provides context, patterns, and conventions to help Claude Code build features correctly the first time.
+Quick reference for building features correctly in this Next.js SaaS template.
 
-## Project Overview
-
-### Application Purpose
-
-A production-ready SaaS starter template designed for rapid deployment of modern web applications. Features complete authentication, payments, email, AI integration, and deployment pipelines.
-
-### Tech Stack Summary
+## Tech Stack
 
 - **Frontend**: Next.js 15 (App Router), TypeScript 5.0+, Tailwind CSS v4, React 19
-- **Backend**: PostgreSQL with Drizzle ORM, Redis for caching
-- **Auth**: Clerk authentication with NextJS integration
+- **Backend**: PostgreSQL + Drizzle ORM, Redis
+- **Auth**: Clerk (webhook sync to local DB)
 - **Payments**: Stripe (abstracted service layer)
 - **Email**: Resend + React Email templates
 - **AI**: OpenAI with Vercel AI SDK
-- **Deployment**: Vercel + Neon PostgreSQL
 
-### Architecture Principles
+## Architecture Principles
 
 - Service layer abstraction for all external dependencies
 - Factory pattern for provider instantiation
 - Dependency injection for testability
 - Mock-first development approach
-- Comprehensive error handling and logging
+- Comprehensive error handling
 
-## Current Sprint / Active Development
+## Critical Paths (Must Not Break)
 
-### Recent Architectural Decisions
+1. **Clerk Webhook**: User sync via `/api/webhooks/clerk`
+2. **Auth Flow**: Registration → Login → Session → User sync
+3. **Database Operations**: User CRUD, relationships
+4. **Payments**: Stripe webhook processing
 
-- Migrated from custom Auth.js implementation to Clerk authentication
-- Implemented comprehensive webhook system for user sync
-- Enhanced API routes with proper error handling and logging
-- Standardized error response format across API routes
-- **NEW**: Complete email system implementation with React Email templates
-- **NEW**: Email preference management and unsubscribe functionality
-- **NEW**: Welcome emails on user signup via Clerk webhooks
-- **NEW**: Payment and subscription email notifications via Stripe webhooks
+## Key Code Patterns
 
-### Active Features
-
-- [x] ✅ **COMPLETED**: Complete email system with React Email templates
-- [x] ✅ **COMPLETED**: Email preference management and unsubscribe functionality
-- [x] ✅ **COMPLETED**: Welcome emails and password reset notifications
-- [x] ✅ **COMPLETED**: Payment/subscription email notifications
-- [ ] Completing Section 7: Deployment & CI/CD
-- [ ] Implementing AI styling system (Section 5)
-
-### Known Issues & Blockers
-
-- Parallel test execution requires careful data isolation
-- Rate limiting tests need retry logic for stability
-- Clerk webhook configuration required for user sync
-
-## Code Patterns & Conventions
-
-### TypeScript Patterns
+### API Routes
 
 ```typescript
-// Always use explicit types for function parameters
-export async function createUser(data: CreateUserData): Promise<User> {
-  // Implementation
-}
-
-// Use Zod for runtime validation
-const userSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
-
-// Type inference from schemas
-type UserInput = z.infer<typeof userSchema>;
-```
-
-### Component Structure
-
-```typescript
-// Client Component Pattern
-'use client';
-
-interface UserFormProps {
-  onSubmit: (data: UserData) => Promise<void>;
-  initialData?: Partial<UserData>;
-}
-
-export function UserForm({ onSubmit, initialData }: UserFormProps) {
-  const form = useForm<UserData>({
-    resolver: zodResolver(userSchema),
-    defaultValues: initialData,
-  });
-
-  // Component logic
-}
-```
-
-### API Route Pattern
-
-```typescript
-// app/api/users/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-
+// app/api/[resource]/route.ts
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const validated = userSchema.parse(body);
-
+    const validated = schema.parse(await request.json());
     // Business logic
-
-    return NextResponse.json({
-      success: true,
-      data: result,
-    });
+    return NextResponse.json({ success: true, data: result });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 }
 ```
 
-### Database Query Patterns
+### Database Operations (Drizzle)
 
 ```typescript
-// Using Drizzle ORM
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-
 // Simple query
 const user = await db.query.users.findFirst({
   where: eq(users.email, email),
 });
 
-// Transaction pattern
+// Transaction
 const result = await db.transaction(async tx => {
   const user = await tx.insert(users).values(userData).returning();
   await tx.insert(profiles).values({ userId: user[0].id });
@@ -141,10 +59,9 @@ const result = await db.transaction(async tx => {
 });
 ```
 
-### Service Layer Pattern
+### Service Pattern
 
 ```typescript
-// lib/services/user.service.ts
 export class UserService {
   constructor(
     private db: Database,
@@ -155,536 +72,145 @@ export class UserService {
     const user = await this.db.transaction(async tx => {
       // Create user logic
     });
-
     await this.emailService.sendWelcomeEmail(user.email);
     return user;
   }
 }
 ```
 
-### Error Handling Pattern
+### Component Pattern
 
 ```typescript
-// Custom error classes
-export class AuthenticationError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-  ) {
-    super(message);
-    this.name = 'AuthenticationError';
-  }
+'use client';
+
+interface Props {
+  onSubmit: (data: FormData) => Promise<void>;
+  initialData?: Partial<FormData>;
 }
 
-// Usage
-if (!isValidPassword) {
-  throw new AuthenticationError('Invalid credentials', 'INVALID_CREDENTIALS');
-}
-```
-
-## API & Data Models
-
-### Core Database Schema
-
-```typescript
-// Users table
-export const users = pgTable('users', {
-  id: text('id').primaryKey(),
-  email: text('email').notNull().unique(),
-  password: text('password'),
-  emailVerified: timestamp('email_verified'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
-
-// Sessions table
-export const sessions = pgTable('sessions', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').references(() => users.id),
-  sessionToken: text('session_token').unique(),
-  expires: timestamp('expires'),
-});
-```
-
-### Authentication Flow
-
-1. **Registration**: Handled by Clerk's sign-up flow
-2. **Login**: Handled by Clerk's sign-in flow
-3. **Session**: Managed by Clerk with JWT tokens
-4. **User Sync**: Webhook-based sync to local database via `/api/webhooks/clerk`
-5. **User Management**: Clerk Dashboard for user administration
-
-### API Endpoint Structure
-
-```
-/api/
-├── webhooks/
-│   └── clerk/          POST   - Clerk webhook handler
-├── users/
-│   ├── profile/        GET/PUT - User profile
-│   └── settings/       GET/PUT - User settings
-├── billing/
-│   ├── subscription/   GET/POST/DELETE - Manage subscription
-│   └── webhook/        POST   - Stripe webhooks
-└── admin/
-    └── users/          GET    - List users (admin only)
-```
-
-### Service Abstractions
-
-```typescript
-// Authentication Provider Interface
-interface AuthProvider {
-  createUser(data: CreateUserData): Promise<User>;
-  authenticateUser(email: string, password: string): Promise<User>;
-  deleteUser(userId: string): Promise<void>;
-}
-
-// Email System Overview
-
-The application features a comprehensive email system built on Resend + React Email:
-
-**Core Components:**
-- `EmailService` interface with ResendEmailService and MockEmailService implementations
-- React Email templates in `/emails/` directory with shared components
-- Email preference system with user-controllable settings
-- Secure unsubscribe functionality with unique tokens
-- Automatic email sending via Clerk and Stripe webhooks
-
-**Email Types:**
-- Welcome emails (auto-sent on user signup via Clerk webhook)
-- Password reset notifications (security alerts after password changes)
-- Payment success/failed emails (triggered by Stripe webhooks)
-- Subscription change notifications (upgrades/downgrades/cancellations)
-- Marketing emails (with preference checking and personalized unsubscribe links)
-
-**User Features:**
-- Email management dashboard at `/emails` for preference management and testing
-- One-click unsubscribe at `/unsubscribe?token=xxx` with re-subscribe option
-- Automatic unsubscribe token generation for all users
-- Security emails always enabled (payment, security alerts)
-
-**Developer Features:**
-- Type-safe email service with comprehensive error handling
-- Email preference enforcement before sending any marketing emails
-- Enhanced webhook integration with proper user data fetching
-- Comprehensive logging and debugging support
-
-// Email Service Interface
-interface EmailService {
-  sendEmail(to: string, subject: string, html: string): Promise<void>;
-  sendWelcomeEmail(email: string): Promise<void>;
-  sendPasswordResetEmail(email: string, token: string): Promise<void>;
-}
-
-// Payment Service Interface
-interface PaymentService {
-  createCustomer(email: string): Promise<Customer>;
-  createSubscription(
-    customerId: string,
-    priceId: string,
-  ): Promise<Subscription>;
-  cancelSubscription(subscriptionId: string): Promise<void>;
+export function MyForm({ onSubmit, initialData }: Props) {
+  const form = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: initialData,
+  });
+  // Component logic
 }
 ```
 
-## Test Suite Overview
+## File Structure
 
-**Current Status**: 99.7%+ pass rate (326/327 tests passing)
-
-- Test execution time: ~15 seconds
-- Parallel execution with 2 workers
-- High reliability for CI/CD
-
-## Critical Paths That Must Not Break
-
-### 1. Authentication Flow
-
-- **User Registration**: Clerk sign-up with webhook sync to database
-- **User Login**: Clerk sign-in with session management
-- **User Deletion**: Clerk deletion with webhook sync to database
-- **Webhook Processing**: User sync via `/api/webhooks/clerk`
-
-### 2. Database Operations
-
-- User data sync via Clerk webhooks
-- API key management for authenticated users
-- Database relationships with user references
-
-### 3. Webhook Management
-
-- Clerk webhook verification and processing
-- Duplicate event prevention via webhook_events table
-- Comprehensive logging for debugging webhook issues
-
-## Test Confidence Levels
-
-### High Confidence Tests (Must Pass)
-
-1. **Authentication Tests** (`tests/lib/auth/providers/database.test.ts`)
-   - Core CRUD operations
-   - Password validation
-   - Email verification
-
-2. **Integration Tests** (`tests/integration/auth/`)
-   - Complete user workflows
-   - Error handling scenarios
-   - Session persistence
-
-3. **Security Tests** (`tests/security/auth-security.test.ts`)
-   - SQL injection prevention
-   - Rate limiting
-   - Password complexity
-
-### Medium Confidence Tests
-
-1. **Session Manager Tests** (`tests/lib/auth/session-manager.test.ts`)
-   - 16 comprehensive tests
-   - Uses retry logic for stability
-
-2. **Email Integration Tests** (`tests/lib/auth/email-integration.test.ts`)
-   - Token generation and verification
-   - Password reset flow
-
-### Known Test Considerations
-
-1. **Removed Tests** (due to parallel execution issues):
-   - Password reuse prevention test
-   - Session invalidation on password change test
-   - These features still work but tests were flaky
-
-2. **Load Tests** (`tests/load/`)
-   - Separated into own test suite
-   - Run with `npm run test:load`
-   - Not part of regular CI/CD
-
-## Development Guidelines
-
-### When Adding New Features
-
-1. **Database Configuration**: Always use centralized functions from `lib/db/config.ts`:
-   - `getDatabaseUrl()` - Get environment-appropriate database URL
-   - `getDatabaseConfig()` - Get full configuration with pool settings
-   - `isRealDatabase()` - Check if real database is configured (vs mock)
-2. Generate unique emails with `authTestHelpers.generateUniqueEmail()`
-3. Clean up test data in `afterEach` hooks
-4. Consider parallel execution impacts
-
-### Database Configuration Best Practices
-
-#### Component-Based Configuration (Preferred)
-
-The system now supports component-based database configuration for easier management:
-
-```bash
-# .env.local (Development)
-DB_HOST="localhost"
-DB_PORT="5432"
-DB_USER="postgres"
-DB_PASSWORD="postgres"
-DB_NAME="saas_template"
-
-# .env.test (Test Environment)
-TEST_DB_HOST="localhost"
-TEST_DB_PORT="5433"
-TEST_DB_USER="test_user"
-TEST_DB_PASSWORD="test_pass"
-TEST_DB_NAME="saas_template_test"
-
-# Production (Environment Variables)
-DB_HOST="your-production-host.com"
-DB_PORT="5432"
-DB_USER="prod_user"
-DB_PASSWORD="secure_password"
-DB_NAME="production_db"
 ```
+/app/                    # Next.js App Router
+├── api/                # API routes
+│   └── webhooks/      # Webhook handlers
+├── (auth)/            # Auth pages
+├── (dashboard)/       # Protected areas
+└── actions/           # Server actions
 
-#### Key Benefits
+/lib/                   # Business logic
+├── auth/              # Authentication
+├── db/                # Database (schema, config)
+├── email/             # Email service
+├── payments/          # Payment service
+└── services/          # Business services
 
-- **Single Source Configuration**: Change host/port/credentials in one place
-- **Environment-Specific**: Different settings for dev/test/prod automatically
-- **Backwards Compatible**: Still supports `DATABASE_URL` for legacy setups
-- **Security**: Component-based approach makes credential management easier
+/components/           # React components
+├── ui/               # Base UI components
+└── forms/            # Form components
 
-#### Usage Guidelines
-
-- **Never use `process.env.DATABASE_URL` directly** - Use `getDatabaseUrl()` instead
-- **Environment Detection**: The system automatically:
-  - Builds URLs from components (preferred)
-  - Falls back to `TEST_DATABASE_URL` when `NODE_ENV=test`
-  - Falls back to `DATABASE_URL` for legacy compatibility
-- **Service Factory Pattern**: Use `isRealDatabase()` to choose between real and mock services
-- **Connection Components**: Use `getDatabaseConnectionComponents()` to get host/port/etc.
-
-### Test Commands
-
-```bash
-# Run all tests
-npm run test
-
-# Run specific test file
-npm run test path/to/test.ts
-
-# Run load tests separately
-npm run test:load
-
-# Run with coverage
-npm run test:coverage
-```
-
-### Common Test Fixes
-
-1. **Foreign key violations**: Wrap operations in try-catch
-2. **Timing issues**: Add retry logic (see session manager tests)
-3. **Parallel conflicts**: Use worker-specific data isolation
-
-## Important Implementation Details
-
-1. **Password History**: Tracks last 5 passwords to prevent reuse
-2. **Rate Limiting**: 5 attempts per 15 minutes for login
-3. **Token Expiration**: 1 hour for email verification, 24 hours for password reset
-4. **Session Security**: HTTP-only cookies, strict same-site policy
-
-## Refactoring Safety
-
-When refactoring:
-
-1. Run full test suite before and after changes
-2. Pay special attention to authentication flow tests
-3. Ensure database migrations don't break existing tests
-4. Keep dependency injection pattern for testability
-
-The test suite is designed to give you confidence when refactoring. With 99.7%+ tests passing reliably, you can make changes knowing that critical functionality is protected.
-
-## Common Tasks & Commands
-
-### Development Workflow
-
-```bash
-# Start development server
-npm run dev
-
-# Run database migrations
-npm run db:migrate
-
-# Open database studio
-npm run db:studio
-
-# Generate types from schema
-npm run db:generate
-```
-
-### Testing Commands
-
-```bash
-# Run all tests
-npm run test
-
-# Run specific test file
-npm run test tests/lib/auth/providers/database.test.ts
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run with coverage
-npm run test:coverage
-
-# Run load tests separately
-npm run test:load
-
-# Run E2E tests
-npm run test:e2e
-```
-
-### Build & Deployment
-
-```bash
-# Type check
-npm run type-check
-
-# Lint code
-npm run lint
-
-# Format code
-npm run format
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run start
-```
-
-### Database Commands
-
-```bash
-# Create new migration
-npm run db:migrate:create <migration_name>
-
-# Run migrations
-npm run db:migrate
-
-# Push schema changes (development)
-npm run db:push
-
-# Seed database
-npm run db:seed
+/tests/               # Tests
+├── integration/      # Integration tests
+└── helpers/         # Test utilities
 ```
 
 ## DO's and DON'Ts
 
-### DO's ✅
+### ✅ DO
 
-- Use dependency injection for all services
-- Validate all user inputs with Zod
-- Handle errors explicitly with try-catch
+- Use Zod for validation
+- Handle errors with try-catch
 - Use transactions for multi-table operations
 - Clean up test data in afterEach hooks
-- Use environment variables for configuration
-- Follow existing code patterns
-- Write tests for new features
-- Use TypeScript strict mode
+- Use dependency injection
+- Follow existing patterns
 
-### DON'Ts ❌
+### ❌ DON'T
 
-- Don't use console.log in production code (use logger service)
-- Don't store sensitive data in plain text
-- Don't skip input validation
-- Don't use `any` type unless absolutely necessary
-- Don't create files outside established patterns
-- Don't modify auth flow without updating tests
-- Don't use direct database queries in components
-- Don't expose internal errors to users
-- Don't skip error handling
+- Use console.log (use logger service)
+- Skip input validation
+- Use `any` type unless necessary
+- Query DB directly in components
+- Modify auth flow without updating tests
+- Access `process.env.DATABASE_URL` directly (use `getDatabaseUrl()`)
 
-## Quick Reference
+## Database Configuration
 
-### File Structure
+Always use centralized functions from `lib/db/config.ts`:
 
-```
-/
-├── app/                    # Next.js App Router
-│   ├── (auth)/            # Auth pages (login, register, etc)
-│   ├── (dashboard)/       # Protected dashboard area
-│   ├── (dev)/             # Development sections
-│   ├── actions/           # Server actions
-│   ├── api/               # API routes
-│   └── globals.css        # Global styles
-├── components/            # Reusable UI components
-│   ├── ui/                # Base UI components
-│   └── forms/             # Form components
-├── lib/                   # Core business logic
-│   ├── auth/              # Authentication system
-│   │   ├── providers/     # Auth provider implementations
-│   │   │   ├── database.ts
-│   │   │   └── database.test.ts  # Unit test (adjacent)
-│   │   ├── session-manager.ts
-│   │   ├── session-manager.test.ts  # Unit test (adjacent)
-│   │   └── types.ts
-│   ├── db/                # Database layer
-│   │   ├── schema.ts      # Drizzle schema
-│   │   └── index.ts       # DB connection
-│   ├── email/             # Email service
-│   │   ├── service.ts
-│   │   └── service.test.ts  # Unit test (adjacent)
-│   ├── payments/          # Payment service
-│   └── utils/             # Utility functions
-├── tests/                 # Integration and E2E tests only
-│   ├── integration/       # Integration tests
-│   │   └── auth/          # Auth integration tests
-│   ├── e2e/               # End-to-end tests
-│   ├── load/              # Load tests
-│   ├── security/          # Security tests
-│   └── helpers/           # Test utilities
-└── public/                # Static assets
-```
+- `getDatabaseUrl()` - Get environment-appropriate database URL
+- `getDatabaseConfig()` - Get full configuration with pool settings
+- `isRealDatabase()` - Check if real database is configured
 
-### Key Files for Common Tasks
-
-**Adding Authentication:**
-
-- Provider implementation: `lib/auth/providers/database.ts`
-- Session management: `lib/auth/session-manager.ts`
-- Auth types: `lib/auth/types.ts`
-- API routes: `app/api/auth/`
-
-**Database Changes:**
-
-- Schema definition: `lib/db/schema.ts`
-- Migration folder: `drizzle/`
-- Connection config: `lib/db/index.ts`
-
-**Adding API Endpoints:**
-
-- Route handlers: `app/api/[resource]/route.ts`
-- Validation schemas: Create in same file or `lib/schemas/`
-- Service layer: `lib/services/[service].ts`
-
-**Email System:**
-
-- Email templates: `emails/[template-name].tsx`
-- Email service: `lib/email/service.ts` (factory), `lib/email/resend.ts` (implementation)
-- Email types: `lib/email/types.ts` (interfaces)
-- Email preferences: `lib/email/preferences.ts` (enforcement helpers)
-- Email management page: `app/emails/page.tsx`
-- Unsubscribe page: `app/unsubscribe/page.tsx`
-- Marketing endpoints: `app/api/marketing/unsubscribe/route.ts`, `app/api/marketing/subscribe/route.ts`
-
-**UI Components:**
-
-- Base components: `components/ui/`
-- Form components: `components/forms/`
-- Layout components: `app/(group)/layout.tsx`
-
-**Configuration:**
-
-- Environment variables: `.env.local`
-- TypeScript config: `tsconfig.json`
-- Tailwind config: `tailwind.config.js`
-- Next.js config: `next.config.ts`
-
-### Environment Variables
+### Component-Based Config (Preferred)
 
 ```bash
-# Database (Component-based - Preferred)
+# Development (.env.local)
 DB_HOST="localhost"
 DB_PORT="5432"
 DB_USER="postgres"
 DB_PASSWORD="postgres"
 DB_NAME="saas_template"
 
-# Test Database (when NODE_ENV=test)
+# Test (.env.test)
 TEST_DB_HOST="localhost"
 TEST_DB_PORT="5433"
 TEST_DB_USER="test_user"
 TEST_DB_PASSWORD="test_pass"
 TEST_DB_NAME="saas_template_test"
+```
 
-# Legacy Database (backwards compatibility)
-# DATABASE_URL="postgresql://..."
-# TEST_DATABASE_URL="postgresql://..."
+## Common Commands
 
-# Clerk Authentication
+```bash
+# Development
+npm run dev              # Start dev server
+npm run db:migrate       # Run migrations
+npm run db:studio        # Open database UI
+
+# Testing
+npm run test             # Run all tests
+npm run test:coverage    # With coverage
+npm run test:load        # Load tests (separate)
+
+# Production
+npm run build            # Build for production
+npm run lint             # Lint code
+npm run type-check       # Type checking
+```
+
+## Environment Variables
+
+```bash
+# Database (Component-based)
+DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+TEST_DB_HOST, TEST_DB_PORT, TEST_DB_USER, TEST_DB_PASSWORD, TEST_DB_NAME
+
+# Clerk Auth
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
 CLERK_SECRET_KEY="sk_test_..."
 CLERK_WEBHOOK_SECRET="whsec_..."
 
-# Stripe
+# Services
 STRIPE_SECRET_KEY="sk_test_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
-
-# Email
 RESEND_API_KEY="re_..."
-
-# Redis
-REDIS_URL="redis://..."
-
-# AI
 OPENAI_API_KEY="sk-..."
+REDIS_URL="redis://..."
 ```
 
-### Common Code Snippets
+## Quick Code Templates
 
-**Protected Route:**
+### Protected Route
 
 ```typescript
 // app/(dashboard)/protected/page.tsx
@@ -694,14 +220,13 @@ import { redirect } from 'next/navigation';
 export default async function ProtectedPage() {
   const session = await auth();
   if (!session) redirect('/login');
-
   // Page content
 }
 ```
 
-**Server Action:**
+### Server Action
 
-````typescript
+```typescript
 // app/actions/user.ts
 'use server';
 
@@ -715,66 +240,75 @@ export async function updateUser(data: unknown) {
   const validated = userSchema.parse(data);
   // Update logic
 }
+```
 
-**Send Welcome Email:**
+### Send Email
 
 ```typescript
-// In Clerk webhook or server action
 import { emailService } from '@/lib/email/service';
 
 await emailService.sendWelcomeEmail(user.email, {
   user: { email: user.email, name: user.name },
   dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
 });
-````
+```
 
-**Check Email Preferences Before Sending:**
+## Key Files Reference
+
+- **Auth**: `lib/auth/` (providers, session management)
+- **Database Schema**: `lib/db/schema.ts`
+- **API Routes**: `app/api/[resource]/route.ts`
+- **Email Templates**: `emails/[template-name].tsx`
+- **Webhooks**: `app/api/webhooks/[provider]/route.ts`
+- **Config**: `.env.local`, `tsconfig.json`, `tailwind.config.js`
+
+## Service Interfaces
 
 ```typescript
-// Check if user can receive marketing emails
-import { canSendEmailToUser, EmailType } from '@/lib/email/preferences';
+// Authentication
+interface AuthProvider {
+  createUser(data: CreateUserData): Promise<User>;
+  authenticateUser(email: string, password: string): Promise<User>;
+  deleteUser(userId: string): Promise<void>;
+}
 
-const canSend = await canSendEmailToUser(userEmail, EmailType.MARKETING);
-if (canSend.canSend) {
-  await emailService.sendMarketingEmail([userEmail], marketingData);
+// Email
+interface EmailService {
+  sendWelcomeEmail(email: string, data: WelcomeData): Promise<void>;
+  sendPasswordResetEmail(email: string, token: string): Promise<void>;
+}
+
+// Payment
+interface PaymentService {
+  createCustomer(email: string): Promise<Customer>;
+  createSubscription(
+    customerId: string,
+    priceId: string,
+  ): Promise<Subscription>;
+  cancelSubscription(subscriptionId: string): Promise<void>;
 }
 ```
 
-**Create New Email Template:**
+## Testing Notes
 
-```typescript
-// emails/my-new-email.tsx
-import { Text } from '@react-email/components';
-import { EmailLayout } from './components/layout';
+- Test execution: ~15 seconds, 2 parallel workers
+- Generate unique emails: `authTestHelpers.generateUniqueEmail()`
+- Clean up in `afterEach` hooks
+- Foreign key violations: Wrap in try-catch
+- Timing issues: Add retry logic
 
-interface MyEmailProps {
-  userName?: string | null;
-  customData: string;
-}
+## Important Implementation Details
 
-export function MyEmail({ userName, customData }: MyEmailProps) {
-  return (
-    <EmailLayout preview="Email preview text">
-      <Text style={heading}>Hello {userName || 'there'}!</Text>
-      <Text style={paragraph}>{customData}</Text>
-    </EmailLayout>
-  );
-}
-```
+- **Password History**: Tracks last 5 passwords
+- **Rate Limiting**: 5 attempts per 15 minutes
+- **Token Expiration**: 1 hour email verification, 24 hours password reset
+- **Session Security**: HTTP-only cookies, strict same-site
 
-**API Route with Auth:**
+---
 
-```typescript
-// app/api/protected/route.ts
-import { auth } from '@/lib/auth';
-import { NextResponse } from 'next/server';
+# Important Reminders
 
-export async function GET() {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Route logic
-}
-```
+- Do what's asked; nothing more, nothing less
+- Never create files unless absolutely necessary
+- Always prefer editing existing files
+- Never proactively create documentation files

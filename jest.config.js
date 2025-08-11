@@ -38,7 +38,7 @@ const customJestConfig = {
   ],
   // Handle ES modules from next-auth and related packages
   transformIgnorePatterns: [
-    'node_modules/(?!(next-auth|@auth|@node-rs|jose)/)',
+    'node_modules/(?!(next-auth|@auth|@node-rs|jose|@clerk)/)',
   ],
   // Enable ES modules support
   extensionsToTreatAsEsm: ['.ts', '.tsx'],

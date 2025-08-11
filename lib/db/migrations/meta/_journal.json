@@ -78,6 +78,13 @@
       "when": 1754697956017,
       "tag": "0010_lethal_ben_grimm",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1754870071390,
+      "tag": "0011_lucky_iron_fist",
+      "breakpoints": true
     }
   ]
 }
