@@ -3,7 +3,7 @@
  */
 import { act, renderHook, waitFor } from '@testing-library/react';
 
-import { useOpenAIKeyValidation } from './useOpenAIKeyValidation';
+import { useOpenAIKeyValidation } from '@/lib/hooks/useOpenAIKeyValidation';
 
 // Mock fetch
 global.fetch = jest.fn();

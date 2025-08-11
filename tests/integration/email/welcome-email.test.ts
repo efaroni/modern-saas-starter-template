@@ -231,6 +231,9 @@ describe('Welcome Email Integration', () => {
       expect(response.status).toBe(200);
       expect(data.received).toBe(true);
 
+      // Add small delay to ensure database transaction is committed
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       // Verify user was still created in database
       const createdUser = await testDb.query.users.findFirst({
         where: eq(users.clerkId, 'user_email_fail_123'),

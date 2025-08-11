@@ -5,7 +5,7 @@ import { defineConfig } from 'drizzle-kit';
 process.env.NODE_ENV = 'test';
 
 // Import centralized database configuration
-import { getDatabaseUrl } from '../lib/db/config';
+import { getDatabaseUrl } from '@/lib/db/config';
 
 export default defineConfig({
   schema: './lib/db/schema.ts',

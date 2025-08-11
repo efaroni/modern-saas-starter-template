@@ -289,13 +289,27 @@ interface PaymentService {
 }
 ```
 
-## Testing Notes
+## Testing Structure
 
-- Test execution: ~15 seconds, 2 parallel workers
-- Generate unique emails: `authTestHelpers.generateUniqueEmail()`
-- Clean up in `afterEach` hooks
-- Foreign key violations: Wrap in try-catch
-- Timing issues: Add retry logic
+Directory-specific testing guides for optimal context loading:
+
+```
+tests/
+├── unit/
+│   └── UNIT_TESTING.md      # Loaded when writing unit tests
+├── integration/
+│   └── INTEGRATION_TESTING.md   # Loaded when writing integration tests
+└── e2e/
+    └── E2E_TESTING.md       # Loaded when writing E2E tests
+```
+
+Quick test commands:
+
+```bash
+npm run test              # All tests
+npm run test:coverage     # With coverage
+npm run test:e2e         # E2E tests
+```
 
 ## Important Implementation Details
 

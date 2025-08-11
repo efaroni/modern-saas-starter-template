@@ -1,8 +1,8 @@
 import { OpenAI } from 'openai';
 
-import { OpenAIVisionService } from './openai';
+import { OpenAIVisionService } from '@/lib/ai/vision/openai';
 
-import type { AnalyzeDesignInput } from './types';
+import type { AnalyzeDesignInput } from '@/lib/ai/vision/types';
 
 // Mock OpenAI
 jest.mock('openai');

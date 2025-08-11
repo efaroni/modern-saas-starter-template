@@ -3,7 +3,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { testUserApiKey } from '@/app/actions/user-api-keys';
 import { API_KEY_VALIDATION } from '@/lib/constants/validation';
 
-import { useApiKeyValidation } from './useApiKeyValidation';
+import { useApiKeyValidation } from '@/lib/hooks/useApiKeyValidation';
 
 // Mock the server action
 jest.mock('@/app/actions/user-api-keys', () => ({

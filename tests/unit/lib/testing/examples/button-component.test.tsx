@@ -6,8 +6,8 @@ import {
   renderWithProviders,
   componentTestUtils,
   mockUtils,
-} from '../component-utils';
-import { testTemplates } from '../test-templates';
+} from '@/lib/testing/component-utils';
+import { testTemplates } from '@/lib/testing/test-templates';
 
 // Example Button component for testing
 const Button = ({
