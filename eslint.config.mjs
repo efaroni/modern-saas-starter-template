@@ -11,7 +11,7 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...compat.extends('next/core-web-vitals', 'next/typescript', 'plugin:jsx-a11y/recommended'),
   {
     // Global ignores - files and directories to exclude from linting
     ignores: [
@@ -83,6 +83,32 @@ const eslintConfig = [
       // React Hooks rules
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+
+      // Accessibility rules (jsx-a11y)
+      // Critical accessibility errors - these catch serious issues
+      'jsx-a11y/alt-text': 'error',
+      'jsx-a11y/anchor-is-valid': 'error',
+      'jsx-a11y/aria-props': 'error',
+      'jsx-a11y/aria-role': 'error',
+      'jsx-a11y/role-has-required-aria-props': 'error',
+      'jsx-a11y/role-supports-aria-props': 'error',
+      'jsx-a11y/no-access-key': 'error',
+      'jsx-a11y/label-has-associated-control': 'error',
+      'jsx-a11y/img-redundant-alt': 'error',
+      'jsx-a11y/media-has-caption': 'error',
+      'jsx-a11y/interactive-supports-focus': 'error',
+      'jsx-a11y/no-noninteractive-element-interactions': 'error',
+      'jsx-a11y/no-noninteractive-tabindex': 'error',
+      'jsx-a11y/html-has-lang': 'error',
+      'jsx-a11y/lang': 'error',
+      'jsx-a11y/heading-has-content': 'error',
+      'jsx-a11y/control-has-associated-label': 'error',
+      
+      // Warnings - sometimes intentionally broken for specific UX needs
+      'jsx-a11y/no-autofocus': 'warn',
+      'jsx-a11y/click-events-have-key-events': 'warn',
+      'jsx-a11y/no-static-element-interactions': 'warn',
+      'jsx-a11y/no-redundant-roles': 'warn',
 
       // General JavaScript/TypeScript rules
       'no-console': ['warn', { allow: ['warn', 'error'] }],

@@ -42,7 +42,7 @@ const mockUnauthenticatedUser = () => {
 
 // Mock the rate limiter
 jest.mock('@/lib/middleware/rate-limit', () => ({
-  applyRateLimit: jest.fn().mockResolvedValue({ allowed: true }),
+  applyRateLimit: jest.fn().mockReturnValue({ allowed: true }),
 }));
 
 // Mock the vision service

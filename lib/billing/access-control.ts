@@ -114,7 +114,9 @@ export async function getSubscriptionDetails(userId: string): Promise<{
 
     return {
       status: subscription.status,
-      currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+      currentPeriodEnd: new Date(
+        (subscription as any).current_period_end * 1000,
+      ),
       cancelAtPeriodEnd: (subscription as any).cancel_at_period_end,
     };
   } catch (error) {

@@ -9,11 +9,7 @@ function simpleCompare(plaintext: string, hash: string): boolean {
   return simpleHash(plaintext) === hash;
 }
 
-import {
-  userApiKeys,
-  users,
-  type InsertUserApiKey,
-} from './schema';
+import { userApiKeys, users, type InsertUserApiKey } from './schema';
 import {
   testDb,
   clearTestDatabase,
