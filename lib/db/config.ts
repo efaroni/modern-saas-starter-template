@@ -148,7 +148,8 @@ export interface DatabaseConfig {
  * ```
  */
 export function getDatabaseUrl(): string {
-  const env = process.env.NODE_ENV || 'development';
+  // Use DB_ENV to override which database to use (for testing)
+  const env = process.env.DB_ENV || process.env.NODE_ENV || 'development';
 
   // Safety check: Prevent production database access in non-production environments
   // Skip this check in test environment to avoid conflicts with TEST_DB_* variables
