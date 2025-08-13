@@ -107,6 +107,7 @@ E2E tests use real Clerk test keys but bypass email verification using Clerk's t
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."  # Real Clerk test key
 CLERK_SECRET_KEY="sk_test_..."                   # Real Clerk test key
 CLERK_WEBHOOK_SECRET="whsec_..."                 # Same as development
+# Clerk webhook dashboard: https://dashboard.clerk.com/apps (Configure tab)
 
 # Other services use mocks in testing
 STRIPE_SECRET_KEY="sk_test_mock"
@@ -346,6 +347,8 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
 
 **Option 2: Local Development with Ngrok**
+
+> 💡 **Recommendation**: Consider upgrading to ngrok's paid plan for a static domain (like `yourapp-dev.sa.ngrok.io`). This prevents having to reconfigure webhook URLs every time you restart ngrok.
 
 ```bash
 # If using ngrok with custom domain (see package.json)
