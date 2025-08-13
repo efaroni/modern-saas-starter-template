@@ -39,7 +39,7 @@ export const testDataFactories = {
   ): Promise<InsertUser> => {
     const password = overrides.password || 'password123';
     const hashedPassword =
-      typeof password === 'string' ? simpleHash(password) : password;
+      typeof password === 'string' ? await simpleHash(password) : password;
 
     return {
       id: TEST_USER_ID,

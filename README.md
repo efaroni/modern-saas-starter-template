@@ -87,22 +87,25 @@ npm run test:e2e:debug # Run E2E tests in debug mode
 E2E tests use real Clerk test keys but bypass email verification using Clerk's test mode:
 
 **Key Features:**
+
 - Uses `NODE_ENV=test` environment
 - Test database isolation (`saas_template_test` instead of local database)
 - Real Clerk test keys for proper authentication flow
 - Mock keys for external services (Stripe, Resend, etc.)
 
 **Clerk Test Email Bypass:**
+
 - **Test Email Format**: Use emails with `+clerk_test` suffix
   - Example: `user+clerk_test@example.com`
 - **Verification Code**: Always `424242` for test emails
 - **No Real Emails**: Clerk automatically handles verification without sending emails
 
 **Environment Configuration:**
+
 ```bash
 # .env.test uses real Clerk test keys
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."  # Real Clerk test key
-CLERK_SECRET_KEY="sk_test_..."                   # Real Clerk test key  
+CLERK_SECRET_KEY="sk_test_..."                   # Real Clerk test key
 CLERK_WEBHOOK_SECRET="whsec_..."                 # Same as development
 
 # Other services use mocks in testing

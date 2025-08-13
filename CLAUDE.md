@@ -156,7 +156,7 @@ export function MyForm({ onSubmit, initialData }: Props) {
 ### Environment Separation Rules
 
 - **Development**: Uses `.env.local` with `NODE_ENV=development`
-- **Testing**: Uses `.env.test` with `NODE_ENV=test` 
+- **Testing**: Uses `.env.test` with `NODE_ENV=test`
 - **Production**: Uses production environment variables with `NODE_ENV=production`
 
 ### Variable Naming Standards
@@ -226,7 +226,8 @@ npm run type-check       # Type checking
 ### Test Environment Setup
 
 **IMPORTANT**: All tests (unit, integration, E2E) should use `.env.test` for configuration:
-- The test server script (`scripts/test-server.js`) explicitly loads `.env.test` 
+
+- The test server script (`scripts/test-server.js`) explicitly loads `.env.test`
 - Jest setup (`jest.setup.js`) explicitly loads `.env.test`
 - This ensures proper test database isolation and prevents accidental use of development data
 - Individual tests handle their own cleanup to maintain control over data lifecycle

@@ -176,7 +176,9 @@ export async function clearTestDatabase() {
   // Additional safety: Check database name contains "test"
   const dbName = process.env.DB_NAME;
   if (dbName && !dbName.includes('test')) {
-    console.warn(`Refusing to clear database: DB_NAME "${dbName}" does not contain "test"`);
+    console.warn(
+      `Refusing to clear database: DB_NAME "${dbName}" does not contain "test"`,
+    );
     return;
   }
 

@@ -38,9 +38,7 @@ const signature = crypto
   .update(signedContent)
   .digest('base64');
 
-console.log(
-  'Sending test webhook to:', WEBHOOK_URL,
-);
+console.log('Sending test webhook to:', WEBHOOK_URL);
 console.log('Payload:', JSON.stringify(payload, null, 2));
 
 // Send the request

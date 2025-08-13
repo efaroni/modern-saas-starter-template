@@ -29,9 +29,11 @@ export interface DatabaseConnectionComponents {
 function getDatabaseEnvironment(): DatabaseConnectionComponents {
   const env = process.env.NODE_ENV;
   if (!env) {
-    throw new Error('NODE_ENV must be explicitly set (development, test, or production)');
+    throw new Error(
+      'NODE_ENV must be explicitly set (development, test, or production)',
+    );
   }
-  
+
   return {
     host: process.env.DB_HOST || '',
     port: parseEnvInt('DB_PORT', 5432),
@@ -117,7 +119,9 @@ export function getDatabaseUrl(): string {
   // Use DB_ENV to override which database to use (for testing)
   const env = process.env.DB_ENV || process.env.NODE_ENV;
   if (!env) {
-    throw new Error('NODE_ENV must be explicitly set (development, test, or production)');
+    throw new Error(
+      'NODE_ENV must be explicitly set (development, test, or production)',
+    );
   }
 
   // Safety check: Prevent production database access in non-production environments
@@ -134,19 +138,14 @@ export function getDatabaseUrl(): string {
     if (dbName && !dbName.includes('test')) {
       throw new Error(
         '⚠️  SECURITY ERROR: Test environment must use a database name containing "test". ' +
-        `Current DB_NAME: ${dbName}`,
+          `Current DB_NAME: ${dbName}`,
       );
     }
   }
 
   // Safety check: Require explicit production configuration
   if (env === 'production') {
-    const required = [
-      'DB_HOST',
-      'DB_USER',
-      'DB_PASSWORD',
-      'DB_NAME',
-    ];
+    const required = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
     const missing = required.filter(key => !process.env[key]);
 
     if (missing.length > 0) {

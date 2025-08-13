@@ -75,14 +75,17 @@ TEST_DB_NAME="saas_template_test"
 ### Common Issues
 
 **Test fails with "User not found in database":**
+
 - Ensure ngrok tunnel is running: `npm run dev:tunnel`
 - Check Clerk webhook configuration
 - Verify `CLERK_WEBHOOK_SECRET` is set correctly
 
 **Verification code not working:**
+
 - The test uses `+clerk_test` email suffix with fixed code `424242`
 - This is a Clerk testing feature for automated testing
 
 **Authentication flow fails:**
+
 - Check if Clerk test keys are properly configured
 - Ensure test database is accessible and clean
