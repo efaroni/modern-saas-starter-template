@@ -353,6 +353,7 @@ npm run dev:tunnel
 
 # Then add webhook endpoint in Stripe Dashboard:
 # Use STRIPE_WEBHOOK_URL from your environment variables
+# Dashboard: https://dashboard.stripe.com/test/workbench/webhooks
 ```
 
 **Option 3: Production**
