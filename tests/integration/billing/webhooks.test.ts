@@ -40,16 +40,20 @@ describe('Stripe Webhook Integration', () => {
 
     // Cleanup any existing test data
     await db.delete(users).where(eq(users.email, 'webhook-test@example.com'));
+    await db.delete(users).where(eq(users.email, 'duplicate-test@example.com'));
     await db.delete(webhookEvents).where(like(webhookEvents.id, 'evt_test%'));
     await db.delete(webhookEvents).where(like(webhookEvents.id, 'cus_test%'));
+    await db.delete(webhookEvents).where(like(webhookEvents.id, 'cs_test%'));
   });
 
   afterEach(async () => {
     // Cleanup test data
     await db.delete(users).where(eq(users.email, 'webhook-test@example.com'));
+    await db.delete(users).where(eq(users.email, 'duplicate-test@example.com'));
     // Clean up any webhook events that might have been created
     await db.delete(webhookEvents).where(like(webhookEvents.id, 'evt_test%'));
     await db.delete(webhookEvents).where(like(webhookEvents.id, 'cus_test%'));
+    await db.delete(webhookEvents).where(like(webhookEvents.id, 'cs_test%'));
   });
 
   test('stores customer ID from checkout.completed event', async () => {
@@ -80,6 +84,15 @@ describe('Stripe Webhook Integration', () => {
         JSON.stringify({
           id: 'evt_test_checkout_123',
           type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_test_123',
+              customer: 'cus_test_webhook_456',
+              client_reference_id: testUser.id,
+              mode: 'subscription',
+              customer_email: 'webhook-test@example.com',
+            },
+          },
         }),
       ),
     } as unknown;
@@ -100,19 +113,30 @@ describe('Stripe Webhook Integration', () => {
 
     // Verify webhook event was recorded for idempotency
     const webhookEvent = await db.query.webhookEvents.findFirst({
-      where: eq(webhookEvents.id, 'evt_test_checkout_123'),
+      where: eq(webhookEvents.id, 'cs_test_123'),
     });
     expect(webhookEvent).toBeDefined();
     expect(webhookEvent?.provider).toBe('stripe');
-    expect(webhookEvent?.eventType).toBe('checkout.completed');
+    expect(webhookEvent?.eventType).toBe('checkout.session.completed');
   });
 
   test('prevents duplicate webhook processing', async () => {
+    // Create test user for duplicate test
+    const [testUser] = await db
+      .insert(users)
+      .values({
+        clerkId: 'user_duplicate_test',
+        email: 'duplicate-test@example.com',
+        name: 'Duplicate Test User',
+        billingCustomerId: null,
+      })
+      .returning();
+
     // Pre-insert webhook event to simulate already processed
     await db.insert(webhookEvents).values({
-      id: 'evt_test_duplicate_789',
+      id: 'cs_test_duplicate',
       provider: 'stripe',
-      eventType: 'checkout.completed',
+      eventType: 'checkout.session.completed',
     });
 
     // Mock webhook event parsing
@@ -121,7 +145,7 @@ describe('Stripe Webhook Integration', () => {
       data: {
         id: 'evt_test_duplicate_789',
         customer: 'cus_test_duplicate',
-        client_reference_id: 'test-user-123',
+        client_reference_id: testUser.id,
       },
     });
 
@@ -131,6 +155,13 @@ describe('Stripe Webhook Integration', () => {
         JSON.stringify({
           id: 'evt_test_duplicate_789',
           type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_test_duplicate',
+              customer: 'cus_test_duplicate',
+              client_reference_id: testUser.id,
+            },
+          },
         }),
       ),
     } as unknown;
@@ -175,8 +206,16 @@ describe('Stripe Webhook Integration', () => {
     const request = {
       text: jest.fn().mockResolvedValue(
         JSON.stringify({
-          id: 'cus_test_new_customer_123',
+          id: 'evt_customer_created_123',
           type: 'customer.created',
+          data: {
+            object: {
+              id: 'cus_test_new_customer_123',
+              object: 'customer',
+              email: 'webhook-test@example.com',
+              created: Math.floor(Date.now() / 1000),
+            },
+          },
         }),
       ),
     } as unknown;

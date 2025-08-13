@@ -136,7 +136,7 @@ export class OpenAIVisionService implements VisionService {
             return {
               success: false,
               error: {
-                code: 'PARSE_ERROR',
+                code: 'INVALID_RESPONSE',
                 message:
                   'Failed to parse AI response. The AI returned an invalid format.',
               },
@@ -146,7 +146,7 @@ export class OpenAIVisionService implements VisionService {
           return {
             success: false,
             error: {
-              code: 'PARSE_ERROR',
+              code: 'INVALID_RESPONSE',
               message:
                 'Failed to parse AI response. The AI returned an invalid format.',
             },

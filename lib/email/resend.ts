@@ -61,7 +61,7 @@ export class ResendEmailService implements EmailService {
 
       const html = await render(
         WelcomeEmail({
-          userName: data.user.name,
+          userName: data.user.name || 'User',
           dashboardUrl: data.dashboardUrl,
           unsubscribeUrl,
         }),

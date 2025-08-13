@@ -42,33 +42,70 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-## Git Hooks
+## Git Hooks & Commit Standards
 
-This project includes a pre-commit hook that automatically runs unit tests before each commit. This ensures code quality by preventing commits with failing tests.
+This project uses **Conventional Commits** with automated enforcement via commitlint and Husky.
 
-To manually set up git hooks (if they weren't set up during `npm install`):
+### Git Hooks Setup
+
+Git hooks are automatically set up when you run `npm install`. If you need to manually set them up:
 
 ```bash
-# First make the setup script executable
-chmod +x setup-git-hooks.sh
-
-# Then run it
-./setup-git-hooks.sh
-# or
 npm run prepare
 ```
 
-If you get a warning about the hook not being executable, run:
+### Commit Message Format
 
-```bash
-chmod +x .git/hooks/pre-commit
+All commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
 ```
 
-The pre-commit hook will:
+**Examples:**
 
-- Run all unit tests with `npm test`
-- Block the commit if any tests fail
-- Show a success message if all tests pass
+```bash
+feat(auth): add Google OAuth integration
+fix(api): resolve rate limiting issues
+docs(readme): update installation guide
+test(billing): add Stripe webhook tests
+```
+
+**Available Types:**
+
+- `feat`: New features
+- `fix`: Bug fixes
+- `docs`: Documentation changes
+- `style`: Code formatting (no logic changes)
+- `refactor`: Code changes that neither fix bugs nor add features
+- `perf`: Performance improvements
+- `test`: Adding or modifying tests
+- `build`: Build system changes
+- `ci`: CI/CD changes
+- `chore`: Other changes (deps, config, etc.)
+
+### Pre-commit Hooks
+
+The pre-commit hook automatically:
+
+- **Lints code** with ESLint
+- **Formats code** with Prettier
+- **Runs unit tests** with Jest
+- **Blocks commits** if any step fails
+
+### Commit-msg Hook
+
+The commit-msg hook automatically:
+
+- **Validates commit messages** against conventional commit format
+- **Rejects non-compliant** commit messages
+- **Provides helpful error messages** for fixes
+
+This ensures consistent commit history and enables automated changelog generation.
 
 ## Testing
 

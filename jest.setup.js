@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { config } from 'dotenv';
 
-// Load test environment variables from .env.test
+// Load environment variables from .env.test (isolated test environment)
 config({ path: '.env.test' });
 
 // Fix setImmediate not defined error
