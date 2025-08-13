@@ -1,19 +1,21 @@
 import { test, expect } from '@playwright/test';
-import { setupClerkTestingToken } from '@clerk/testing/playwright';
-import { testDb } from '@/lib/db/test';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-
-// Test configuration
-const CLERK_TEST_CODE = '424242'; // Fixed verification code for +clerk_test emails
-// Generate unique complex password that won't be in breach databases
-const TEST_PASSWORD = `E2E-${Date.now()}-X9z!Qm@4kP#7nR$2wL`;
-
-// Generate unique test email with +clerk_test suffix for automatic verification
-const generateTestEmail = () => {
-  const timestamp = Date.now();
-  return `e2e-${timestamp}+clerk_test@example.com`;
-};
+import {
+  generateTestUser,
+  signUpUser,
+  signInUser,
+  signOutUser,
+  verifyAuthentication,
+  verifyUnauthenticated,
+  cleanupTestUser,
+  type TestUser,
+} from './helpers/auth-helper';
+import { ClerkAuthPage } from './pages/auth-pages';
+import {
+  DatabaseUtils,
+  TestLogger,
+  TestDataUtils,
+  TEST_TIMEOUTS,
+} from './helpers/test-utils';
 
 /**
  * E2E Authentication Flow Tests
@@ -27,136 +29,51 @@ const generateTestEmail = () => {
  * 6. Account deletion removes user from database
  */
 test.describe('Authentication Flow', () => {
-  let testEmail: string;
+  let testUser: TestUser;
+  let authPage: ClerkAuthPage;
 
-  test.beforeEach(async () => {
-    testEmail = generateTestEmail();
-    console.log(`🧪 Test email: ${testEmail}`);
+  test.beforeEach(async ({ page }) => {
+    testUser = generateTestUser();
+    authPage = new ClerkAuthPage(page);
+    TestDataUtils.registerTestEmail(testUser.email);
+    TestLogger.logAuth('Starting test with user', testUser.email);
   });
 
   test.afterEach(async () => {
     // Clean up test user from database if it exists
-    if (testEmail) {
-      try {
-        await testDb.delete(users).where(eq(users.email, testEmail));
-        console.log(`🧹 Cleaned up test user: ${testEmail}`);
-      } catch (error) {
-        console.warn(`Failed to clean up test user: ${error}`);
-      }
+    if (testUser?.email) {
+      await cleanupTestUser(testUser.email);
     }
   });
 
   test('complete auth flow: signup, signin, edit, delete', async ({ page }) => {
-    test.setTimeout(60000); // 60 second timeout for complete flow
-
-    // Setup Clerk testing token
-    await setupClerkTestingToken({ page });
+    test.setTimeout(TEST_TIMEOUTS.COMPLETE_FLOW);
 
     // Step 1: Verify unauthenticated redirect
     await test.step('Unauthenticated users redirect to sign-in', async () => {
-      await page.goto('/configuration');
-      await expect(page).toHaveURL(/sign-in/);
-      console.log('✅ Unauthenticated redirect works');
+      await verifyUnauthenticated(page);
+      TestLogger.logStep('Unauthenticated redirect verified', 'success');
     });
 
     // Step 2: Sign up new user
     await test.step('Sign up new user', async () => {
-      await page.goto('/sign-up');
-
-      // Wait for sign-up form to load
-      await page.waitForSelector('input[name="emailAddress"]', {
-        timeout: 10000,
-      });
-
-      // Fill email
-      await page.fill('input[name="emailAddress"]', testEmail);
-
-      // Click the primary Continue button (not Google sign-in)
-      const continueButton = page.locator(
-        'button[data-localization-key="formButtonPrimary"]:has-text("Continue")',
-      );
-      await expect(continueButton).toBeVisible({ timeout: 5000 });
-      await continueButton.click();
-
-      // Wait for password field
-      await page.waitForSelector('input[name="password"]:not([disabled])', {
-        timeout: 15000,
-      });
-
-      // Fill password
-      await page.fill('input[name="password"]', TEST_PASSWORD);
-
-      // Click Continue again
-      await page.click(
-        'button[data-localization-key="formButtonPrimary"]:has-text("Continue")',
-      );
-
-      // Handle verification (auto-fills for +clerk_test emails)
-      const isOnVerifyPage = await page
-        .waitForURL(/verify/, { timeout: 5000 })
-        .then(() => true)
-        .catch(() => false);
-
-      if (isOnVerifyPage) {
-        // Wait for Clerk to be ready to accept verification code
-        await page.waitForTimeout(1000);
-
-        // Fill verification code
-        const otpInputs = await page.locator('input[maxlength="1"]').all();
-        if (otpInputs.length === 6) {
-          for (let i = 0; i < 6; i++) {
-            await otpInputs[i].fill(CLERK_TEST_CODE[i]);
-            await page.waitForTimeout(100); // Small delay between each digit
-          }
-        }
-        await page.waitForTimeout(2000); // Wait for auto-submit
-      }
-
-      // Wait for sign-up to complete and redirect
-      await page.waitForTimeout(3000);
-
-      // Check if we're signed in by trying to access a protected route
-      await page.goto('/configuration');
-
-      // Wait for either successful access or redirect to sign-in
-      const isSignedIn = await page
-        .waitForURL(/configuration/, { timeout: 3000 })
-        .then(() => true)
-        .catch(async () => {
-          // If we didn't stay on configuration, check if redirected to sign-in
-          await page.waitForTimeout(1000);
-          return !page.url().includes('sign-in');
-        });
-
-      if (isSignedIn) {
-        console.log('✅ Sign up completed and user is authenticated');
-      } else {
-        console.log('⚠️ Sign up completed but user may need to sign in');
-      }
+      await signUpUser({ user: testUser, page });
+      TestLogger.logStep('Sign up completed', 'success');
     });
 
     // Step 3: Verify database sync (optional - depends on webhook)
     await test.step('Check database sync (webhook-dependent)', async () => {
-      // Wait for potential webhook sync
-      console.log('Waiting for webhook to sync user to database...');
-      await page.waitForTimeout(5000);
+      const syncResult = await DatabaseUtils.waitForDatabaseSync(
+        testUser.email,
+      );
 
-      // Check database for user
-      const dbUser = await testDb.query.users.findFirst({
-        where: eq(users.email, testEmail),
-      });
-
-      if (dbUser) {
-        expect(dbUser.id).toBeTruthy();
-        expect(dbUser.clerkId).toBeTruthy();
-        expect(dbUser.clerkId).toMatch(/^user_/);
-        console.log(
-          `✅ User synced to DB - ID: ${dbUser.id}, Clerk ID: ${dbUser.clerkId}`,
-        );
+      if (syncResult.synced) {
+        expect(syncResult.user.id).toBeTruthy();
+        expect(syncResult.user.clerkId).toBeTruthy();
+        expect(syncResult.user.clerkId).toMatch(/^user_/);
+        TestLogger.logDatabase('User synced to database', syncResult.user);
       } else {
-        console.log(
-          '⚠️ User not in DB yet (webhook may be pending or not configured)',
-        );
+        TestLogger.logStep('User not yet synced (webhook pending)', 'warning');
       }
     });
 
@@ -168,255 +85,98 @@ test.describe('Authentication Flow', () => {
         currentUrl.includes('sign-in') ||
         !currentUrl.includes('configuration')
       ) {
-        console.log('Signing in after registration...');
-
-        // If redirected to sign-in, complete the sign-in process
-        if (!currentUrl.includes('sign-in')) {
-          await page.goto('/sign-in');
-        }
-
-        // Wait for form to load
-        await page.waitForSelector('input[name="identifier"]', {
-          timeout: 5000,
-        });
-
-        // Enter credentials
-        await page.fill('input[name="identifier"]', testEmail);
-        const continueButton = page.locator(
-          'button[data-localization-key="formButtonPrimary"]:has-text("Continue")',
-        );
-        await continueButton.click();
-
-        await page.waitForSelector('input[name="password"]:not([disabled])', {
-          timeout: 5000,
-        });
-        await page.fill('input[name="password"]', TEST_PASSWORD);
-        await page.click(
-          'button[data-localization-key="formButtonPrimary"]:has-text("Continue")',
-        );
-
-        // Wait for sign-in to process
-        await page.waitForTimeout(2000);
-
-        // Check if verification is needed
-        if (page.url().includes('verify')) {
-          console.log('Handling verification...');
-          await page.waitForTimeout(1000); // Wait for Clerk to be ready
-
-          const otpInputs = await page.locator('input[maxlength="1"]').all();
-          if (otpInputs.length === 6) {
-            for (let i = 0; i < 6; i++) {
-              await otpInputs[i].fill(CLERK_TEST_CODE[i]);
-              await page.waitForTimeout(100); // Small delay between each digit
-            }
-          }
-          await page.waitForTimeout(2000);
-        }
-
-        // Wait for final redirect
-        await page.waitForTimeout(2000);
+        TestLogger.logStep('Signing in after registration', 'start');
+        await signInUser({ user: testUser, page });
       }
 
-      // Now verify authenticated access
-      await page.goto('/configuration');
-      await expect(page).not.toHaveURL(/sign-in/);
-      await expect(page).toHaveURL(/configuration/);
+      // Verify authenticated access
+      await verifyAuthentication(page);
 
       // Verify configuration page content is visible
       await expect(
         page.locator('h1:has-text("API Configuration")'),
       ).toBeVisible();
-      console.log('✅ Authenticated access works');
+      TestLogger.logStep('Authenticated access verified', 'success');
     });
 
     // Step 5: Sign out
     await test.step('Sign out', async () => {
-      // Click user button
-      await page.click('.cl-userButtonTrigger');
-      await page.waitForSelector('.cl-userButtonPopoverCard');
-
-      // Click sign out
-      await page.click('button:has-text("Sign out")');
-      await page.waitForTimeout(2000);
+      await signOutUser(page);
 
       // Verify redirect to sign-in when accessing protected route
-      await page.goto('/configuration');
-      await expect(page).toHaveURL(/sign-in/);
-      console.log('✅ Sign out works');
+      await verifyUnauthenticated(page);
+      TestLogger.logStep('Sign out verified', 'success');
     });
 
     // Step 6: Sign in with existing account
     await test.step('Sign in with existing account', async () => {
-      await page.goto('/sign-in');
-
-      // Wait for sign-in form
-      await page.waitForSelector('input[name="identifier"]', {
-        timeout: 10000,
-      });
-
-      // Enter email
-      await page.fill('input[name="identifier"]', testEmail);
-
-      // Click the primary Continue button (not Google sign-in)
-      const continueButton = page.locator(
-        'button[data-localization-key="formButtonPrimary"]:has-text("Continue")',
-      );
-      await expect(continueButton).toBeVisible({ timeout: 5000 });
-      await continueButton.click();
-
-      // Wait for password field
-      await page.waitForSelector('input[name="password"]:not([disabled])', {
-        timeout: 15000,
-      });
-
-      // Enter password
-      await page.fill('input[name="password"]', TEST_PASSWORD);
-
-      // Click Continue to submit
-      await page.click(
-        'button[data-localization-key="formButtonPrimary"]:has-text("Continue")',
-      );
-
-      // Handle potential verification
-      const needsVerification = await page
-        .waitForURL(/verify/, { timeout: 3000 })
-        .then(() => true)
-        .catch(() => false);
-
-      if (needsVerification) {
-        await page.waitForTimeout(1000); // Wait for Clerk to be ready
-
-        const otpInputs = await page.locator('input[maxlength="1"]').all();
-        if (otpInputs.length === 6) {
-          for (let i = 0; i < 6; i++) {
-            await otpInputs[i].fill(CLERK_TEST_CODE[i]);
-            await page.waitForTimeout(100); // Small delay between each digit
-          }
-        }
-        await page.waitForTimeout(2000);
-      }
+      await signInUser({ user: testUser, page });
 
       // Verify authenticated access
-      await page.goto('/configuration');
-      await expect(page).not.toHaveURL(/sign-in/);
-      console.log('✅ Sign in with existing account works');
+      await verifyAuthentication(page);
+      TestLogger.logStep('Sign in with existing account verified', 'success');
     });
 
     // Step 7: Edit profile name (skip if webhook not working)
     await test.step('Edit profile name', async () => {
       const newName = `Test User ${Date.now()}`;
 
-      // Open user menu
-      await page.click('.cl-userButtonTrigger');
-      await page.click('button:has-text("Manage account")');
+      const success = await authPage.updateFirstName(newName);
 
-      // Wait for modal
-      await page.waitForSelector('.cl-modalContent');
-
-      // Navigate to Profile section if needed
-      const profileBtn = page.locator('button:has-text("Profile")').first();
-      if (await profileBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await profileBtn.click();
-      }
-
-      // Update first name
-      const nameInput = page.locator('input[name="firstName"]').first();
-      if (await nameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await nameInput.clear();
-        await nameInput.fill(newName);
-
-        // Save changes
-        await page.click('.cl-modalContent button:has-text("Save")');
-        await page.waitForTimeout(4000); // Wait for webhook sync
-
+      if (success) {
         // Close modal
-        const closeBtn = page.locator('.cl-modalCloseButton').first();
-        if (await closeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-          await closeBtn.click();
-        }
+        await authPage.closeModal();
 
         // Check if database was updated (only if webhook is working)
-        const updatedUser = await testDb.query.users.findFirst({
-          where: eq(users.email, testEmail),
-        });
+        const updatedUser = await DatabaseUtils.findUserByEmail(testUser.email);
 
         if (updatedUser) {
           if (updatedUser.name === newName) {
-            console.log(`✅ Profile updated in DB: ${updatedUser.name}`);
+            TestLogger.logStep(
+              `Profile updated in DB: ${updatedUser.name}`,
+              'success',
+            );
           } else {
-            console.log('⚠️ Name not yet updated in DB (webhook pending)');
+            TestLogger.logStep(
+              'Name not yet updated in DB (webhook pending)',
+              'warning',
+            );
           }
         } else {
-          console.log('⚠️ User not in DB (webhook not configured)');
+          TestLogger.logStep(
+            'User not in DB (webhook not configured)',
+            'warning',
+          );
         }
       } else {
-        console.log('⚠️ Name field not found, skipping edit test');
+        TestLogger.logStep(
+          'Name field not found, skipping edit test',
+          'warning',
+        );
       }
     });
 
     // Step 8: Delete account
     await test.step('Delete account and verify database deletion', async () => {
       // Ensure any modal is closed first
-      try {
-        await page.keyboard.press('Escape');
-        await page.waitForTimeout(500);
-      } catch {}
+      await authPage.closeModal();
 
-      // Open user menu
-      await page.click('.cl-userButtonTrigger');
-      await page.click('button:has-text("Manage account")');
+      const success = await authPage.deleteAccount();
 
-      // Navigate to Security/Danger section
-      await page.waitForSelector('.cl-modalContent');
+      if (success) {
+        // Check if user removed from database (only if webhook is working)
+        const deletedUser = await DatabaseUtils.findUserByEmail(testUser.email);
 
-      const securityBtn = page.locator('button:has-text("Security")').first();
-      if (await securityBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await securityBtn.click();
-      }
-
-      // Find and click delete account
-      const deleteBtn = page.locator('button:has-text("Delete account")');
-      if (await deleteBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await deleteBtn.click();
-
-        // Handle confirmation
-        const confirmInput = page.locator('input[type="text"]').last();
-        if (
-          await confirmInput.isVisible({ timeout: 2000 }).catch(() => false)
-        ) {
-          await confirmInput.fill('Delete account');
-        }
-
-        // Confirm deletion
-        const confirmBtn = page
-          .locator('button:has-text("Delete account")')
-          .last();
-        if (
-          (await confirmBtn.isVisible()) &&
-          !(await confirmBtn.isDisabled())
-        ) {
-          await confirmBtn.click();
-          await page.waitForTimeout(5000); // Wait for deletion webhook
-
-          // Check if user removed from database (only if webhook is working)
-          const deletedUser = await testDb.query.users.findFirst({
-            where: eq(users.email, testEmail),
-          });
-
-          if (!deletedUser) {
-            console.log('✅ Account deleted from database');
-          } else {
-            console.log(
-              '⚠️ User still in DB (deletion webhook may be pending)',
-            );
-          }
+        if (!deletedUser) {
+          TestLogger.logStep('Account deleted from database', 'success');
         } else {
-          console.log(
-            '⚠️ Delete confirmation not available, skipping deletion',
+          TestLogger.logStep(
+            'User still in DB (deletion webhook may be pending)',
+            'warning',
           );
         }
       } else {
-        console.log('⚠️ Delete button not found, skipping deletion test');
+        TestLogger.logStep('Delete account operation not available', 'warning');
       }
     });
   });
