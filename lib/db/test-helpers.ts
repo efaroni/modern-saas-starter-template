@@ -1,15 +1,13 @@
-// Simple hash function for testing (not for production)
-import { createHash } from 'crypto';
+import { eq, like } from 'drizzle-orm';
 
-function simpleHash(text: string): string {
-  return createHash('sha256').update(text).digest('hex');
-}
-
-function simpleCompare(plaintext: string, hash: string): boolean {
-  return simpleHash(plaintext) === hash;
-}
-
-import { userApiKeys, users, type InsertUserApiKey } from './schema';
+import { 
+  userApiKeys, 
+  users, 
+  userEmailPreferences,
+  webhookEvents,
+  emailUnsubscribeTokens,
+  type InsertUserApiKey 
+} from './schema';
 import {
   testDb,
   clearTestDatabase,
@@ -33,31 +31,23 @@ export const testDataFactories = {
     ...overrides,
   }),
 
-  // Auth user factory with password
-  createAuthUser: async (
+  // Auth user factory (no password - using Clerk auth)
+  createAuthUser: (
     overrides: Partial<InsertUser> = {},
-  ): Promise<InsertUser> => {
-    const password = overrides.password || 'password123';
-    const hashedPassword =
-      typeof password === 'string' ? await simpleHash(password) : password;
-
+  ): InsertUser => {
     return {
       id: TEST_USER_ID,
       email: `auth-user-${Date.now()}@example.com`,
       name: 'Auth Test User',
-      password: hashedPassword,
-      emailVerified: null,
       ...overrides,
     };
   },
 
-  // Auth user factory without password hashing (for testing)
+  // Simple auth user factory (for testing)
   createAuthUserPlain: (overrides: Partial<InsertUser> = {}): InsertUser => ({
     id: TEST_USER_ID,
     email: `auth-user-${Date.now()}@example.com`,
     name: 'Auth Test User',
-    password: 'password123',
-    emailVerified: null,
     ...overrides,
   }),
 
@@ -417,37 +407,25 @@ export const authTestHelpers = {
     },
   },
 
-  // Clean up auth-specific test data
+  // Clean up auth-specific test data - simplified for current schema
   async cleanupAuthData(): Promise<void> {
     try {
       // Delete in correct order due to foreign key constraints
       // Child tables first, then parent tables
 
-      // 1. Delete session activity (references userSessions)
-      await testDb.delete(sessionActivity);
-
-      // 2. Delete user sessions (references users)
-      await testDb.delete(userSessions);
-
-      // 3. Delete auth attempts (references users)
-      await testDb.delete(authAttempts);
-
-      // 4. Delete password history (references users)
-      await testDb.delete(passwordHistory);
-
-      // 5. Delete OAuth accounts (references users)
-      await testDb.delete(accounts);
-
-      // 6. Delete NextAuth sessions (references users)
-      await testDb.delete(sessions);
-
-      // 7. Delete verification tokens
-      await testDb.delete(verificationTokens);
-
-      // 8. Delete user API keys (references users)
+      // 1. Delete user API keys (references users)
       await testDb.delete(userApiKeys);
 
-      // 9. Finally delete users (parent table)
+      // 2. Delete user email preferences (references users)
+      await testDb.delete(userEmailPreferences);
+
+      // 3. Delete webhook events
+      await testDb.delete(webhookEvents);
+
+      // 4. Delete email unsubscribe tokens
+      await testDb.delete(emailUnsubscribeTokens);
+
+      // 5. Finally delete users (parent table)
       await testDb.delete(users);
     } catch (error) {
       console.error('Error cleaning up auth data:', error);
@@ -458,7 +436,7 @@ export const authTestHelpers = {
   // Clean up test data created by specific test suite (more isolated)
   async cleanupTestSuiteData(testSuitePattern: string): Promise<void> {
     try {
-      const { like, eq, inArray } = await import('drizzle-orm');
+      // Import functions dynamically to avoid issues
 
       // Delete users whose email contains the test suite pattern
       const testUsers = await testDb
@@ -471,40 +449,21 @@ export const authTestHelpers = {
 
         // Delete in correct order due to foreign key constraints
         for (const userId of userIds) {
-          // Delete session activity (via sessions)
-          const userSessionIds = await testDb
-            .select({ id: userSessions.id })
-            .from(userSessions)
-            .where(eq(userSessions.userId, userId));
-
-          if (userSessionIds.length > 0) {
-            await testDb.delete(sessionActivity).where(
-              inArray(
-                sessionActivity.sessionId,
-                userSessionIds.map(s => s.id),
-              ),
-            );
-          }
-          await testDb
-            .delete(userSessions)
-            .where(eq(userSessions.userId, userId));
-          await testDb
-            .delete(authAttempts)
-            .where(eq(authAttempts.userId, userId));
-          await testDb
-            .delete(passwordHistory)
-            .where(eq(passwordHistory.userId, userId));
-          await testDb.delete(accounts).where(eq(accounts.userId, userId));
-          await testDb.delete(sessions).where(eq(sessions.userId, userId));
+          // Delete user API keys
           await testDb
             .delete(userApiKeys)
             .where(eq(userApiKeys.userId, userId));
+          
+          // Delete user email preferences
+          await testDb
+            .delete(userEmailPreferences)
+            .where(eq(userEmailPreferences.userId, userId));
         }
 
-        // Delete verification tokens by identifier pattern
+        // Delete email unsubscribe tokens by pattern
         await testDb
-          .delete(verificationTokens)
-          .where(like(verificationTokens.identifier, `%${testSuitePattern}%`));
+          .delete(emailUnsubscribeTokens)
+          .where(like(emailUnsubscribeTokens.email, `%${testSuitePattern}%`));
 
         // Finally delete users
         await testDb
