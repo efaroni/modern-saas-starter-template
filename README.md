@@ -349,7 +349,7 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 npm run dev:tunnel
 
 # Then add webhook endpoint in Stripe Dashboard:
-# https://gostealthiq-dev.sa.ngrok.io/api/webhooks/stripe
+# Use STRIPE_WEBHOOK_URL from your environment variables
 ```
 
 **Option 3: Production**

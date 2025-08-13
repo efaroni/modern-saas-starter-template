@@ -31,7 +31,11 @@ describe('Clerk Webhook Handler', () => {
     process.env = originalEnv;
   });
 
-  // Note: Test database cleanup is handled globally by jest.setup.js
+  beforeEach(async () => {
+    // Clean test data to prevent conflicts between webhook tests
+    await testDb.delete(users);
+    await testDb.delete(webhookEvents);
+  });
 
   describe('Webhook Verification', () => {
     it('should reject requests without webhook secret configured', async () => {

@@ -144,6 +144,8 @@ export function MyForm({ onSubmit, initialData }: Props) {
 - Modify auth flow without updating tests
 - Access `process.env.DATABASE_URL` directly (use `getDatabaseUrl()`)
 - **NEVER create fallbacks for `CLERK_WEBHOOK_URL` - this must always come from environment variables**
+- **NEVER create fallbacks for `STRIPE_WEBHOOK_URL` - this must always come from environment variables**
+- **NEVER change webhook URLs when coding - these are configured for external services**
 - **NEVER use fallbacks for NODE_ENV or critical config - let code fail explicitly to identify missing configuration**
 - **NEVER add test database variables to `.env.local` - tests ONLY use `.env.test`**
 
@@ -168,7 +170,8 @@ export function MyForm({ onSubmit, initialData }: Props) {
 - **No fallbacks for critical config**: Let code fail explicitly to identify missing configuration
 - **Explicit NODE_ENV**: Must be set explicitly (development, test, or production)
 - **Test database safety**: Database name must contain "test" when NODE_ENV=test
-- **Automatic test cleanup**: Test database is wiped after each test run
+- **Test cleanup responsibility**: Individual tests handle their own cleanup for data lifecycle control
+- **Suite-level isolation**: Global cleanup only occurs between test suites (beforeAll/afterAll)
 - **Protected development data**: Development database is never auto-wiped
 
 ## Database Configuration
@@ -226,7 +229,8 @@ npm run type-check       # Type checking
 - The test server script (`scripts/test-server.js`) explicitly loads `.env.test` 
 - Jest setup (`jest.setup.js`) explicitly loads `.env.test`
 - This ensures proper test database isolation and prevents accidental use of development data
-- Test database is automatically wiped after each test run
+- Individual tests handle their own cleanup to maintain control over data lifecycle
+- Global cleanup only occurs between test suites for proper isolation
 - E2E tests use `npm run test:tunnel` which starts ngrok for webhook testing
 
 ```bash
@@ -242,6 +246,9 @@ DB_NAME="saas_template_test"
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
 CLERK_SECRET_KEY="sk_test_..."
 CLERK_WEBHOOK_SECRET="whsec_..."
+# CRITICAL: DO NOT CHANGE THESE URLs - REQUIRED FOR WEBHOOK FUNCTIONALITY
+CLERK_WEBHOOK_URL="https://gostealthiq-dev.sa.ngrok.io/api/webhooks/clerk"
+STRIPE_WEBHOOK_URL="https://gostealthiq-dev.sa.ngrok.io/api/webhooks/stripe"
 ```
 
 ### Development Environment (.env.local)
@@ -259,6 +266,9 @@ DB_NAME="saas_template"
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
 CLERK_SECRET_KEY="sk_test_..."
 CLERK_WEBHOOK_SECRET="whsec_..."
+# CRITICAL: DO NOT CHANGE THESE URLs - REQUIRED FOR WEBHOOK FUNCTIONALITY
+CLERK_WEBHOOK_URL="https://gostealthiq-dev.sa.ngrok.io/api/webhooks/clerk"
+STRIPE_WEBHOOK_URL="https://gostealthiq-dev.sa.ngrok.io/api/webhooks/stripe"
 
 # Services
 STRIPE_SECRET_KEY="sk_test_..."
