@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 const crypto = require('crypto');
+require('dotenv').config();
 
-// Webhook secret from environment
-const WEBHOOK_SECRET = 'whsec_A9j9OSO8HqAcFrnmlGfzrUIE0l5TKfJy';
+// Webhook configuration from environment - NO FALLBACKS ALLOWED
+const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+const WEBHOOK_URL = process.env.CLERK_WEBHOOK_URL;
 
 // Test payload
 const payload = {
@@ -37,12 +39,12 @@ const signature = crypto
   .digest('base64');
 
 console.log(
-  'Sending test webhook to: https://gostealthiq-dev.sa.ngrok.io/api/webhooks/clerk',
+  'Sending test webhook to:', WEBHOOK_URL,
 );
 console.log('Payload:', JSON.stringify(payload, null, 2));
 
 // Send the request
-fetch('https://gostealthiq-dev.sa.ngrok.io/api/webhooks/clerk', {
+fetch(WEBHOOK_URL, {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

@@ -9,6 +9,12 @@ process.env.NODE_ENV = 'test';
 // Set DB_ENV to test to ensure test database is used
 process.env.DB_ENV = 'test';
 
+// Verify test database is being used
+console.log('🧪 Test server starting with:');
+console.log(`   DB_ENV: ${process.env.DB_ENV}`);
+console.log(`   TEST_DB_NAME: ${process.env.TEST_DB_NAME}`);
+console.log(`   TEST_DB_PORT: ${process.env.TEST_DB_PORT}`);
+
 // Start Next.js dev server
 const { spawn } = require('child_process');
 const next = spawn('npx', ['next', 'dev', '--port', '3000'], {

@@ -166,6 +166,19 @@ beforeAll(async () => {
   }
 }, 60000); // 60 second timeout for database initialization
 
+// Global cleanup after each test to ensure test isolation
+afterEach(async () => {
+  // Only clean database in test environment to protect development data
+  if (process.env.NODE_ENV === 'test') {
+    try {
+      const { clearTestDatabase } = await import('./lib/db/test');
+      await clearTestDatabase();
+    } catch (error) {
+      console.warn('Test database cleanup failed:', error);
+    }
+  }
+});
+
 afterAll(async () => {
   try {
     // Lazy import to avoid early initialization

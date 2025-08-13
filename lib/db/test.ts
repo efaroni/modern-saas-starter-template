@@ -167,6 +167,19 @@ export async function resetTestDatabase() {
 
 // Helper to clear test database tables (no schema drop)
 export async function clearTestDatabase() {
+  // Safety check: Only clear database if we're in test environment
+  if (process.env.NODE_ENV !== 'test') {
+    console.warn('Refusing to clear database: NODE_ENV is not "test"');
+    return;
+  }
+
+  // Additional safety: Check database name contains "test"
+  const dbName = process.env.DB_NAME;
+  if (dbName && !dbName.includes('test')) {
+    console.warn(`Refusing to clear database: DB_NAME "${dbName}" does not contain "test"`);
+    return;
+  }
+
   try {
     // Clear in dependency order (foreign keys)
     // Child tables first, then parent tables
@@ -186,7 +199,7 @@ export async function clearTestDatabase() {
     // Core user table (delete last due to foreign key dependencies)
     await testClient`DELETE FROM users`;
 
-    console.warn('Test database cleared successfully');
+    console.debug('Test database cleared successfully');
   } catch (error) {
     // Ignore errors if tables don't exist
     console.warn(
