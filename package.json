@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "PORT=3000 next dev --port 3000",
     "dev:tunnel": "concurrently \"npm run dev\" \"ngrok http --domain=gostealthiq-dev.sa.ngrok.io 3000\"",
+    "test:tunnel": "concurrently \"node scripts/test-server.js\" \"ngrok http --domain=gostealthiq-dev.sa.ngrok.io 3000\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -16,9 +17,10 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:load": "jest --config jest.config.load.js",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug",
+    "test:e2e": "NODE_ENV=test playwright test",
+    "test:e2e:ui": "NODE_ENV=test playwright test --ui",
+    "test:e2e:debug": "NODE_ENV=test playwright test --debug",
+    "test:e2e:headless": "NODE_ENV=test playwright test",
     "db:start": "docker compose up -d",
     "db:stop": "docker compose down",
     "db:generate": "drizzle-kit generate",
@@ -26,7 +28,7 @@
     "db:push": "drizzle-kit push --force",
     "db:studio": "drizzle-kit studio",
     "seed": "tsx scripts/seed-database.ts",
-    "prepare": "husky",
+    "prepare": "sh setup-git-hooks.sh",
     "check-all": "npm run type-check && npm run lint && npm run format:check",
     "email:dev": "email dev --dir emails --port 3001"
   },
@@ -57,15 +59,8 @@
     "svix": "^1.69.0",
     "zod": "^3.25.70"
   },
-  "overrides": {
-    "esbuild": ">=0.24.3",
-    "prismjs": ">=1.30.0"
-  },
   "devDependencies": {
-    "@clerk/backend": "^2.7.0",
-    "@clerk/testing": "^1.10.11",
-    "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1",
+    "@clerk/testing": "^1.10.12",
     "@eslint/eslintrc": "^3",
     "@jest/globals": "^30.0.4",
     "@playwright/test": "^1.53.2",
@@ -84,7 +79,7 @@
     "eslint-config-next": "15.3.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.31.0",
-    "husky": "^9.1.7",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "jest": "^30.0.4",
     "jest-environment-jsdom": "^30.0.4",
     "null-loader": "^4.0.1",
@@ -94,6 +89,7 @@
     "tailwindcss": "^4",
     "ts-jest": "^29.4.0",
     "tsx": "^4.20.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^8.0.4"
   }
 }

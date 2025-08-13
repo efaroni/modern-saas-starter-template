@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         console.warn('Processing customer creation:', data.id);
 
         // Update user with billing customer ID using email
-        if (data.email) {
+        if (data.email && typeof data.email === 'string') {
           await retryDbOperation(() =>
             db
               .update(users)

@@ -5,8 +5,6 @@
  * best practices with proper validation and environment detection.
  */
 
-import { getEnv } from '@/lib/config/env-validation';
-
 // Helper function to parse environment variables with defaults
 function parseEnvInt(envVar: string, defaultValue: number): number {
   const value = process.env[envVar];
@@ -22,60 +20,28 @@ export interface DatabaseConnectionComponents {
   ssl?: boolean;
 }
 
-interface EnvironmentDatabaseConfig {
-  host: string | undefined;
-  port: number;
-  username: string | undefined;
-  password: string | undefined;
-  database: string | undefined;
-  ssl: boolean;
-}
-
 /**
- * Get environment-specific database connection settings
- * Uses explicit environment variables for each environment - no fallbacks for cleaner config
- * Returns a function to ensure env vars are evaluated when needed, not at module load time
+ * Get database connection configuration from environment variables
+ * All environments use the same variable names (DB_HOST, DB_PORT, etc.)
+ * Environment differentiation happens by loading different .env files
+ * NO FALLBACKS - missing env vars should cause explicit failures
  */
-function getDatabaseEnvironment(env: string): EnvironmentDatabaseConfig {
-  switch (env) {
-    case 'development':
-      return {
-        host: process.env.DEV_DB_HOST || 'localhost',
-        port: parseEnvInt('DEV_DB_PORT', 5432),
-        username: process.env.DEV_DB_USER,
-        password: process.env.DEV_DB_PASSWORD || '',
-        database: process.env.DEV_DB_NAME,
-        ssl: false,
-      };
-    case 'test':
-      return {
-        host: process.env.TEST_DB_HOST || 'localhost',
-        port: parseEnvInt('TEST_DB_PORT', 5432),
-        username: process.env.TEST_DB_USER,
-        password: process.env.TEST_DB_PASSWORD || '',
-        database: process.env.TEST_DB_NAME,
-        ssl: false,
-      };
-    case 'production':
-      return {
-        host: process.env.PROD_DB_HOST,
-        port: parseEnvInt('PROD_DB_PORT', 5432),
-        username: process.env.PROD_DB_USER,
-        password: process.env.PROD_DB_PASSWORD,
-        database: process.env.PROD_DB_NAME,
-        ssl: true,
-      };
-    default:
-      // Default to development
-      return {
-        host: process.env.DEV_DB_HOST || 'localhost',
-        port: parseEnvInt('DEV_DB_PORT', 5432),
-        username: process.env.DEV_DB_USER,
-        password: process.env.DEV_DB_PASSWORD || '',
-        database: process.env.DEV_DB_NAME,
-        ssl: false,
-      };
+function getDatabaseEnvironment(): DatabaseConnectionComponents {
+  const env = process.env.NODE_ENV;
+  if (!env) {
+    throw new Error(
+      'NODE_ENV must be explicitly set (development, test, or production)',
+    );
   }
+
+  return {
+    host: process.env.DB_HOST || '',
+    port: parseEnvInt('DB_PORT', 5432),
+    username: process.env.DB_USER || '',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || '',
+    ssl: env === 'production',
+  };
 }
 
 /**
@@ -150,9 +116,13 @@ export interface DatabaseConfig {
  * ```
  */
 export function getDatabaseUrl(): string {
-  // Validate environment variables first
-  const validatedEnv = getEnv();
-  const env = validatedEnv.NODE_ENV;
+  // Use DB_ENV to override which database to use (for testing)
+  const env = process.env.DB_ENV || process.env.NODE_ENV;
+  if (!env) {
+    throw new Error(
+      'NODE_ENV must be explicitly set (development, test, or production)',
+    );
+  }
 
   // Safety check: Prevent production database access in non-production environments
   if (env === 'development' && process.env.NODE_ENV === 'production') {
@@ -162,20 +132,36 @@ export function getDatabaseUrl(): string {
     );
   }
 
+  // Safety check: Ensure test environment uses test database
+  if (env === 'test') {
+    const dbName = process.env.DB_NAME;
+    if (dbName && !dbName.includes('test')) {
+      throw new Error(
+        '⚠️  SECURITY ERROR: Test environment must use a database name containing "test". ' +
+          `Current DB_NAME: ${dbName}`,
+      );
+    }
+  }
+
+  // Safety check: Require explicit production configuration
+  if (env === 'production') {
+    const required = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+    const missing = required.filter(key => !process.env[key]);
+
+    if (missing.length > 0) {
+      throw new Error(
+        `Missing required production database configuration: ${missing.join(', ')}. ` +
+          'Production requires explicit database credentials for safety.',
+      );
+    }
+  }
+
   try {
     // Try component-based URL building first
-    const rawConfig = getDatabaseEnvironment(env);
+    const envConfig = getDatabaseEnvironment();
 
     // If we have all required components, build the URL (password can be empty)
-    if (rawConfig.host && rawConfig.username && rawConfig.database) {
-      const envConfig: DatabaseConnectionComponents = {
-        host: rawConfig.host,
-        port: rawConfig.port,
-        username: rawConfig.username,
-        password: rawConfig.password || '',
-        database: rawConfig.database,
-        ssl: rawConfig.ssl,
-      };
+    if (envConfig.host && envConfig.username && envConfig.database) {
       return buildDatabaseUrl(envConfig);
     }
   } catch {
@@ -183,15 +169,19 @@ export function getDatabaseUrl(): string {
   }
 
   // Fallback to legacy environment variables for backwards compatibility
-  if (validatedEnv.DATABASE_URL) {
-    return validatedEnv.DATABASE_URL;
+  if (env === 'test' && process.env.TEST_DATABASE_URL) {
+    return process.env.TEST_DATABASE_URL;
+  }
+
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL;
   }
 
   // If we get here, no valid configuration was found
   throw new Error(
     'Database configuration is missing. Please set either:\n' +
-      '1. Component variables: DEV_DB_* (development), PROD_DB_* (production)\n' +
-      '2. Or full URL: DATABASE_URL\n' +
+      '1. Component variables: DEV_DB_* (development), TEST_DB_* (test), PROD_DB_* (production)\n' +
+      '2. Or full URL: DATABASE_URL (TEST_DATABASE_URL for tests)\n' +
       'See documentation for complete setup instructions.',
   );
 }
@@ -245,7 +235,6 @@ export function getDatabaseConfig(): DatabaseConfig {
   switch (process.env.NODE_ENV) {
     case 'test':
       // Test environment: smaller pool, faster timeouts for parallel execution
-      // Uses isolated test database with optimized settings
       return {
         ...baseConfig,
         poolSize: parseEnvInt('DB_MAX_CONNECTIONS', 3),
@@ -329,19 +318,7 @@ export function getDatabaseName(): string {
  * ```
  */
 export function getDatabaseConnectionComponents(): DatabaseConnectionComponents {
-  const env = process.env.NODE_ENV || 'development';
-
-  const rawConfig = getDatabaseEnvironment(env);
-
-  // Convert to properly typed components, with fallbacks for required fields
-  return {
-    host: rawConfig.host || 'localhost',
-    port: rawConfig.port,
-    username: rawConfig.username || '',
-    password: rawConfig.password || '',
-    database: rawConfig.database || '',
-    ssl: rawConfig.ssl,
-  };
+  return getDatabaseEnvironment();
 }
 
 /**

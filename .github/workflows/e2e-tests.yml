@@ -259,14 +259,6 @@ jobs:
           npx playwright test --project=chromium
         continue-on-error: true
 
-      # Accessibility testing with axe-playwright
-      - name: Run accessibility tests
-        run: |
-          npx playwright test \
-            --project=chromium \
-            --grep="@accessibility"
-        continue-on-error: true
-
       # Performance testing (Lighthouse CI) - optional
       - name: Run performance tests
         if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'performance-test') }}

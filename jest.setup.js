@@ -166,6 +166,9 @@ beforeAll(async () => {
   }
 }, 60000); // 60 second timeout for database initialization
 
+// Note: Individual tests handle their own cleanup to maintain control over data lifecycle
+// Global cleanup only occurs at the suite level (beforeAll/afterAll) for proper isolation
+
 afterAll(async () => {
   try {
     // Lazy import to avoid early initialization

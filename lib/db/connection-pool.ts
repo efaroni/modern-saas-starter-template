@@ -306,7 +306,7 @@ export class DatabaseConnectionPool {
   }
 
   // Get the Drizzle database instance
-  get database() {
+  get database(): ReturnType<typeof drizzle<typeof schema>> {
     return this.db;
   }
 

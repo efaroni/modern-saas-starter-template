@@ -354,10 +354,14 @@ export default function EmailsPage() {
 
                   <div className='space-y-4'>
                     <div>
-                      <label className='mb-2 block text-sm font-medium text-gray-700'>
+                      <label
+                        htmlFor='test-email-input'
+                        className='mb-2 block text-sm font-medium text-gray-700'
+                      >
                         Email Address
                       </label>
                       <input
+                        id='test-email-input'
                         type='email'
                         value={testEmail}
                         onChange={e => setTestEmail(e.target.value)}

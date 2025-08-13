@@ -192,5 +192,5 @@ export type UploadConfig = typeof UPLOAD_CONFIG;
 export type CacheConfig = typeof CACHE_CONFIG;
 export type LoggingConfig = typeof LOGGING_CONFIG;
 export type ValidationConfig = typeof VALIDATION_CONFIG;
-export type EnvConfig = typeof ENV_CONFIG;
+export type EnvironmentConfig = typeof ENV_CONFIG;
 export type AppConfig = typeof APP_CONFIG;

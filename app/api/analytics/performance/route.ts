@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { moderateRateLimit, withRateLimit } from '@/lib/middleware/rate-limit';
+import { rateLimitPresets } from '@/lib/middleware/rate-limit';
 
 interface PerformanceMetricsPayload {
   metrics: {
@@ -32,9 +32,16 @@ interface PerformanceMetricsPayload {
   sessionId?: string;
 }
 
-// Apply rate limiting to prevent abuse
-
 async function handler(request: NextRequest) {
+  // Apply rate limiting to prevent abuse
+  const rateLimitResult = rateLimitPresets.moderate(request);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
+      { status: 429 },
+    );
+  }
+
   try {
     const body: PerformanceMetricsPayload = await request.json();
 
@@ -210,8 +217,8 @@ function categorizeUrl(url: string) {
   }
 }
 
-// Export rate-limited handlers
-export const POST = withRateLimit(moderateRateLimit, handler);
+// Export handlers
+export const POST = handler;
 
 // GET endpoint for retrieving aggregated performance data
 export function GET(request: NextRequest) {

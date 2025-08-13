@@ -136,9 +136,10 @@ export function MyForm({ onSubmit, initialData }: Props) {
 - Use Zod for validation
 - Handle errors with try-catch
 - Use transactions for multi-table operations
-- Clean up test data in afterEach hooks
 - Use dependency injection
 - Follow existing patterns
+- Set NODE_ENV explicitly in all environments
+- Use standardized variable names (DB_HOST, DB_PORT, etc.) across all environments
 
 ### ❌ DON'T
 
@@ -148,6 +149,36 @@ export function MyForm({ onSubmit, initialData }: Props) {
 - Query DB directly in components
 - Modify auth flow without updating tests
 - Access `process.env.DATABASE_URL` directly (use `getDatabaseUrl()`)
+- **NEVER create fallbacks for `CLERK_WEBHOOK_URL` - this must always come from environment variables**
+- **NEVER create fallbacks for `STRIPE_WEBHOOK_URL` - this must always come from environment variables**
+- **NEVER change webhook URLs when coding - these are configured for external services**
+- **NEVER use fallbacks for NODE_ENV or critical config - let code fail explicitly to identify missing configuration**
+- **NEVER add test database variables to `.env.local` - tests ONLY use `.env.test`**
+
+## Environment Variable Rules
+
+**CRITICAL: Tests NEVER use `.env.local` - they ALWAYS use `.env.test`**
+
+### Environment Separation Rules
+
+- **Development**: Uses `.env.local` with `NODE_ENV=development`
+- **Testing**: Uses `.env.test` with `NODE_ENV=test`
+- **Production**: Uses production environment variables with `NODE_ENV=production`
+
+### Variable Naming Standards
+
+- **Same variable names across all environments**: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- **NO environment prefixes**: Never use `DEV_DB_*`, `TEST_DB_*`, `PROD_DB_*`
+- **Environment differentiation**: Through different `.env` files, not variable names
+
+### Configuration Principles
+
+- **No fallbacks for critical config**: Let code fail explicitly to identify missing configuration
+- **Explicit NODE_ENV**: Must be set explicitly (development, test, or production)
+- **Test database safety**: Database name must contain "test" when NODE_ENV=test
+- **Test cleanup responsibility**: Individual tests handle their own cleanup for data lifecycle control
+- **Suite-level isolation**: Global cleanup only occurs between test suites (beforeAll/afterAll)
+- **Protected development data**: Development database is never auto-wiped
 
 ## Database Configuration
 
@@ -161,6 +192,7 @@ Always use centralized functions from `lib/db/config.ts`:
 
 ```bash
 # Development (.env.local)
+# DO NOT add test variables here - tests use .env.test
 DB_HOST="localhost"
 DB_PORT="5432"
 DB_USER="postgres"
@@ -168,11 +200,12 @@ DB_PASSWORD="postgres"
 DB_NAME="saas_template"
 
 # Test (.env.test)
-TEST_DB_HOST="localhost"
-TEST_DB_PORT="5433"
-TEST_DB_USER="test_user"
-TEST_DB_PASSWORD="test_pass"
-TEST_DB_NAME="saas_template_test"
+NODE_ENV=test
+DB_HOST="localhost"
+DB_PORT="5433"
+DB_USER="test_user"
+DB_PASSWORD="test_pass"
+DB_NAME="saas_template_test"
 ```
 
 ## Common Commands
@@ -196,15 +229,53 @@ npm run type-check       # Type checking
 
 ## Environment Variables
 
+### Test Environment Setup
+
+**IMPORTANT**: All tests (unit, integration, E2E) should use `.env.test` for configuration:
+
+- The test server script (`scripts/test-server.js`) explicitly loads `.env.test`
+- Jest setup (`jest.setup.js`) explicitly loads `.env.test`
+- This ensures proper test database isolation and prevents accidental use of development data
+- Individual tests handle their own cleanup to maintain control over data lifecycle
+- Global cleanup only occurs between test suites for proper isolation
+- E2E tests use `npm run test:tunnel` which starts ngrok for webhook testing
+
+```bash
+# Test Configuration (.env.test)
+NODE_ENV=test
+DB_HOST="localhost"
+DB_PORT="5433"
+DB_USER="test_user"
+DB_PASSWORD="test_pass"
+DB_NAME="saas_template_test"
+
+# Clerk Auth (Real test keys required for webhook testing)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+CLERK_SECRET_KEY="sk_test_..."
+CLERK_WEBHOOK_SECRET="whsec_..."
+# CRITICAL: DO NOT CHANGE THESE URLs - REQUIRED FOR WEBHOOK FUNCTIONALITY
+CLERK_WEBHOOK_URL="https://gostealthiq-dev.sa.ngrok.io/api/webhooks/clerk"
+STRIPE_WEBHOOK_URL="https://gostealthiq-dev.sa.ngrok.io/api/webhooks/stripe"
+```
+
+### Development Environment (.env.local)
+
 ```bash
 # Database (Component-based)
-DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
-TEST_DB_HOST, TEST_DB_PORT, TEST_DB_USER, TEST_DB_PASSWORD, TEST_DB_NAME
+# DO NOT add test variables here - tests use .env.test
+DB_HOST="localhost"
+DB_PORT="5432"
+DB_USER="postgres"
+DB_PASSWORD="postgres"
+DB_NAME="saas_template"
 
 # Clerk Auth
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
 CLERK_SECRET_KEY="sk_test_..."
 CLERK_WEBHOOK_SECRET="whsec_..."
+# CRITICAL: DO NOT CHANGE THESE URLs - REQUIRED FOR WEBHOOK FUNCTIONALITY
+CLERK_WEBHOOK_URL="https://gostealthiq-dev.sa.ngrok.io/api/webhooks/clerk"
+STRIPE_WEBHOOK_URL="https://gostealthiq-dev.sa.ngrok.io/api/webhooks/stripe"
 
 # Services
 STRIPE_SECRET_KEY="sk_test_..."
@@ -213,6 +284,29 @@ RESEND_API_KEY="re_..."
 OPENAI_API_KEY="sk-..."
 REDIS_URL="redis://..."
 ```
+
+## Clerk Testing & Email Bypass
+
+### E2E Testing with Clerk Test Emails
+
+For E2E tests, use Clerk's test mode to bypass real email verification:
+
+- **Test Email Format**: Any email with `+clerk_test` suffix (e.g., `user+clerk_test@example.com`)
+- **Verification Code**: Always `424242` for test emails
+- **No Real Emails**: Clerk automatically handles verification without sending actual emails
+
+```typescript
+// E2E Test Example
+await page.fill('input[name="emailAddress"]', 'test+clerk_test@example.com');
+// ... continue with signup flow
+await page.fill('input[name="code"]', '424242'); // Fixed verification code
+```
+
+### Environment Setup
+
+- **Development (.env.local)**: Real Clerk test keys for full functionality
+- **Testing (.env.test)**: Same real Clerk test keys, mock keys for other services
+- **E2E Tests**: Use NODE_ENV=test, which loads .env.test configuration
 
 ## Quick Code Templates
 

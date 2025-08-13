@@ -59,7 +59,7 @@ mockAuthenticatedUser({ ...testUsers.basic, id: testUserId });
 
 // Mock rate limiting to avoid test interference
 jest.mock('@/lib/middleware/rate-limit', () => ({
-  applyRateLimit: jest.fn().mockResolvedValue({ allowed: true }),
+  applyRateLimit: jest.fn().mockReturnValue({ allowed: true }),
 }));
 
 // Mock the vision service factory to control which service is returned

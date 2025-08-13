@@ -107,6 +107,50 @@ The commit-msg hook automatically:
 
 This ensures consistent commit history and enables automated changelog generation.
 
+## Testing
+
+### Running Tests
+
+```bash
+npm test              # Run unit tests
+npm run test:coverage # Run tests with coverage
+npm run test:e2e      # Run E2E tests
+npm run test:e2e:ui   # Run E2E tests with Playwright UI
+npm run test:e2e:debug # Run E2E tests in debug mode
+```
+
+### E2E Testing with Clerk Authentication
+
+E2E tests use real Clerk test keys but bypass email verification using Clerk's test mode:
+
+**Key Features:**
+
+- Uses `NODE_ENV=test` environment
+- Test database isolation (`saas_template_test` instead of local database)
+- Real Clerk test keys for proper authentication flow
+- Mock keys for external services (Stripe, Resend, etc.)
+
+**Clerk Test Email Bypass:**
+
+- **Test Email Format**: Use emails with `+clerk_test` suffix
+  - Example: `user+clerk_test@example.com`
+- **Verification Code**: Always `424242` for test emails
+- **No Real Emails**: Clerk automatically handles verification without sending emails
+
+**Environment Configuration:**
+
+```bash
+# .env.test uses real Clerk test keys
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."  # Real Clerk test key
+CLERK_SECRET_KEY="sk_test_..."                   # Real Clerk test key
+CLERK_WEBHOOK_SECRET="whsec_..."                 # Same as development
+# Clerk webhook dashboard: https://dashboard.clerk.com/apps (Configure tab)
+
+# Other services use mocks in testing
+STRIPE_SECRET_KEY="sk_test_mock"
+RESEND_API_KEY="re_mock_key"
+```
+
 ## Stripe Integration
 
 This project includes a minimal, production-ready billing system using Stripe. The implementation follows a **boilerplate philosophy** - maximum functionality with minimal code.
@@ -341,12 +385,15 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 
 **Option 2: Local Development with Ngrok**
 
+> 💡 **Recommendation**: Consider upgrading to ngrok's paid plan for a static domain (like `yourapp-dev.sa.ngrok.io`). This prevents having to reconfigure webhook URLs every time you restart ngrok.
+
 ```bash
 # If using ngrok with custom domain (see package.json)
 npm run dev:tunnel
 
 # Then add webhook endpoint in Stripe Dashboard:
-# https://gostealthiq-dev.sa.ngrok.io/api/webhooks/stripe
+# Use STRIPE_WEBHOOK_URL from your environment variables
+# Dashboard: https://dashboard.stripe.com/test/workbench/webhooks
 ```
 
 **Option 3: Production**

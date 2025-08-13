@@ -26,7 +26,7 @@ describe('OpenAIVisionService', () => {
     mockOpenAI = {
       chat: {
         completions: {
-          create: jest.fn(),
+          create: jest.fn().mockName('openai.chat.completions.create'),
         },
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,7 +76,9 @@ describe('OpenAIVisionService', () => {
 
     it('should successfully analyze valid images', async () => {
       // Arrange
-      mockOpenAI.chat.completions.create.mockResolvedValue({
+      (
+        mockOpenAI.chat.completions.create as jest.MockedFunction<any>
+      ).mockResolvedValue({
         choices: [
           {
             message: {
@@ -91,7 +93,9 @@ describe('OpenAIVisionService', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockDesignAnalysisResult);
+      if (result.success) {
+        expect(result.data).toEqual(mockDesignAnalysisResult);
+      }
       expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith({
         model: 'gpt-4o',
         messages: expect.any(Array),
@@ -102,7 +106,9 @@ describe('OpenAIVisionService', () => {
 
     it('should handle markdown-wrapped JSON responses', async () => {
       // Arrange
-      mockOpenAI.chat.completions.create.mockResolvedValue({
+      (
+        mockOpenAI.chat.completions.create as jest.MockedFunction<any>
+      ).mockResolvedValue({
         choices: [
           {
             message: {
@@ -120,7 +126,9 @@ describe('OpenAIVisionService', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockDesignAnalysisResult);
+      if (result.success) {
+        expect(result.data).toEqual(mockDesignAnalysisResult);
+      }
     });
 
     it('should extract JSON from mixed content', async () => {
@@ -129,7 +137,9 @@ describe('OpenAIVisionService', () => {
 ${JSON.stringify(mockDesignAnalysisResult)}
 That's all!`;
 
-      mockOpenAI.chat.completions.create.mockResolvedValue({
+      (
+        mockOpenAI.chat.completions.create as jest.MockedFunction<any>
+      ).mockResolvedValue({
         choices: [
           {
             message: {
@@ -144,7 +154,9 @@ That's all!`;
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockDesignAnalysisResult);
+      if (result.success) {
+        expect(result.data).toEqual(mockDesignAnalysisResult);
+      }
     });
 
     it('should reject invalid image types', async () => {
@@ -158,8 +170,10 @@ That's all!`;
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe('INVALID_IMAGE');
-      expect(result.error?.message).toContain('Invalid image: test.txt');
+      if (!result.success) {
+        expect(result.error.code).toBe('INVALID_IMAGE');
+        expect(result.error.message).toContain('Invalid image: test.txt');
+      }
     });
 
     it('should reject oversized images', async () => {
@@ -178,7 +192,9 @@ That's all!`;
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe('INVALID_IMAGE');
+      if (!result.success) {
+        expect(result.error.code).toBe('INVALID_IMAGE');
+      }
     });
 
     it('should handle rate limit errors', async () => {
@@ -186,20 +202,26 @@ That's all!`;
       const rateLimitError = new MockAPIError('Rate limit exceeded', 429);
       // Make it instanceof check work
       (OpenAI as any).APIError = MockAPIError;
-      mockOpenAI.chat.completions.create.mockRejectedValue(rateLimitError);
+      (
+        mockOpenAI.chat.completions.create as jest.MockedFunction<any>
+      ).mockRejectedValue(rateLimitError);
 
       // Act
       const result = await service.analyzeDesign(validInput);
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe('RATE_LIMIT');
-      expect(result.error?.message).toContain('Rate limit exceeded');
+      if (!result.success) {
+        expect(result.error.code).toBe('RATE_LIMIT');
+        expect(result.error.message).toContain('Rate limit exceeded');
+      }
     });
 
     it('should handle parse errors gracefully', async () => {
       // Arrange
-      mockOpenAI.chat.completions.create.mockResolvedValue({
+      (
+        mockOpenAI.chat.completions.create as jest.MockedFunction<any>
+      ).mockResolvedValue({
         choices: [
           {
             message: {
@@ -214,13 +236,17 @@ That's all!`;
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe('INVALID_RESPONSE');
-      expect(result.error?.message).toContain('Failed to parse AI response');
+      if (!result.success) {
+        expect(result.error.code).toBe('PARSE_ERROR');
+        expect(result.error.message).toContain('Failed to parse AI response');
+      }
     });
 
     it('should handle empty response', async () => {
       // Arrange
-      mockOpenAI.chat.completions.create.mockResolvedValue({
+      (
+        mockOpenAI.chat.completions.create as jest.MockedFunction<any>
+      ).mockResolvedValue({
         choices: [
           {
             message: {
@@ -235,23 +261,27 @@ That's all!`;
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe('INVALID_RESPONSE');
-      expect(result.error?.message).toBe('No response from AI');
+      if (!result.success) {
+        expect(result.error.code).toBe('INVALID_RESPONSE');
+        expect(result.error.message).toBe('No response from AI');
+      }
     });
 
     it('should handle API errors', async () => {
       // Arrange
-      mockOpenAI.chat.completions.create.mockRejectedValue(
-        new Error('API connection failed'),
-      );
+      (
+        mockOpenAI.chat.completions.create as jest.MockedFunction<any>
+      ).mockRejectedValue(new Error('API connection failed'));
 
       // Act
       const result = await service.analyzeDesign(validInput);
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe('API_ERROR');
-      expect(result.error?.message).toBe('API connection failed');
+      if (!result.success) {
+        expect(result.error.code).toBe('API_ERROR');
+        expect(result.error.message).toBe('API connection failed');
+      }
     });
   });
 

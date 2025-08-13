@@ -1,6 +1,13 @@
-// import bcrypt from 'bcryptjs'; // Removed - auth handled by Clerk
+import { eq, like } from 'drizzle-orm';
 
-import { userApiKeys, users, type InsertUserApiKey } from './schema';
+import { 
+  userApiKeys, 
+  users, 
+  userEmailPreferences,
+  webhookEvents,
+  emailUnsubscribeTokens,
+  type InsertUserApiKey 
+} from './schema';
 import {
   testDb,
   clearTestDatabase,
@@ -24,21 +31,23 @@ export const testDataFactories = {
     ...overrides,
   }),
 
-  // Auth user factory (simplified - auth handled by Clerk)
-  createAuthUser: (overrides: Partial<InsertUser> = {}): InsertUser => ({
+  // Auth user factory (no password - using Clerk auth)
+  createAuthUser: (
+    overrides: Partial<InsertUser> = {},
+  ): InsertUser => {
+    return {
+      id: TEST_USER_ID,
+      email: `auth-user-${Date.now()}@example.com`,
+      name: 'Auth Test User',
+      ...overrides,
+    };
+  },
+
+  // Simple auth user factory (for testing)
+  createAuthUserPlain: (overrides: Partial<InsertUser> = {}): InsertUser => ({
     id: TEST_USER_ID,
     email: `auth-user-${Date.now()}@example.com`,
     name: 'Auth Test User',
-    clerkId: `clerk_${TEST_USER_ID}`,
-    ...overrides,
-  }),
-
-  // Auth user factory (plain version - auth handled by Clerk)
-  createAuthUserPlain: (overrides: Partial<InsertUser> = {}): InsertUser => ({
-    id: TEST_USER_ID,
-    email: `plain-user-${Date.now()}@example.com`,
-    name: 'Plain Auth User',
-    clerkId: `clerk_plain_${TEST_USER_ID}`,
     ...overrides,
   }),
 
@@ -325,5 +334,194 @@ export const testHelpers = {
     // Verify deletion
     const deletedReadResult = await readFn(id);
     expect((deletedReadResult as { success: boolean }).success).toBe(false);
+  },
+};
+
+// Auth-specific test helpers
+export const authTestHelpers = {
+  // Create a test user with hashed password
+  async createTestUser(
+    overrides: Partial<InsertUser> = {},
+  ): Promise<InsertUser> {
+    const user = await testDataFactories.createAuthUser(overrides);
+    const [insertedUser] = await testDb.insert(users).values(user).returning();
+    return insertedUser;
+  },
+
+  // Create multiple test users for auth testing
+  async createTestUsers(count: number = 3): Promise<InsertUser[]> {
+    const userPromises = [];
+    for (let i = 0; i < count; i++) {
+      userPromises.push(
+        testDataFactories.createAuthUser({
+          id: `00000000-0000-0000-0000-00000000000${i + 1}`,
+          email: `user${i + 1}@example.com`,
+          name: `User ${i + 1}`,
+        }),
+      );
+    }
+
+    const userData = await Promise.all(userPromises);
+    return testDb.insert(users).values(userData).returning();
+  },
+
+  // Verify password hashing
+  verifyPasswordHash(plainPassword: string, hashedPassword: string): boolean {
+    return simpleCompare(plainPassword, hashedPassword);
+  },
+
+  // Test data for auth scenarios
+  authTestData: {
+    validUser: {
+      email: 'valid@example.com',
+      password: 'validPassword123',
+      name: 'Valid User',
+    },
+    invalidUser: {
+      email: 'invalid@example.com',
+      password: 'wrongPassword',
+      name: 'Invalid User',
+    },
+    duplicateEmailUser: {
+      email: 'duplicate@example.com',
+      password: 'password123',
+      name: 'Duplicate User',
+    },
+    weakPasswordUser: {
+      email: 'weak@example.com',
+      password: '123', // Too short
+      name: 'Weak Password User',
+    },
+    invalidEmailUser: {
+      email: 'invalid-email', // Invalid format
+      password: 'password123',
+      name: 'Invalid Email User',
+    },
+    updateProfileData: {
+      name: 'Updated Name',
+      image: 'https://example.com/avatar.jpg',
+    },
+    passwordChangeData: {
+      currentPassword: 'currentPassword123',
+      newPassword: 'newPassword123',
+    },
+  },
+
+  // Clean up auth-specific test data - simplified for current schema
+  async cleanupAuthData(): Promise<void> {
+    try {
+      // Delete in correct order due to foreign key constraints
+      // Child tables first, then parent tables
+
+      // 1. Delete user API keys (references users)
+      await testDb.delete(userApiKeys);
+
+      // 2. Delete user email preferences (references users)
+      await testDb.delete(userEmailPreferences);
+
+      // 3. Delete webhook events
+      await testDb.delete(webhookEvents);
+
+      // 4. Delete email unsubscribe tokens
+      await testDb.delete(emailUnsubscribeTokens);
+
+      // 5. Finally delete users (parent table)
+      await testDb.delete(users);
+    } catch (error) {
+      console.error('Error cleaning up auth data:', error);
+      // Continue with the test even if cleanup fails
+    }
+  },
+
+  // Clean up test data created by specific test suite (more isolated)
+  async cleanupTestSuiteData(testSuitePattern: string): Promise<void> {
+    try {
+      // Import functions dynamically to avoid issues
+
+      // Delete users whose email contains the test suite pattern
+      const testUsers = await testDb
+        .select()
+        .from(users)
+        .where(like(users.email, `%${testSuitePattern}%`));
+
+      if (testUsers.length > 0) {
+        const userIds = testUsers.map(u => u.id);
+
+        // Delete in correct order due to foreign key constraints
+        for (const userId of userIds) {
+          // Delete user API keys
+          await testDb
+            .delete(userApiKeys)
+            .where(eq(userApiKeys.userId, userId));
+          
+          // Delete user email preferences
+          await testDb
+            .delete(userEmailPreferences)
+            .where(eq(userEmailPreferences.userId, userId));
+        }
+
+        // Delete email unsubscribe tokens by pattern
+        await testDb
+          .delete(emailUnsubscribeTokens)
+          .where(like(emailUnsubscribeTokens.email, `%${testSuitePattern}%`));
+
+        // Finally delete users
+        await testDb
+          .delete(users)
+          .where(like(users.email, `%${testSuitePattern}%`));
+      }
+    } catch (error) {
+      console.error('Error cleaning up test suite data:', error);
+      // Continue with the test even if cleanup fails
+    }
+  },
+
+  // Assert auth result structure
+  assertAuthResult(
+    result: unknown,
+    expectedSuccess: boolean,
+    expectUser: boolean = true,
+  ): void {
+    expect(result).toHaveProperty('success');
+    expect((result as { success: boolean }).success).toBe(expectedSuccess);
+
+    if (expectedSuccess) {
+      if (expectUser) {
+        expect(result).toHaveProperty('user');
+        const user = (result as { user?: { id: string; email: string } }).user;
+        if (user) {
+          expect(user).toHaveProperty('id');
+          expect(user).toHaveProperty('email');
+          expect(user).not.toHaveProperty('password'); // Password should not be exposed
+        }
+      }
+      expect((result as { error?: unknown }).error).toBeUndefined();
+    } else {
+      expect(result).toHaveProperty('error');
+      expect(typeof (result as { error: unknown }).error).toBe('string');
+    }
+  },
+
+  // Generate unique test email to prevent duplicates
+  generateUniqueEmail(prefix: string = 'test'): string {
+    const timestamp = Date.now();
+    const processId = process.pid;
+    const workerId = process.env.JEST_WORKER_ID || '1';
+    const random = Math.random().toString(36).substring(2, 8);
+    const counter = Math.floor(Math.random() * 10000);
+    // Add worker ID for parallel test isolation
+    return `test-worker${workerId}-${prefix}-${timestamp}-${processId}-${counter}-${random}@example.com`;
+  },
+
+  // Assert user structure (without password)
+  assertUserStructure(user: unknown): void {
+    expect(user).toHaveProperty('id');
+    expect(user).toHaveProperty('email');
+    expect(user).toHaveProperty('name');
+    expect(user).toHaveProperty('image');
+    expect(user).toHaveProperty('emailVerified');
+    expect(user).toHaveProperty('createdAt');
+    expect(user).toHaveProperty('updatedAt');
+    expect(user).not.toHaveProperty('password'); // Password should never be exposed
   },
 };

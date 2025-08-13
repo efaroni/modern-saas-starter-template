@@ -5,8 +5,6 @@
 
 import { NextRequest } from 'next/server';
 
-import { testUsers } from '@/tests/fixtures/clerk';
-
 // Mock NextRequest with formData support
 class MockNextRequest extends NextRequest {
   private _formData: FormData;
@@ -16,8 +14,8 @@ class MockNextRequest extends NextRequest {
     this._formData = init.formData || new FormData();
   }
 
-  async formData(): Promise<FormData> {
-    return this._formData;
+  formData(): Promise<FormData> {
+    return Promise.resolve(this._formData);
   }
 }
 
@@ -31,7 +29,7 @@ import { auth } from '@clerk/nextjs/server';
 const mockAuth = auth as jest.Mock;
 
 // Helper functions for auth mocking
-const mockAuthenticatedUser = (user: any) => {
+const mockAuthenticatedUser = (user: { id: string }) => {
   mockAuth.mockResolvedValue({ userId: user.id });
   return user;
 };
@@ -42,7 +40,7 @@ const mockUnauthenticatedUser = () => {
 
 // Mock the rate limiter
 jest.mock('@/lib/middleware/rate-limit', () => ({
-  applyRateLimit: jest.fn().mockResolvedValue({ allowed: true }),
+  applyRateLimit: jest.fn().mockReturnValue({ allowed: true }),
 }));
 
 // Mock the vision service
@@ -75,9 +73,16 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
+// Mock rate limiting middleware
+jest.mock('@/lib/middleware/rate-limit', () => ({
+  applyRateLimit: jest.fn(() => ({ allowed: true, retryAfter: 0 })),
+}));
+
 // Import the route handler after mocks are setup
 import { POST } from '@/app/api/ai/analyze-design/route';
 import { db } from '@/lib/db';
+import { applyRateLimit } from '@/lib/middleware/rate-limit';
+import { testUsers } from '@/tests/fixtures/clerk';
 
 describe('POST /api/ai/analyze-design', () => {
   beforeEach(() => {
@@ -213,8 +218,9 @@ describe('POST /api/ai/analyze-design', () => {
   describe('Rate Limiting', () => {
     it.skip('should respect rate limits', async () => {
       // Mock rate limit exceeded
-      const { applyRateLimit } = require('@/lib/middleware/rate-limit');
-      applyRateLimit.mockResolvedValueOnce({
+      (
+        applyRateLimit as jest.MockedFunction<typeof applyRateLimit>
+      ).mockReturnValueOnce({
         allowed: false,
         retryAfter: 60,
       });

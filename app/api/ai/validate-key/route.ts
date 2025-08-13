@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { auth } from '@clerk/nextjs/server';
 
-import { moderateRateLimit } from '@/lib/middleware/rate-limit';
+import { applyRateLimit } from '@/lib/middleware/rate-limit';
 import { userApiKeyService } from '@/lib/user-api-keys/service';
 
 /**
@@ -17,28 +17,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Apply rate limiting - moderate limit for key validation
-    try {
-      const rateLimitResult = moderateRateLimit(request);
+    // Apply rate limiting - 10 requests per hour per user
+    const rateLimitResult = applyRateLimit(request, {
+      windowMs: 60 * 60 * 1000, // 1 hour
+      maxRequests: 10,
+      keyGenerator: () => `ai-key-validation:${userId}`,
+    });
 
-      if (!rateLimitResult.allowed) {
-        return NextResponse.json(
-          {
-            error:
-              'Too many validation requests. Please wait before trying again.',
-            retryAfter: rateLimitResult.retryAfter,
-          },
-          {
-            status: 429,
-            headers: {
-              'Retry-After': rateLimitResult.retryAfter.toString(),
-            },
-          },
-        );
-      }
-    } catch (rateLimitError) {
-      // If rate limiting fails (e.g., in test environment), continue without it
-      console.warn('Rate limiting failed:', rateLimitError);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        { status: 429 },
+      );
     }
 
     // Check if user has an OpenAI API key stored

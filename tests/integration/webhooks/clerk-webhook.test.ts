@@ -32,19 +32,9 @@ describe('Clerk Webhook Handler', () => {
   });
 
   beforeEach(async () => {
-    // Clean up test data
-    await testDb
-      .delete(webhookEvents)
-      .where(eq(webhookEvents.provider, 'clerk'));
+    // Clean test data to prevent conflicts between webhook tests
     await testDb.delete(users);
-  });
-
-  afterEach(async () => {
-    // Clean up after each test
-    await testDb
-      .delete(webhookEvents)
-      .where(eq(webhookEvents.provider, 'clerk'));
-    await testDb.delete(users);
+    await testDb.delete(webhookEvents);
   });
 
   describe('Webhook Verification', () => {

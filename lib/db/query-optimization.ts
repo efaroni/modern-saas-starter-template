@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 
 import { getDatabaseConfig } from './config';
-import { db, getDatabasePool } from './connection-pool';
+import { db } from './connection-pool';
 import { users } from './schema';
 
 export interface QueryOptimizationConfig {
@@ -220,8 +220,6 @@ export class QueryOptimizer {
     );
   }
 
-  // Additional user query methods can be added here as needed
-
   // Performance monitoring
   getQueryMetrics(): Array<{
     queryName: string;
@@ -250,12 +248,6 @@ export class QueryOptimizer {
       // Clear all cache
       this.cache.clear();
     }
-  }
-
-  // Get database connection health
-  getDatabaseHealth() {
-    const dbPool = getDatabasePool();
-    return dbPool.getHealth();
   }
 }
 
