@@ -33,8 +33,8 @@ export const userApiKeys = pgTable(
     userId: text('user_id')
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
-    provider: text('provider').notNull(), // 'openai', 'stripe', 'resend', 'github', 'google'
-    publicKey: text('public_key'), // Optional for services that need it (Stripe)
+    provider: text('provider').notNull(), // 'openai', 'resend'
+    publicKey: text('public_key'), // Optional for services that need it
     privateKeyEncrypted: text('private_key_encrypted').notNull(), // Always encrypted
     metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
     createdAt: timestamp('created_at').defaultNow().notNull(),

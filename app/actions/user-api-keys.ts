@@ -109,10 +109,7 @@ export async function deleteUserApiKey(idOrProvider: string) {
     // Check if this is a provider name or an ID
     const isProvider = [
       'openai',
-      'stripe',
       'resend',
-      'github',
-      'google',
     ].includes(idOrProvider);
 
     if (isProvider) {
