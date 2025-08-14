@@ -34,7 +34,7 @@
 
 ## Infrastructure & Storage
 
-- **File Storage**: Cloudflare R2 (primary) + Vercel Blob (dev)
+- **File Storage**: Cloudflare R2
 - **Caching**: Redis (sessions, rate limiting, app cache)
 - **Analytics**: Plausible Analytics
 - **Error Monitoring**: Sentry
@@ -49,6 +49,9 @@
 
 - **Frontend Hosting**: Vercel
 - **Database Hosting**: Neon (dev + prod scaling)
+- **Backend Hosting for Next.js**: Vercel
+- **Backend Hosting for Python**: Railway if Restful API is needed, else Modal
+- **LLM Hosting**: Modal
 - **CI/CD**: GitHub Actions
 - **Version Control**: GitHub
 
