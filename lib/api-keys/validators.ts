@@ -71,43 +71,6 @@ export async function validateResendKey(
   }
 }
 
-export function validateStripeKey(apiKey: string): ValidationResult {
-  // In test environment, skip real API calls
-  if (process.env.NODE_ENV === 'test') {
-    // Mock validation for tests
-    if (
-      apiKey.startsWith('sk_test_') ||
-      apiKey.startsWith('sk_live_') ||
-      apiKey.includes('mock')
-    ) {
-      return { isValid: true };
-    }
-    return {
-      isValid: false,
-      error: 'Invalid Stripe API key format',
-    };
-  }
-
-  try {
-    // For Stripe, we'd typically validate by making a test API call
-    // For now, we'll just validate the format
-    if (apiKey.startsWith('sk_test_') || apiKey.startsWith('sk_live_')) {
-      return { isValid: true };
-    }
-    return {
-      isValid: false,
-      error: 'Invalid Stripe API key format',
-    };
-  } catch (error: unknown) {
-    return {
-      isValid: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Failed to validate Stripe API key',
-    };
-  }
-}
 
 // eslint-disable-next-line require-await
 export async function validateApiKey(
@@ -132,9 +95,6 @@ export async function validateApiKey(
   switch (serviceType) {
     case 'openai':
       return validateOpenAIKey(apiKey);
-
-    case 'stripe':
-      return validateStripeKey(apiKey);
 
     case 'resend':
       return validateResendKey(apiKey);
