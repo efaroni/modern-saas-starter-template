@@ -102,6 +102,14 @@ export type EnvConfig = z.infer<typeof envSchema>;
  * @throws Error if validation fails
  */
 export function validateEnv(): EnvConfig {
+  // Skip validation during Next.js build process
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return {
+      NODE_ENV: 'production',
+      ENCRYPTION_KEY: 'build-time-placeholder-key-32-chars!',
+    } as EnvConfig;
+  }
+
   try {
     return envSchema.parse(process.env);
   } catch (error) {

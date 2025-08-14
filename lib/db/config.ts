@@ -116,6 +116,11 @@ export interface DatabaseConfig {
  * ```
  */
 export function getDatabaseUrl(): string {
+  // Skip validation during Next.js build process
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return 'postgresql://build-time-placeholder@localhost:5432/build_placeholder';
+  }
+
   // Use DB_ENV to override which database to use (for testing)
   const env = process.env.DB_ENV || process.env.NODE_ENV;
   if (!env) {

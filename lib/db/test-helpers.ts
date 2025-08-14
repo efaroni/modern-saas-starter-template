@@ -1,12 +1,12 @@
 import { eq, like } from 'drizzle-orm';
 
-import { 
-  userApiKeys, 
-  users, 
+import {
+  userApiKeys,
+  users,
   userEmailPreferences,
   webhookEvents,
   emailUnsubscribeTokens,
-  type InsertUserApiKey 
+  type InsertUserApiKey,
 } from './schema';
 import {
   testDb,
@@ -32,9 +32,7 @@ export const testDataFactories = {
   }),
 
   // Auth user factory (no password - using Clerk auth)
-  createAuthUser: (
-    overrides: Partial<InsertUser> = {},
-  ): InsertUser => {
+  createAuthUser: (overrides: Partial<InsertUser> = {}): InsertUser => {
     return {
       id: TEST_USER_ID,
       email: `auth-user-${Date.now()}@example.com`,
@@ -365,9 +363,11 @@ export const authTestHelpers = {
     return testDb.insert(users).values(userData).returning();
   },
 
-  // Verify password hashing
+  // Verify password hashing (simple comparison for testing)
   verifyPasswordHash(plainPassword: string, hashedPassword: string): boolean {
-    return simpleCompare(plainPassword, hashedPassword);
+    // For testing purposes, we use simple string comparison
+    // In production, passwords would be properly hashed
+    return plainPassword === hashedPassword;
   },
 
   // Test data for auth scenarios
@@ -453,17 +453,19 @@ export const authTestHelpers = {
           await testDb
             .delete(userApiKeys)
             .where(eq(userApiKeys.userId, userId));
-          
+
           // Delete user email preferences
           await testDb
             .delete(userEmailPreferences)
             .where(eq(userEmailPreferences.userId, userId));
         }
 
-        // Delete email unsubscribe tokens by pattern
-        await testDb
-          .delete(emailUnsubscribeTokens)
-          .where(like(emailUnsubscribeTokens.email, `%${testSuitePattern}%`));
+        // Delete email unsubscribe tokens for test users
+        for (const userId of userIds) {
+          await testDb
+            .delete(emailUnsubscribeTokens)
+            .where(eq(emailUnsubscribeTokens.userId, userId));
+        }
 
         // Finally delete users
         await testDb

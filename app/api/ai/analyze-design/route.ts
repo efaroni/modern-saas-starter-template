@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         errorMessage = 'Rate limit exceeded';
         details =
           'OpenAI API rate limit exceeded. Please try again later or upgrade your OpenAI plan for higher limits.';
-      } else if (result.error.code === 'PARSE_ERROR') {
+      } else if (result.error.code === 'INVALID_RESPONSE') {
         errorMessage = 'Failed to process AI response';
         details =
           'The AI returned an unexpected format. This can happen if the model is not following instructions properly. Please try again.';
