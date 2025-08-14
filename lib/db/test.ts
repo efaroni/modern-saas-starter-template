@@ -53,8 +53,9 @@ export const getTestDb = () => {
 export const testDb = new Proxy(
   {} as ReturnType<typeof drizzle<typeof schema>>,
   {
-    get(_, prop) {
-      return getTestDb()[prop];
+    get(_, prop: string | symbol) {
+      const db = getTestDb();
+      return db[prop as keyof typeof db];
     },
   },
 );
@@ -231,12 +232,12 @@ export async function clearTestDatabase() {
     // Core user table (delete last due to foreign key dependencies)
     await client`DELETE FROM users`;
 
-    console.debug('Test database cleared successfully');
+    // Test database cleared successfully
   } catch (error) {
     // Ignore errors if tables don't exist
-    console.warn(
+    console.error(
       'Some tables not found during cleanup, continuing...',
-      error.message,
+      (error as Error).message,
     );
     // Try to clear just the core tables that should exist
     try {

@@ -34,7 +34,7 @@
 
 ## Infrastructure & Storage
 
-- **File Storage**: Cloudflare R2 (primary) + Vercel Blob (dev)
+- **File Storage**: Cloudflare R2
 - **Caching**: Redis (sessions, rate limiting, app cache)
 - **Analytics**: Plausible Analytics
 - **Error Monitoring**: Sentry
@@ -48,9 +48,12 @@
 ## Deployment & DevOps
 
 - **Frontend Hosting**: Vercel
-- **Database Hosting**: Neon (dev + prod scaling)
+- **Database Hosting**: Neon (dev + prod scaling... Supabase is a good option too - both use Postgres under the hood. Neon + Cloudflare R2 cheaper at scale).
+- **Backend Hosting for Next.js**: Vercel
+- **Backend Hosting for Python**: Railway
 - **CI/CD**: GitHub Actions
 - **Version Control**: GitHub
+- **LLM Hosing**: Modal/Runpod
 
 ## Development Tools
 

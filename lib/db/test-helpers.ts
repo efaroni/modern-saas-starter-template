@@ -1,4 +1,4 @@
-import { eq, like } from 'drizzle-orm';
+import { eq, like, inArray } from 'drizzle-orm';
 
 import {
   userApiKeys,
@@ -365,7 +365,8 @@ export const authTestHelpers = {
 
   // Verify password hashing
   verifyPasswordHash(plainPassword: string, hashedPassword: string): boolean {
-    return simpleCompare(plainPassword, hashedPassword);
+    // Simple mock comparison for testing
+    return plainPassword === hashedPassword;
   },
 
   // Test data for auth scenarios
@@ -458,10 +459,17 @@ export const authTestHelpers = {
             .where(eq(userEmailPreferences.userId, userId));
         }
 
-        // Delete email unsubscribe tokens by pattern
-        await testDb
-          .delete(emailUnsubscribeTokens)
-          .where(like(emailUnsubscribeTokens.email, `%${testSuitePattern}%`));
+        // Delete email unsubscribe tokens for test users
+        if (testUsers.length > 0) {
+          const testUserIds = testUsers.map(u => u.id);
+          await testDb
+            .delete(emailUnsubscribeTokens)
+            .where(
+              testUserIds.length > 1
+                ? inArray(emailUnsubscribeTokens.userId, testUserIds)
+                : eq(emailUnsubscribeTokens.userId, testUserIds[0]),
+            );
+        }
 
         // Finally delete users
         await testDb
