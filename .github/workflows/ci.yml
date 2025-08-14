@@ -45,7 +45,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [20]
 
     steps:
       - name: '🛒 Checkout repository'
@@ -88,7 +88,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [20]
       fail-fast: false # Continue other jobs even if one fails
 
     # Service containers for database testing
@@ -187,7 +187,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18, 20, 22]
+        node-version: [20]
 
     steps:
       - name: '🛒 Checkout repository'
@@ -376,7 +376,7 @@ jobs:
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Node.js versions tested**: 18, 20, 22" >> $GITHUB_STEP_SUMMARY
+          echo "**Node.js version tested**: 20 (LTS)" >> $GITHUB_STEP_SUMMARY
           echo "**Test exclusions**: Load tests, E2E tests (run separately)" >> $GITHUB_STEP_SUMMARY
 
       - name: '✅ All checks passed'

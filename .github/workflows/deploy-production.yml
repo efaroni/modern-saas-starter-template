@@ -254,35 +254,10 @@ jobs:
 
           echo "✅ All smoke tests passed"
 
-  monitor:
-    name: Post-deployment Monitoring
-    runs-on: ubuntu-latest
-    needs: [post-deployment-tests]
-    if: always() && needs.post-deployment-tests.result == 'success'
-
-    steps:
-      - name: Setup monitoring alerts
-        run: |
-          echo "📊 Setting up post-deployment monitoring..."
-          # Placeholder for monitoring setup
-          # This could integrate with your monitoring service
-
-      - name: Performance baseline
-        run: |
-          if [ "${{ secrets.PRODUCTION_DOMAIN }}" ]; then
-            BASE_URL="https://${{ secrets.PRODUCTION_DOMAIN }}"
-          else
-            BASE_URL="${{ needs.deploy-production.outputs.deployment_url }}"
-          fi
-
-          echo "📈 Establishing performance baseline..."
-          # Basic performance check
-          curl -o /dev/null -s -w "Total time: %{time_total}s\nSize: %{size_download} bytes\n" "$BASE_URL"
-
   notify:
     name: Deployment Notifications
     runs-on: ubuntu-latest
-    needs: [validate, deploy-production, post-deployment-tests, monitor]
+    needs: [validate, deploy-production, post-deployment-tests]
     if: always()
 
     steps:
@@ -305,22 +280,3 @@ jobs:
           echo "❌ Production deployment failed!"
           echo "Release: ${{ needs.validate.outputs.release_tag }}"
           echo "Please check the deployment logs and consider rollback if necessary."
-
-  rollback-on-failure:
-    name: Emergency Rollback
-    runs-on: ubuntu-latest
-    needs: [post-deployment-tests]
-    if: failure()
-
-    steps:
-      - name: Automatic rollback
-        run: |
-          echo "🚨 Deployment failure detected, initiating automatic rollback..."
-          # Placeholder for rollback logic
-          # This would typically involve:
-          # 1. Reverting to previous Vercel deployment
-          # 2. Notifying the team
-          # 3. Creating an incident report
-
-          echo "⚠️ Manual rollback required - check Vercel dashboard"
-          echo "Previous deployments: https://vercel.com/dashboard/deployments"

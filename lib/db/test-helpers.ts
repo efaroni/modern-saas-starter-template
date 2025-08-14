@@ -1,12 +1,12 @@
 import { eq, like } from 'drizzle-orm';
 
-import { 
-  userApiKeys, 
-  users, 
+import {
+  userApiKeys,
+  users,
   userEmailPreferences,
   webhookEvents,
   emailUnsubscribeTokens,
-  type InsertUserApiKey 
+  type InsertUserApiKey,
 } from './schema';
 import {
   testDb,
@@ -32,9 +32,7 @@ export const testDataFactories = {
   }),
 
   // Auth user factory (no password - using Clerk auth)
-  createAuthUser: (
-    overrides: Partial<InsertUser> = {},
-  ): InsertUser => {
+  createAuthUser: (overrides: Partial<InsertUser> = {}): InsertUser => {
     return {
       id: TEST_USER_ID,
       email: `auth-user-${Date.now()}@example.com`,
@@ -453,7 +451,7 @@ export const authTestHelpers = {
           await testDb
             .delete(userApiKeys)
             .where(eq(userApiKeys.userId, userId));
-          
+
           // Delete user email preferences
           await testDb
             .delete(userEmailPreferences)

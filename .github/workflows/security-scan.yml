@@ -48,31 +48,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Fetch full history for better analysis
           fetch-depth: 0
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-          # Custom queries for SaaS-specific vulnerabilities
-          queries: +security-and-quality,security-experimental
-          config: |
-            name: "SaaS Security Configuration"
-            disable-default-rules: false
-            queries:
-              - name: security-and-quality
-                uses: security-and-quality
-              - name: security-experimental  
-                uses: security-experimental
-            query-filters:
-              - include:
-                  kind: problem
-                  severity: error
-              - include:
-                  kind: problem
-                  severity: warning
-                  tags: security
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -87,18 +63,53 @@ jobs:
           npm run build --if-present
         env:
           # Provide minimal env vars for build (generated unique secret per run)
-          NEXTAUTH_SECRET: ${{ format('security-scan-{0}-{1}', github.run_id, github.sha) }}
+          AUTH_SECRET: ${{ format('security-scan-{0}-{1}', github.run_id, github.sha) }}
           NEXTAUTH_URL: 'http://localhost:3000'
           # Mock database configuration for build
           DATABASE_URL: 'postgresql://mock:mock@localhost:5432/mock_db'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          config: |
+            name: "SaaS Security Configuration"
+
+            # Paths to include in analysis
+            paths:
+              - app
+              - lib
+              - components
+              - src
+
+            # Paths to exclude from analysis
+            paths-ignore:
+              - "**/*.test.ts"
+              - "**/*.test.tsx"
+              - "**/*.spec.ts"
+              - "**/*.spec.tsx"
+              - "**/node_modules/**"
+              - "**/.next/**"
+              - "**/dist/**"
+              - "**/build/**"
+              - "**/coverage/**"
+              - "**/*.config.js"
+              - "**/*.config.ts"
+              - "**/public/**"
+
+            # Queries to run
+            queries:
+              - uses: security-extended
+              - uses: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: '/language:${{matrix.language}}'
           upload: true
-          # Custom SARIF category for easier filtering
-          sarif-category: 'codeql-${{matrix.language}}'
 
   # Job 2: Secret Detection with Gitleaks
   secret-detection:
