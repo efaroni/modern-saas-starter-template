@@ -216,7 +216,7 @@ describe('POST /api/ai/analyze-design', () => {
   });
 
   describe('Rate Limiting', () => {
-    it.skip('should respect rate limits', async () => {
+    it('should respect rate limits', async () => {
       // Mock rate limit exceeded
       (
         applyRateLimit as jest.MockedFunction<typeof applyRateLimit>

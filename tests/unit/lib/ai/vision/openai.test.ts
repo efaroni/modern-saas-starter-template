@@ -1,7 +1,6 @@
 import { OpenAI } from 'openai';
 
 import { OpenAIVisionService } from '@/lib/ai/vision/openai';
-
 import type { AnalyzeDesignInput } from '@/lib/ai/vision/types';
 
 // Mock OpenAI
@@ -237,7 +236,7 @@ That's all!`;
       // Assert
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.code).toBe('PARSE_ERROR');
+        expect(result.error.code).toBe('INVALID_RESPONSE');
         expect(result.error.message).toContain('Failed to parse AI response');
       }
     });
