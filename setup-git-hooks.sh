@@ -107,17 +107,36 @@ echo "✅ All pre-commit checks passed!"
 exit 0
 EOF
 
-# Make the hook executable
-chmod +x .git/hooks/pre-commit
+# Create commit-msg hook for commitlint
+cat > .git/hooks/commit-msg << 'EOF'
+#!/bin/sh
 
-# Verify the hook is executable
-if [ -x .git/hooks/pre-commit ]; then
+# Run commitlint on the commit message
+npx --no-install commitlint --edit $1
+
+# Check if commitlint passed
+if [ $? -ne 0 ]; then
+  echo "❌ Commit message does not meet conventional commit standards."
+  echo "💡 Format: type(scope): description"
+  echo "   Examples: feat(auth): add oauth, fix(api): handle errors"
+  exit 1
+fi
+EOF
+
+# Make both hooks executable
+chmod +x .git/hooks/pre-commit
+chmod +x .git/hooks/commit-msg
+
+# Verify the hooks are executable
+if [ -x .git/hooks/pre-commit ] && [ -x .git/hooks/commit-msg ]; then
   echo "✅ Git hooks setup complete!"
-  echo "Pre-commit hook will now run:"
+  echo "Pre-commit hook will run:"
   echo "  🔧 ESLint (code quality)"
   echo "  🎨 Prettier (code formatting)"
   echo "  🧪 Unit tests"
+  echo "Commit-msg hook will run:"
+  echo "  📝 Commitlint (conventional commits)"
 else
-  echo "⚠️  Warning: Could not make pre-commit hook executable."
-  echo "Please run: chmod +x .git/hooks/pre-commit"
+  echo "⚠️  Warning: Could not make hooks executable."
+  echo "Please run: chmod +x .git/hooks/pre-commit .git/hooks/commit-msg"
 fi
