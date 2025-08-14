@@ -7,7 +7,6 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   outputDir: 'test-results',
-  globalSetup: './tests/global.setup.ts',
   reporter: process.env.CI
     ? [
         ['html', { outputFolder: 'playwright-report' }],

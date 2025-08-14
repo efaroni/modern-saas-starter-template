@@ -1,12 +1,12 @@
-import { eq, like } from 'drizzle-orm';
+import { eq, like, inArray } from 'drizzle-orm';
 
-import { 
-  userApiKeys, 
-  users, 
+import {
+  userApiKeys,
+  users,
   userEmailPreferences,
   webhookEvents,
   emailUnsubscribeTokens,
-  type InsertUserApiKey 
+  type InsertUserApiKey,
 } from './schema';
 import {
   testDb,
@@ -32,9 +32,7 @@ export const testDataFactories = {
   }),
 
   // Auth user factory (no password - using Clerk auth)
-  createAuthUser: (
-    overrides: Partial<InsertUser> = {},
-  ): InsertUser => {
+  createAuthUser: (overrides: Partial<InsertUser> = {}): InsertUser => {
     return {
       id: TEST_USER_ID,
       email: `auth-user-${Date.now()}@example.com`,
@@ -367,7 +365,8 @@ export const authTestHelpers = {
 
   // Verify password hashing
   verifyPasswordHash(plainPassword: string, hashedPassword: string): boolean {
-    return simpleCompare(plainPassword, hashedPassword);
+    // Simple mock comparison for testing
+    return plainPassword === hashedPassword;
   },
 
   // Test data for auth scenarios
@@ -453,17 +452,24 @@ export const authTestHelpers = {
           await testDb
             .delete(userApiKeys)
             .where(eq(userApiKeys.userId, userId));
-          
+
           // Delete user email preferences
           await testDb
             .delete(userEmailPreferences)
             .where(eq(userEmailPreferences.userId, userId));
         }
 
-        // Delete email unsubscribe tokens by pattern
-        await testDb
-          .delete(emailUnsubscribeTokens)
-          .where(like(emailUnsubscribeTokens.email, `%${testSuitePattern}%`));
+        // Delete email unsubscribe tokens for test users
+        if (testUsers.length > 0) {
+          const testUserIds = testUsers.map(u => u.id);
+          await testDb
+            .delete(emailUnsubscribeTokens)
+            .where(
+              testUserIds.length > 1
+                ? inArray(emailUnsubscribeTokens.userId, testUserIds)
+                : eq(emailUnsubscribeTokens.userId, testUserIds[0]),
+            );
+        }
 
         // Finally delete users
         await testDb

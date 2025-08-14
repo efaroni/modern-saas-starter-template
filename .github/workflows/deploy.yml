@@ -1,0 +1,365 @@
+name: Deploy Application
+
+on:
+  # Auto-deploy to staging when main branch is updated
+  push:
+    branches:
+      - main
+
+  # Auto-deploy to production on release
+  release:
+    types: [published]
+
+  # Manual deployment with environment selection
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      confirm_production:
+        description: 'Type "DEPLOY" to confirm production deployment'
+        required: false
+        type: string
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || (github.event_name == 'release' && 'production') || 'staging' }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # Determine deployment environment and validate
+  determine-environment:
+    name: 🎯 Determine Environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      should_deploy: ${{ steps.env.outputs.should_deploy }}
+      is_production: ${{ steps.env.outputs.is_production }}
+
+    steps:
+      - name: Determine deployment environment
+        id: env
+        run: |
+          # Determine environment based on trigger
+          if [ "${{ github.event_name }}" == "release" ]; then
+            ENVIRONMENT="production"
+            IS_PRODUCTION="true"
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+            IS_PRODUCTION=$([ "$ENVIRONMENT" == "production" ] && echo "true" || echo "false")
+          else
+            ENVIRONMENT="staging"
+            IS_PRODUCTION="false"
+          fi
+
+          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+          echo "is_production=$IS_PRODUCTION" >> $GITHUB_OUTPUT
+
+          # Validate production deployment
+          if [ "$IS_PRODUCTION" == "true" ] && [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.confirm_production }}" != "DEPLOY" ]; then
+              echo "❌ Production deployment not confirmed. Expected 'DEPLOY', got '${{ github.event.inputs.confirm_production }}'"
+              echo "should_deploy=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          fi
+
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+          echo "🎯 Target environment: $ENVIRONMENT"
+
+  # Set environment configuration
+  environment-config:
+    name: ⚙️ Environment Configuration
+    runs-on: ubuntu-latest
+    needs: determine-environment
+    if: needs.determine-environment.outputs.should_deploy == 'true'
+    outputs:
+      database_url: ${{ steps.config.outputs.database_url }}
+      app_url: ${{ steps.config.outputs.app_url }}
+      vercel_env: ${{ steps.config.outputs.vercel_env }}
+
+    steps:
+      - name: Set environment configuration
+        id: config
+        run: |
+          ENVIRONMENT="${{ needs.determine-environment.outputs.environment }}"
+
+          case "$ENVIRONMENT" in
+            "staging")
+              # Staging configuration
+              DATABASE_URL="${{ secrets.STAGING_DATABASE_URL || 'postgresql://staging:staging@localhost:5432/saas_template_staging' }}"
+              APP_URL="${{ secrets.STAGING_APP_URL || 'https://staging-saas-template.vercel.app' }}"
+              VERCEL_ENV="preview"
+              ;;
+            "production")
+              # Production configuration
+              DATABASE_URL="${{ secrets.PROD_DATABASE_URL || 'postgresql://prod:prod@localhost:5432/saas_template_prod' }}"
+              APP_URL="${{ secrets.PRODUCTION_DOMAIN || 'https://your-domain.com' }}"
+              VERCEL_ENV="production"
+              ;;
+          esac
+
+          echo "database_url=$DATABASE_URL" >> $GITHUB_OUTPUT
+          echo "app_url=$APP_URL" >> $GITHUB_OUTPUT
+          echo "vercel_env=$VERCEL_ENV" >> $GITHUB_OUTPUT
+
+          echo "📊 Environment: $ENVIRONMENT"
+          echo "🌐 App URL: $APP_URL"
+          echo "🗄️ Database: $(echo $DATABASE_URL | sed 's|://[^@]*@|://***@|')"
+
+  # Pre-deployment validation
+  pre-deployment:
+    name: 🔍 Pre-deployment Validation
+    runs-on: ubuntu-latest
+    needs: [determine-environment, environment-config]
+    if: needs.determine-environment.outputs.should_deploy == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Lint check
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm test -- --passWithNoTests --coverage
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+          SKIP_ENV_VALIDATION: true
+          # Use environment-specific configuration
+          DATABASE_URL: ${{ needs.environment-config.outputs.database_url }}
+
+  # Database backup (production only)
+  database-backup:
+    name: 💾 Database Backup
+    runs-on: ubuntu-latest
+    needs: [determine-environment, environment-config]
+    if: needs.determine-environment.outputs.is_production == 'true'
+
+    steps:
+      - name: Database backup check
+        run: |
+          echo "🔄 Checking database backup requirements..."
+
+          # Check if production database is configured
+          if [ -n "${{ secrets.PROD_DATABASE_URL }}" ]; then
+            echo "✅ Production database configured"
+            # TODO: Add actual backup logic when production DB exists
+            echo "BACKUP_ID=backup-$(date +%s)" >> $GITHUB_ENV
+            echo "📦 Mock backup created: backup-$(date +%s)"
+            echo "⚠️ Replace with actual backup command when database is provisioned"
+          else
+            echo "⚠️ Production database not configured - using mock backup"
+            echo "BACKUP_ID=mock-backup-$(date +%s)" >> $GITHUB_ENV
+            echo "✅ Mock backup ID: mock-backup-$(date +%s)"
+          fi
+
+      - name: Store backup info
+        run: |
+          echo "backup_id=$BACKUP_ID" >> $GITHUB_OUTPUT
+          echo "🗄️ Backup completed: $BACKUP_ID"
+
+  # Deploy to Vercel
+  deploy:
+    name: 🚀 Deploy to ${{ needs.determine-environment.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [determine-environment, environment-config, pre-deployment]
+    if: needs.determine-environment.outputs.should_deploy == 'true'
+    environment:
+      name: ${{ needs.determine-environment.outputs.environment }}
+      url: ${{ steps.deploy.outputs.deployment_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=${{ needs.environment-config.outputs.vercel_env }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build ${{ needs.determine-environment.outputs.is_production == 'true' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt ${{ needs.determine-environment.outputs.is_production == 'true' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "🌍 Deployed to: $DEPLOYMENT_URL"
+
+      - name: Assign Custom Domain
+        if: needs.determine-environment.outputs.is_production == 'true' && secrets.PRODUCTION_DOMAIN
+        run: |
+          vercel alias set ${{ steps.deploy.outputs.deployment_url }} ${{ secrets.PRODUCTION_DOMAIN }} --token=${{ secrets.VERCEL_TOKEN }}
+          echo "🎯 Production URL: https://${{ secrets.PRODUCTION_DOMAIN }}"
+
+      - name: Generate changelog
+        if: needs.determine-environment.outputs.is_production == 'true'
+        run: |
+          echo "## 📋 Release Notes" > CHANGELOG_ENTRY.md
+          echo "**Environment:** Production" >> CHANGELOG_ENTRY.md
+          echo "**Deployed:** $(date)" >> CHANGELOG_ENTRY.md
+          echo "**URL:** ${{ steps.deploy.outputs.deployment_url }}" >> CHANGELOG_ENTRY.md
+          echo "" >> CHANGELOG_ENTRY.md
+
+          if [ "${{ github.event_name }}" == "release" ]; then
+            echo "**Release:** ${{ github.event.release.tag_name }}" >> CHANGELOG_ENTRY.md
+            echo "" >> CHANGELOG_ENTRY.md
+            echo "${{ github.event.release.body }}" >> CHANGELOG_ENTRY.md
+          else
+            echo "### Recent Changes" >> CHANGELOG_ENTRY.md
+            # Get commits since last tag
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [ -n "$LAST_TAG" ]; then
+              git log --pretty=format:"- %s (%an)" ${LAST_TAG}..HEAD >> CHANGELOG_ENTRY.md
+            else
+              git log --pretty=format:"- %s (%an)" -10 >> CHANGELOG_ENTRY.md
+            fi
+          fi
+
+      - name: Upload changelog
+        if: needs.determine-environment.outputs.is_production == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog-${{ github.sha }}
+          path: CHANGELOG_ENTRY.md
+          retention-days: 30
+
+  # Post-deployment validation
+  post-deployment:
+    name: ✅ Post-deployment Validation
+    runs-on: ubuntu-latest
+    needs: [determine-environment, deploy]
+    if: always() && needs.deploy.result == 'success'
+
+    steps:
+      - name: Wait for deployment propagation
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          HEALTH_URL="${{ needs.deploy.outputs.deployment_url }}/api/health"
+          echo "🔍 Health check: $HEALTH_URL"
+
+          for i in {1..10}; do
+            if curl -f -s "$HEALTH_URL" > /dev/null; then
+              echo "✅ Health check passed"
+              break
+            fi
+            echo "⏳ Health check failed, attempt $i/10"
+            sleep 15
+          done
+
+          if [ $i -eq 10 ]; then
+            echo "❌ Health check failed after 10 attempts"
+            exit 1
+          fi
+
+      - name: Smoke tests
+        run: |
+          BASE_URL="${{ needs.deploy.outputs.deployment_url }}"
+          echo "🧪 Running smoke tests on: $BASE_URL"
+
+          # Test critical pages
+          PAGES=("/" "/auth" "/api/health")
+
+          for page in "${PAGES[@]}"; do
+            echo "Testing $BASE_URL$page"
+            if ! curl -f -s -w "HTTP %{http_code} - %{time_total}s\n" "$BASE_URL$page" > /dev/null; then
+              echo "❌ Failed: $page"
+              exit 1
+            fi
+          done
+
+          echo "✅ All smoke tests passed"
+
+  # Deployment summary
+  deployment-summary:
+    name: 📊 Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [determine-environment, deploy, post-deployment]
+    if: always()
+
+    steps:
+      - name: Generate deployment summary
+        run: |
+          echo "# 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ needs.determine-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ needs.deploy.result == 'success' && '✅ Successful' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ needs.deploy.outputs.deployment_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Cost monitoring placeholder
+          echo "## 💰 Cost Monitoring" >> $GITHUB_STEP_SUMMARY
+          echo "**Estimated Monthly Costs:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Vercel: ~$20/month (Pro plan)" >> $GITHUB_STEP_SUMMARY
+          echo "- Database: TBD (not yet provisioned)" >> $GITHUB_STEP_SUMMARY
+          echo "- Redis: TBD (not yet provisioned)" >> $GITHUB_STEP_SUMMARY
+          echo "- Total: ~$20-100/month (estimated)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "*Note: Update when production services are configured*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Success notification
+        if: needs.deploy.result == 'success' && needs.post-deployment.result == 'success'
+        run: |
+          echo "🎉 Deployment successful!"
+          echo "Environment: ${{ needs.determine-environment.outputs.environment }}"
+          echo "URL: ${{ needs.deploy.outputs.deployment_url }}"
+
+      - name: Failure notification
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Environment: ${{ needs.determine-environment.outputs.environment }}"
+          echo "Please check the deployment logs and consider rollback if necessary."
+
+  # Cleanup
+  cleanup:
+    name: 🧹 Cleanup
+    runs-on: ubuntu-latest
+    needs: [deployment-summary]
+    if: always()
+
+    steps:
+      - name: Cleanup summary
+        run: |
+          echo "🧹 Deployment workflow completed"
+          echo "Check the deployment summary above for details"

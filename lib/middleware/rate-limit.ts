@@ -29,7 +29,7 @@ const defaultConfig: RateLimitConfig = {
   keyGenerator: request => {
     // Use IP address as default key
     const forwarded = request.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : request.ip || 'unknown';
+    const ip = forwarded ? forwarded.split(',')[0] : 'unknown';
     return `rate_limit:${ip}`;
   },
 };
