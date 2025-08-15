@@ -82,7 +82,7 @@ describe('userApiKeyService', () => {
         },
         {
           userId: otherUserId,
-          provider: 'stripe',
+          provider: 'resend',
           privateKeyEncrypted: encrypt('sk-test-5678'),
           publicKey: null,
           metadata: {},
@@ -153,7 +153,7 @@ describe('userApiKeyService', () => {
     it('should mask public keys when provided', async () => {
       const created = await userApiKeyService.create(
         {
-          provider: 'stripe',
+          provider: 'resend',
           privateKeyEncrypted: 'sk_test_1234567890',
           publicKey: 'pk_test_abcdefghij',
           metadata: {},
@@ -183,8 +183,8 @@ describe('userApiKeyService', () => {
         },
         {
           userId: testUserId,
-          provider: 'stripe',
-          privateKeyEncrypted: encrypt('sk-test-stripe'),
+          provider: 'resend',
+          privateKeyEncrypted: encrypt('re_test_resend'),
           publicKey: null,
           metadata: {},
         },

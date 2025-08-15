@@ -13,13 +13,6 @@ jest.mock('openai', () => ({
   })),
 }));
 
-jest.mock('stripe', () =>
-  jest.fn().mockImplementation(() => ({
-    accounts: {
-      retrieve: jest.fn().mockResolvedValue({}),
-    },
-  })),
-);
 
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({

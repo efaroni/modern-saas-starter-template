@@ -16,10 +16,7 @@ export const keyType = pgEnum('key_type', [
 ]);
 export const serviceType = pgEnum('service_type', [
   'openai',
-  'stripe',
   'resend',
-  'github',
-  'google',
   'custom',
 ]);
 
