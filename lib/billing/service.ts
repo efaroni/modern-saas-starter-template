@@ -3,12 +3,12 @@ import { StripeBillingService } from './stripe';
 import { type BillingService } from './types';
 
 function createBillingService(): BillingService {
-  // Use mock service in test environment or during build
-  if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === undefined) {
+  // Use mock service in test environment
+  if (process.env.NODE_ENV === 'test') {
     return new MockBillingService();
   }
 
-  // Check if billing is enabled
+  // Check if billing is enabled (defaults to false for safety)
   const billingEnabled = process.env.NEXT_PUBLIC_BILLING_ENABLED === 'true';
   if (!billingEnabled) {
     console.warn(
