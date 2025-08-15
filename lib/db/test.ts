@@ -54,7 +54,7 @@ export const testDb = new Proxy(
   {} as ReturnType<typeof drizzle<typeof schema>>,
   {
     get(_, prop) {
-      return getTestDb()[prop];
+      return (getTestDb() as any)[prop as string];
     },
   },
 );
@@ -236,7 +236,7 @@ export async function clearTestDatabase() {
     // Ignore errors if tables don't exist
     console.warn(
       'Some tables not found during cleanup, continuing...',
-      error.message,
+      error instanceof Error ? error.message : String(error),
     );
     // Try to clear just the core tables that should exist
     try {
