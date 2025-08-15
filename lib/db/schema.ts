@@ -97,8 +97,17 @@ export type InsertUserApiKey = typeof userApiKeys.$inferInsert;
 export type SelectUserApiKey = typeof userApiKeys.$inferSelect;
 export type WebhookEvent = typeof webhookEvents.$inferSelect;
 export type NewWebhookEvent = typeof webhookEvents.$inferInsert;
+// Test table for migration pipeline validation
+export const migrationPipelineTest = pgTable('migration_pipeline_test', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  testName: text('test_name').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export type EmailUnsubscribeToken = typeof emailUnsubscribeTokens.$inferSelect;
 export type NewEmailUnsubscribeToken =
   typeof emailUnsubscribeTokens.$inferInsert;
 export type UserEmailPreferences = typeof userEmailPreferences.$inferSelect;
 export type NewUserEmailPreferences = typeof userEmailPreferences.$inferInsert;
+export type MigrationPipelineTest = typeof migrationPipelineTest.$inferSelect;
+export type NewMigrationPipelineTest = typeof migrationPipelineTest.$inferInsert;

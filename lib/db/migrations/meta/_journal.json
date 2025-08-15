@@ -85,6 +85,13 @@
       "when": 1754870071390,
       "tag": "0011_lucky_iron_fist",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1755268805377,
+      "tag": "0012_test_migration_pipeline",
+      "breakpoints": true
     }
   ]
 }
