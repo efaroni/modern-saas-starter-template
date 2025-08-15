@@ -4,7 +4,6 @@ import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { hasActiveSubscription } from '@/lib/billing/access-control';
 import { billingService } from '@/lib/billing/service';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
@@ -60,7 +59,9 @@ export async function POST(request: NextRequest) {
 
     // For subscription mode, check if user already has an active subscription
     if (mode === 'subscription') {
-      const hasSubscription = await hasActiveSubscription(user.id);
+      const hasSubscription = await billingService.hasActiveSubscription(
+        user.id,
+      );
       if (hasSubscription) {
         return NextResponse.json(
           { success: false, error: 'User already has an active subscription' },

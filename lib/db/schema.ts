@@ -110,4 +110,5 @@ export type NewEmailUnsubscribeToken =
 export type UserEmailPreferences = typeof userEmailPreferences.$inferSelect;
 export type NewUserEmailPreferences = typeof userEmailPreferences.$inferInsert;
 export type MigrationPipelineTest = typeof migrationPipelineTest.$inferSelect;
-export type NewMigrationPipelineTest = typeof migrationPipelineTest.$inferInsert;
+export type NewMigrationPipelineTest =
+  typeof migrationPipelineTest.$inferInsert;

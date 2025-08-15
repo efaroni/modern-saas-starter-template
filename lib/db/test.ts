@@ -54,7 +54,9 @@ export const testDb = new Proxy(
   {} as ReturnType<typeof drizzle<typeof schema>>,
   {
     get(_, prop) {
-      return (getTestDb() as unknown as Record<string, unknown>)[prop as string];
+      return (getTestDb() as unknown as Record<string, unknown>)[
+        prop as string
+      ];
     },
   },
 );

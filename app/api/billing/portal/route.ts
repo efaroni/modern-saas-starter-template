@@ -4,7 +4,6 @@ import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
-import { verifyStripeCustomer } from '@/lib/billing/access-control';
 import { billingService } from '@/lib/billing/service';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
@@ -58,7 +57,9 @@ export async function POST(_request: NextRequest) {
       },
     );
 
-    const customerData = await verifyStripeCustomer(user.billingCustomerId);
+    const customerData = await billingService.verifyCustomer(
+      user.billingCustomerId,
+    );
 
     if (!customerData) {
       console.error(

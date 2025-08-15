@@ -3,10 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 
-import {
-  hasActiveSubscription,
-  getSubscriptionDetails,
-} from '@/lib/billing/access-control';
+import { billingService } from '@/lib/billing/service';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 
@@ -37,8 +34,8 @@ export async function GET(_request: NextRequest) {
 
     // Query Stripe for subscription status
     const [hasAccess, subscriptionDetails] = await Promise.all([
-      hasActiveSubscription(user.id),
-      getSubscriptionDetails(user.id),
+      billingService.hasActiveSubscription(user.id),
+      billingService.getSubscriptionDetails(user.id),
     ]);
 
     return NextResponse.json({

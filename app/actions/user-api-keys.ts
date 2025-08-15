@@ -107,10 +107,7 @@ export async function deleteUserApiKey(idOrProvider: string) {
     }
 
     // Check if this is a provider name or an ID
-    const isProvider = [
-      'openai',
-      'resend',
-    ].includes(idOrProvider);
+    const isProvider = ['openai', 'resend'].includes(idOrProvider);
 
     if (isProvider) {
       // Get the key by provider first

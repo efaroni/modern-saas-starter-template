@@ -13,7 +13,6 @@ jest.mock('openai', () => ({
   })),
 }));
 
-
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
     apiKeys: {

@@ -17,6 +17,12 @@ export interface BillingService {
 
   verifyWebhookSignature(payload: string, signature: string): boolean;
   parseWebhookEvent(payload: string): BillingEvent;
+
+  // Access control methods
+  hasActiveSubscription(userId: string): Promise<boolean>;
+  hasAnySubscription(userId: string): Promise<boolean>;
+  getSubscriptionDetails(userId: string): Promise<SubscriptionDetails | null>;
+  verifyCustomer(customerId: string): Promise<CustomerInfo | null>;
 }
 
 export interface BillingEvent {
@@ -34,4 +40,16 @@ export interface BillingResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+export interface SubscriptionDetails {
+  status: string;
+  currentPeriodEnd: Date;
+  cancelAtPeriodEnd: boolean;
+}
+
+export interface CustomerInfo {
+  id: string;
+  email: string | null;
+  deleted: boolean;
 }

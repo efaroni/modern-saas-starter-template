@@ -40,12 +40,8 @@
           "name": "email_unsubscribe_tokens_user_id_users_id_fk",
           "tableFrom": "email_unsubscribe_tokens",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -152,12 +148,8 @@
           "name": "user_api_keys_user_id_users_id_fk",
           "tableFrom": "user_api_keys",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -167,10 +159,7 @@
         "user_api_keys_user_id_provider_unique": {
           "name": "user_api_keys_user_id_provider_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "provider"
-          ]
+          "columns": ["user_id", "provider"]
         }
       },
       "policies": {},
@@ -201,12 +190,8 @@
           "name": "user_email_preferences_user_id_users_id_fk",
           "tableFrom": "user_email_preferences",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -279,23 +264,17 @@
         "users_clerk_id_unique": {
           "name": "users_clerk_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerk_id"
-          ]
+          "columns": ["clerk_id"]
         },
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         },
         "users_billing_customer_id_unique": {
           "name": "users_billing_customer_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "billing_customer_id"
-          ]
+          "columns": ["billing_customer_id"]
         }
       },
       "policies": {},

@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 
-import { hasActiveSubscription } from '@/lib/billing/access-control';
+import { billingService } from '@/lib/billing/service';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 
@@ -35,7 +35,7 @@ export async function GET() {
     }
 
     // Check subscription status
-    const hasSubscription = await hasActiveSubscription(user.id);
+    const hasSubscription = await billingService.hasActiveSubscription(user.id);
 
     return NextResponse.json({
       success: true,

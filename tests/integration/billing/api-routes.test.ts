@@ -37,21 +37,15 @@ jest.mock('@/lib/billing/service', () => ({
     createCustomer: jest.fn(),
     createCheckoutSession: jest.fn(),
     createPortalSession: jest.fn(),
+    hasActiveSubscription: jest.fn(),
+    getSubscriptionDetails: jest.fn(),
+    verifyCustomer: jest.fn(),
   },
-}));
-
-// Mock access control functions
-jest.mock('@/lib/billing/access-control', () => ({
-  hasActiveSubscription: jest.fn(),
-  getSubscriptionDetails: jest.fn(),
-  verifyStripeCustomer: jest.fn(),
 }));
 
 // Get mocked modules
 const { auth } = jest.requireMock('@clerk/nextjs/server');
 const { billingService } = jest.requireMock('@/lib/billing/service');
-const { hasActiveSubscription, getSubscriptionDetails, verifyStripeCustomer } =
-  jest.requireMock('@/lib/billing/access-control');
 
 describe('Billing API Routes Integration', () => {
   beforeEach(() => {
@@ -82,8 +76,8 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_status' });
 
       // Mock access control functions
-      hasActiveSubscription.mockResolvedValue(true);
-      getSubscriptionDetails.mockResolvedValue({
+      billingService.hasActiveSubscription.mockResolvedValue(true);
+      billingService.getSubscriptionDetails.mockResolvedValue({
         status: 'active',
         currentPeriodEnd: new Date('2024-12-31'),
       });
@@ -104,8 +98,8 @@ describe('Billing API Routes Integration', () => {
       expect(result.data.subscription.status).toBe('active');
 
       // Verify access control was called with correct user ID
-      expect(hasActiveSubscription).toHaveBeenCalledWith(testUser.id);
-      expect(getSubscriptionDetails).toHaveBeenCalledWith(testUser.id);
+      expect(billingService.hasActiveSubscription).toHaveBeenCalledWith(testUser.id);
+      expect(billingService.getSubscriptionDetails).toHaveBeenCalledWith(testUser.id);
     });
 
     test('returns 401 for unauthenticated request', async () => {
@@ -163,7 +157,7 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_checkout' });
 
       // Mock that user does not have active subscription
-      hasActiveSubscription.mockResolvedValue(false);
+      billingService.hasActiveSubscription.mockResolvedValue(false);
 
       // Mock billing service
       billingService.createCheckoutSession.mockResolvedValue({
@@ -221,7 +215,7 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_with_customer' });
 
       // Mock that user does not have active subscription
-      hasActiveSubscription.mockResolvedValue(false);
+      billingService.hasActiveSubscription.mockResolvedValue(false);
 
       // Mock billing service
       billingService.createCheckoutSession.mockResolvedValue({
@@ -277,7 +271,7 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_no_customer' });
 
       // Mock that user does not have active subscription
-      hasActiveSubscription.mockResolvedValue(false);
+      billingService.hasActiveSubscription.mockResolvedValue(false);
 
       // Mock billing service - customer creation
       billingService.createCustomer.mockResolvedValue({
@@ -343,7 +337,7 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_duplicate' });
 
       // Mock that user already has active subscription
-      hasActiveSubscription.mockResolvedValue(true);
+      billingService.hasActiveSubscription.mockResolvedValue(true);
 
       // Create mock request for subscription
       const request = new MockNextRequest(
@@ -367,7 +361,7 @@ describe('Billing API Routes Integration', () => {
       expect(result.error).toBe('User already has an active subscription');
 
       // Verify subscription check was called
-      expect(hasActiveSubscription).toHaveBeenCalledWith(testUser.id);
+      expect(billingService.hasActiveSubscription).toHaveBeenCalledWith(testUser.id);
 
       // Verify checkout session was NOT created
       expect(billingService.createCheckoutSession).not.toHaveBeenCalled();
@@ -388,7 +382,7 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_onetime' });
 
       // Mock that user has active subscription (but should still allow one-time payment)
-      hasActiveSubscription.mockResolvedValue(true);
+      billingService.hasActiveSubscription.mockResolvedValue(true);
 
       // Mock billing service
       billingService.createCheckoutSession.mockResolvedValue({
@@ -472,7 +466,7 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_portal' });
 
       // Mock customer verification - customer exists
-      verifyStripeCustomer.mockResolvedValue({
+      billingService.verifyCustomer.mockResolvedValue({
         id: 'cus_test_portal_123',
         email: 'api-test@example.com',
         deleted: false,
@@ -503,7 +497,7 @@ describe('Billing API Routes Integration', () => {
       );
 
       // Verify customer verification was called
-      expect(verifyStripeCustomer).toHaveBeenCalledWith('cus_test_portal_123');
+      expect(billingService.verifyCustomer).toHaveBeenCalledWith('cus_test_portal_123');
 
       // Verify billing service was called correctly
       expect(billingService.createPortalSession).toHaveBeenCalledWith(
@@ -527,7 +521,7 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_with_billing' });
 
       // Mock customer verification - customer exists
-      verifyStripeCustomer.mockResolvedValue({
+      billingService.verifyCustomer.mockResolvedValue({
         id: 'cus_existing_portal_456',
         email: 'api-test@example.com',
         deleted: false,
@@ -558,7 +552,7 @@ describe('Billing API Routes Integration', () => {
       );
 
       // Verify customer verification was called
-      expect(verifyStripeCustomer).toHaveBeenCalledWith(
+      expect(billingService.verifyCustomer).toHaveBeenCalledWith(
         'cus_existing_portal_456',
       );
 
@@ -587,7 +581,7 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_missing_customer' });
 
       // Mock customer verification - customer doesn't exist
-      verifyStripeCustomer.mockResolvedValue(null);
+      billingService.verifyCustomer.mockResolvedValue(null);
 
       // Create mock request
       const request = new MockNextRequest(
@@ -609,7 +603,7 @@ describe('Billing API Routes Integration', () => {
       );
 
       // Verify customer verification was called
-      expect(verifyStripeCustomer).toHaveBeenCalledWith('cus_nonexistent_123');
+      expect(billingService.verifyCustomer).toHaveBeenCalledWith('cus_nonexistent_123');
 
       // Verify portal session was NOT created
       expect(billingService.createPortalSession).not.toHaveBeenCalled();
@@ -630,7 +624,7 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_deleted_customer' });
 
       // Mock customer verification - customer is deleted
-      verifyStripeCustomer.mockResolvedValue({
+      billingService.verifyCustomer.mockResolvedValue({
         id: 'cus_deleted_789',
         email: null,
         deleted: true,
@@ -656,7 +650,7 @@ describe('Billing API Routes Integration', () => {
       );
 
       // Verify customer verification was called
-      expect(verifyStripeCustomer).toHaveBeenCalledWith('cus_deleted_789');
+      expect(billingService.verifyCustomer).toHaveBeenCalledWith('cus_deleted_789');
 
       // Verify portal session was NOT created
       expect(billingService.createPortalSession).not.toHaveBeenCalled();
@@ -694,7 +688,7 @@ describe('Billing API Routes Integration', () => {
       expect(result.error).toBe('User billing not set up');
 
       // Verify customer verification was NOT called since no customer ID
-      expect(verifyStripeCustomer).not.toHaveBeenCalled();
+      expect(billingService.verifyCustomer).not.toHaveBeenCalled();
 
       // Verify portal session was NOT created
       expect(billingService.createPortalSession).not.toHaveBeenCalled();

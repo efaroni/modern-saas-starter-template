@@ -71,7 +71,6 @@ export async function validateResendKey(
   }
 }
 
-
 // eslint-disable-next-line require-await
 export async function validateApiKey(
   serviceType: string,
