@@ -3,8 +3,6 @@ name: Deploy to Staging
 on:
   push:
     branches:
-      - main
-      - develop
       - staging
   workflow_dispatch:
     inputs:
@@ -116,6 +114,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run database migrations
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          NODE_ENV: production
+        run: |
+          echo "🔄 Running database migrations for staging..."
+          tsx scripts/run-migrations.ts --validate
+          echo "✅ Database migrations completed successfully"
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest

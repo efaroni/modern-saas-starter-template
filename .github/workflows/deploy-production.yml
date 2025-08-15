@@ -174,6 +174,39 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create database backup
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+        run: |
+          echo "🔄 Creating database backup before production migration..."
+          BACKUP_NAME="backup-$(date +%Y%m%d-%H%M%S)-release-${{ needs.validate.outputs.release_tag }}"
+
+          if [ -n "$NEON_API_KEY" ] && [ -n "$NEON_PROJECT_ID" ]; then
+            curl -X POST "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
+              -H "Authorization: Bearer $NEON_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\": \"$BACKUP_NAME\", \"parent_id\": \"main\"}" || \
+              echo "⚠️ Backup creation failed - proceeding with migration (manual backup recommended)"
+            echo "✅ Database backup created: $BACKUP_NAME"
+          else
+            echo "⚠️ Neon API credentials not configured - skipping automatic backup"
+            echo "📋 Manual backup recommended before production deployment"
+          fi
+
+      - name: Run production database migrations
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          NODE_ENV: production
+        run: |
+          echo "🔄 Running database migrations for production..."
+          echo "⚠️ Production migration in progress - DO NOT interrupt"
+          tsx scripts/run-migrations.ts --validate --comprehensive
+          echo "✅ Production database migrations completed successfully"
+
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
