@@ -3,8 +3,8 @@ import { StripeBillingService } from './stripe';
 import { type BillingService } from './types';
 
 function createBillingService(): BillingService {
-  // Use mock service in test environment
-  if (process.env.NODE_ENV === 'test') {
+  // Use mock service in test environment or during build
+  if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === undefined) {
     return new MockBillingService();
   }
 
