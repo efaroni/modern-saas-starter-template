@@ -26,9 +26,7 @@ import { testUsers } from '@/tests/fixtures/clerk';
 import { mockAuthenticatedUser, setupClerkMocks } from '@/tests/mocks/clerk';
 
 // Import the handler after mocks are set
-let analyzeDesignHandler: (
-  request: unknown,
-) => Promise<{ json: () => Promise<unknown>; status: number }>;
+let analyzeDesignHandler: any;
 
 // Mock NextRequest
 class MockNextRequest {
@@ -80,16 +78,20 @@ let mockOpenAIInstance: {
 jest.mock('openai', () => {
   class MockAPIError extends Error {
     status: number;
-    constructor(message: string, status: number) {
+    headers: any;
+    error: any;
+    constructor(status: number, error: any, message: string, headers: any) {
       super(message);
       this.status = status;
+      this.error = error;
+      this.headers = headers;
       this.name = 'APIError';
     }
   }
 
   const MockOpenAI = jest.fn().mockImplementation(() => {
     return mockOpenAIInstance;
-  });
+  }) as any;
 
   MockOpenAI.APIError = MockAPIError;
 
@@ -236,8 +238,8 @@ describe('AI Design Analysis Integration Flow', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.data).toEqual(mockSuccessfulAnalysisResponse);
+    expect((data as any).success).toBe(true);
+    expect((data as any).data).toEqual(mockSuccessfulAnalysisResponse);
     expect(mockOpenAI.chat.completions.create).toHaveBeenCalledWith({
       model: 'gpt-4o',
       messages: expect.any(Array),
@@ -285,14 +287,14 @@ describe('AI Design Analysis Integration Flow', () => {
 
     // Assert
     expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.data).toEqual(mockSuccessfulAnalysisResponse);
+    expect((data as any).success).toBe(true);
+    expect((data as any).data).toEqual(mockSuccessfulAnalysisResponse);
   });
 
   it('should return 401 when user is not authenticated', async () => {
     // Arrange
     const { auth } = await import('@clerk/nextjs/server');
-    auth.mockResolvedValueOnce({ userId: null }); // No session
+    (auth as any).mockResolvedValueOnce({ userId: null }); // No session
 
     const formData = createFormData([
       createMockFile('design.png', 'image/png'),
@@ -312,7 +314,7 @@ describe('AI Design Analysis Integration Flow', () => {
 
     // Assert
     expect(response.status).toBe(401);
-    expect(data.error).toBe('Unauthorized');
+    expect((data as any).error).toBe('Unauthorized');
   });
 
   // Note: Rate limiting test removed as it's redundant with middleware tests
@@ -383,8 +385,8 @@ describe('AI Design Analysis Integration Flow', () => {
 
     // Assert
     expect(response.status).toBe(400);
-    expect(data.error).toBe('Failed to process AI response');
-    expect(data.details).toContain('unexpected format');
+    expect((data as any).error).toBe('Failed to process AI response');
+    expect((data as any).details).toContain('unexpected format');
   });
 
   it('should use mock service when no API key is configured', async () => {
@@ -408,8 +410,8 @@ describe('AI Design Analysis Integration Flow', () => {
     // Assert
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.data).toBeDefined();
-    expect(data.data.metadata.theme).toBe('light'); // Mock service returns light theme
+    expect((data as any).data).toBeDefined();
+    expect((data as any).data.metadata.theme).toBe('light'); // Mock service returns light theme
     expect(mockOpenAI.chat.completions.create).not.toHaveBeenCalled(); // No OpenAI call
   });
 
@@ -427,7 +429,12 @@ describe('AI Design Analysis Integration Flow', () => {
     mockCreateVisionService.mockResolvedValue(openAIService);
 
     // Create a proper OpenAI.APIError using the mocked class
-    const rateLimitError = new MockAPIError('Rate limit exceeded', 429);
+    const rateLimitError = new MockAPIError(
+      429,
+      {},
+      'Rate limit exceeded',
+      new Headers(),
+    );
     mockOpenAI.chat.completions.create.mockRejectedValue(rateLimitError);
 
     const formData = createFormData([
@@ -448,8 +455,8 @@ describe('AI Design Analysis Integration Flow', () => {
 
     // Assert
     expect(response.status).toBe(400);
-    expect(data.error).toBe('Rate limit exceeded');
-    expect(data.details).toContain('OpenAI API rate limit');
+    expect((data as any).error).toBe('Rate limit exceeded');
+    expect((data as any).details).toContain('OpenAI API rate limit');
   });
 
   it('should handle invalid API key errors', async () => {
@@ -466,7 +473,7 @@ describe('AI Design Analysis Integration Flow', () => {
     mockCreateVisionService.mockResolvedValue(openAIService);
 
     // Create a proper OpenAI.APIError for unauthorized access
-    const authError = new MockAPIError('Unauthorized', 401);
+    const authError = new MockAPIError(401, {}, 'Unauthorized', new Headers());
     mockOpenAI.chat.completions.create.mockRejectedValue(authError);
 
     const formData = createFormData([
@@ -487,7 +494,7 @@ describe('AI Design Analysis Integration Flow', () => {
 
     // Assert
     expect(response.status).toBe(400);
-    expect(data.error).toBe('Invalid or missing OpenAI API key');
+    expect((data as any).error).toBe('Invalid or missing OpenAI API key');
     expect(data.action).toBeDefined();
     expect(data.action.text).toBe('Configure API Key');
   });

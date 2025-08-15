@@ -62,7 +62,7 @@ import { db } from '@/lib/db/index';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { canSendEmailToUser, EmailType } from '@/lib/email/preferences';
 
-const mockDb = db as jest.Mocked<typeof db>;
+const mockDb = db as any;
 
 describe('Unsubscribe Integration', () => {
   const testEmail = 'unsubscribe-test@example.com';

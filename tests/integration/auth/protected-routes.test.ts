@@ -60,6 +60,25 @@ jest.mock('@/lib/ai/vision/service', () => ({
   hasValidOpenAIKey: jest.fn().mockResolvedValue(true),
 }));
 
+// Mock Clerk auth
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: jest.fn(),
+}));
+
+// Mock database
+jest.mock('@/lib/db', () => ({
+  db: {
+    query: {
+      users: {
+        findFirst: jest.fn(),
+      },
+      userApiKeys: {
+        findFirst: jest.fn(),
+      },
+    },
+  },
+}));
+
 import { auth } from '@clerk/nextjs/server';
 
 // Now import the route handlers after all mocks are set up
@@ -68,8 +87,8 @@ import { POST as billingPortalPost } from '@/app/api/billing/portal/route';
 import { db } from '@/lib/db';
 import { testUsers } from '@/tests/fixtures/clerk';
 
-const mockAuth = auth as jest.Mock;
-const mockDb = db as unknown;
+const mockAuth = auth as unknown as jest.Mock;
+const mockDb = db as any;
 
 // Mock NextRequest with formData support
 class MockNextRequest extends NextRequest {
@@ -80,9 +99,10 @@ class MockNextRequest extends NextRequest {
     url: string,
     init: RequestInit & { formData?: FormData; json?: unknown } = {},
   ) {
-    super(url, init);
-    this._formData = init.formData || new FormData();
-    this._json = init.json || {};
+    const { formData, json, signal, ...requestInit } = init;
+    super(url, { ...requestInit, signal: signal ?? undefined });
+    this._formData = formData || new FormData();
+    this._json = json || {};
   }
 
   formData(): Promise<FormData> {

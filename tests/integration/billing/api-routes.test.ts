@@ -4,6 +4,21 @@
  */
 
 import { eq } from 'drizzle-orm';
+import { NextRequest } from 'next/server';
+
+class MockNextRequest extends NextRequest {
+  private jsonData: any;
+
+  constructor(url: string, options: RequestInit & { json?: any } = {}) {
+    const { json, signal, ...requestInit } = options;
+    super(url, { ...requestInit, signal: signal ?? undefined });
+    this.jsonData = json;
+  }
+
+  async json() {
+    return this.jsonData;
+  }
+}
 
 import { POST as createCheckoutSession } from '@/app/api/billing/checkout/session/route';
 import { POST as createPortalSession } from '@/app/api/billing/portal/route';
@@ -74,7 +89,9 @@ describe('Billing API Routes Integration', () => {
       });
 
       // Create mock request
-      const request = {} as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/subscription/status',
+      );
 
       // Make request
       const response = await getSubscriptionStatus(request);
@@ -96,7 +113,9 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: null });
 
       // Create mock request
-      const request = {} as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/subscription/status',
+      );
 
       // Make request
       const response = await getSubscriptionStatus(request);
@@ -113,7 +132,9 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_not_in_db' });
 
       // Create mock request
-      const request = {} as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/subscription/status',
+      );
 
       // Make request
       const response = await getSubscriptionStatus(request);
@@ -150,12 +171,16 @@ describe('Billing API Routes Integration', () => {
       });
 
       // Create mock request
-      const request = {
-        json: jest.fn().mockResolvedValue({
-          priceId: 'price_test_subscription',
-          mode: 'subscription',
-        }),
-      } as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/checkout/session',
+        {
+          method: 'POST',
+          json: {
+            priceId: 'price_test_subscription',
+            mode: 'subscription',
+          },
+        },
+      );
 
       // Make request
       const response = await createCheckoutSession(request);
@@ -204,12 +229,16 @@ describe('Billing API Routes Integration', () => {
       });
 
       // Create mock request
-      const request = {
-        json: jest.fn().mockResolvedValue({
-          priceId: 'price_test_subscription',
-          mode: 'subscription',
-        }),
-      } as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/checkout/session',
+        {
+          method: 'POST',
+          json: {
+            priceId: 'price_test_subscription',
+            mode: 'subscription',
+          },
+        },
+      );
 
       // Make request
       const response = await createCheckoutSession(request);
@@ -261,12 +290,16 @@ describe('Billing API Routes Integration', () => {
       });
 
       // Create mock request
-      const request = {
-        json: jest.fn().mockResolvedValue({
-          priceId: 'price_test_subscription',
-          mode: 'subscription',
-        }),
-      } as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/checkout/session',
+        {
+          method: 'POST',
+          json: {
+            priceId: 'price_test_subscription',
+            mode: 'subscription',
+          },
+        },
+      );
 
       // Make request
       const response = await createCheckoutSession(request);
@@ -313,12 +346,16 @@ describe('Billing API Routes Integration', () => {
       hasActiveSubscription.mockResolvedValue(true);
 
       // Create mock request for subscription
-      const request = {
-        json: jest.fn().mockResolvedValue({
-          priceId: 'price_test_subscription',
-          mode: 'subscription',
-        }),
-      } as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/checkout/session',
+        {
+          method: 'POST',
+          json: {
+            priceId: 'price_test_subscription',
+            mode: 'subscription',
+          },
+        },
+      );
 
       // Make request
       const response = await createCheckoutSession(request);
@@ -359,12 +396,16 @@ describe('Billing API Routes Integration', () => {
       });
 
       // Create mock request for one-time payment
-      const request = {
-        json: jest.fn().mockResolvedValue({
-          priceId: 'price_test_onetime',
-          mode: 'payment',
-        }),
-      } as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/checkout/session',
+        {
+          method: 'POST',
+          json: {
+            priceId: 'price_test_onetime',
+            mode: 'payment',
+          },
+        },
+      );
 
       // Make request
       const response = await createCheckoutSession(request);
@@ -393,12 +434,16 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: null });
 
       // Create mock request
-      const request = {
-        json: jest.fn().mockResolvedValue({
-          priceId: 'price_test_subscription',
-          mode: 'subscription',
-        }),
-      } as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/checkout/session',
+        {
+          method: 'POST',
+          json: {
+            priceId: 'price_test_subscription',
+            mode: 'subscription',
+          },
+        },
+      );
 
       // Make request
       const response = await createCheckoutSession(request);
@@ -439,7 +484,12 @@ describe('Billing API Routes Integration', () => {
       });
 
       // Create mock request
-      const request = {} as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/portal',
+        {
+          method: 'POST',
+        },
+      );
 
       // Make request
       const response = await createPortalSession(request);
@@ -489,7 +539,12 @@ describe('Billing API Routes Integration', () => {
       });
 
       // Create mock request
-      const request = {} as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/portal',
+        {
+          method: 'POST',
+        },
+      );
 
       // Make request
       const response = await createPortalSession(request);
@@ -535,7 +590,12 @@ describe('Billing API Routes Integration', () => {
       verifyStripeCustomer.mockResolvedValue(null);
 
       // Create mock request
-      const request = {} as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/portal',
+        {
+          method: 'POST',
+        },
+      );
 
       // Make request
       const response = await createPortalSession(request);
@@ -577,7 +637,12 @@ describe('Billing API Routes Integration', () => {
       });
 
       // Create mock request
-      const request = {} as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/portal',
+        {
+          method: 'POST',
+        },
+      );
 
       // Make request
       const response = await createPortalSession(request);
@@ -612,7 +677,12 @@ describe('Billing API Routes Integration', () => {
       auth.mockResolvedValue({ userId: 'user_api_test_no_billing' });
 
       // Create mock request
-      const request = {} as unknown;
+      const request = new MockNextRequest(
+        'http://localhost:3000/api/billing/portal',
+        {
+          method: 'POST',
+        },
+      );
 
       // Make request
       const response = await createPortalSession(request);

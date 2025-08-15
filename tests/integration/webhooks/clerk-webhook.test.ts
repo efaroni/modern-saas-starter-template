@@ -121,7 +121,7 @@ describe('Clerk Webhook Handler', () => {
 
       // Verify user was created in database
       const createdUser = await testDb.query.users.findFirst({
-        where: eq(users.clerkId, webhookPayloads.userCreated.data.id),
+        where: eq(users.clerkId, (webhookPayloads.userCreated.data as any).id),
       });
 
       expect(createdUser).toBeDefined();
@@ -144,7 +144,7 @@ describe('Clerk Webhook Handler', () => {
     it('should update user on user.updated event', async () => {
       // Create initial user
       await testDb.insert(users).values({
-        clerkId: webhookPayloads.userUpdated.data.id,
+        clerkId: (webhookPayloads.userUpdated.data as any).id,
         email: 'olduser@test.com',
         name: 'Old User',
         imageUrl: null,
@@ -168,7 +168,7 @@ describe('Clerk Webhook Handler', () => {
 
       // Verify user was updated in database
       const updatedUser = await testDb.query.users.findFirst({
-        where: eq(users.clerkId, webhookPayloads.userUpdated.data.id),
+        where: eq(users.clerkId, (webhookPayloads.userUpdated.data as any).id),
       });
 
       expect(updatedUser).toBeDefined();
@@ -182,7 +182,7 @@ describe('Clerk Webhook Handler', () => {
     it('should delete user on user.deleted event', async () => {
       // Create user to delete
       await testDb.insert(users).values({
-        clerkId: webhookPayloads.userDeleted.data.id,
+        clerkId: (webhookPayloads.userDeleted.data as any).id,
         email: 'deleteme@test.com',
         name: 'Delete Me',
         imageUrl: null,
@@ -206,7 +206,7 @@ describe('Clerk Webhook Handler', () => {
 
       // Verify user was deleted from database
       const deletedUser = await testDb.query.users.findFirst({
-        where: eq(users.clerkId, webhookPayloads.userDeleted.data.id),
+        where: eq(users.clerkId, (webhookPayloads.userDeleted.data as any).id),
       });
 
       expect(deletedUser).toBeUndefined();
@@ -268,7 +268,7 @@ describe('Clerk Webhook Handler', () => {
       const usersCount = await testDb
         .select({ count: users.id })
         .from(users)
-        .where(eq(users.clerkId, webhookPayloads.userCreated.data.id));
+        .where(eq(users.clerkId, (webhookPayloads.userCreated.data as any).id));
 
       expect(usersCount.length).toBe(1);
     });
@@ -308,7 +308,7 @@ describe('Clerk Webhook Handler', () => {
       const invalidPayload = {
         ...webhookPayloads.userCreated,
         data: {
-          ...webhookPayloads.userCreated.data,
+          ...(webhookPayloads.userCreated.data as any),
           email_addresses: null, // This will cause an error
         },
       };
@@ -333,7 +333,7 @@ describe('Clerk Webhook Handler', () => {
       const payloadWithoutNames = {
         ...webhookPayloads.userCreated,
         data: {
-          ...webhookPayloads.userCreated.data,
+          ...(webhookPayloads.userCreated.data as any),
           first_name: null,
           last_name: null,
         },
@@ -365,7 +365,7 @@ describe('Clerk Webhook Handler', () => {
       const payloadWithFirstNameOnly = {
         ...webhookPayloads.userCreated,
         data: {
-          ...webhookPayloads.userCreated.data,
+          ...(webhookPayloads.userCreated.data as any),
           id: 'user_webhook_first_only',
           first_name: 'First',
           last_name: null,
@@ -401,7 +401,7 @@ describe('Clerk Webhook Handler', () => {
       const payloadWithoutImage = {
         ...webhookPayloads.userCreated,
         data: {
-          ...webhookPayloads.userCreated.data,
+          ...(webhookPayloads.userCreated.data as any),
           id: 'user_webhook_no_image',
           image_url: null,
         },

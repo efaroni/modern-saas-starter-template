@@ -121,7 +121,7 @@ export class ResendEmailService implements EmailService {
 
         await this.resend.emails.send({
           from: this.from,
-          to: user.userEmail!,
+          to: user.userEmail || '',
           subject: data.subject,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

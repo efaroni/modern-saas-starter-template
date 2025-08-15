@@ -29,7 +29,7 @@ import { canSendEmailToUser, EmailType } from '@/lib/email/preferences';
 import { emailService } from '@/lib/email/service';
 
 const _mockEmailService = emailService as jest.Mocked<typeof emailService>;
-const mockDb = db as jest.Mocked<typeof db>;
+const mockDb = db as any;
 
 describe('Email Preferences Integration', () => {
   const testEmail = 'preferences-test@example.com';

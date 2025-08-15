@@ -8,6 +8,7 @@ import { eq, like } from 'drizzle-orm';
 import { POST } from '@/app/api/webhooks/stripe/route';
 import { db } from '@/lib/db';
 import { users, webhookEvents } from '@/lib/db/schema';
+import { MockWebhookRequest } from '@/tests/helpers/webhook';
 
 // Mock the billing service to return mock implementation
 jest.mock('@/lib/billing/service', () => ({
@@ -79,23 +80,22 @@ describe('Stripe Webhook Integration', () => {
     });
 
     // Create mock request
-    const request = {
-      text: jest.fn().mockResolvedValue(
-        JSON.stringify({
-          id: 'evt_test_checkout_123',
-          type: 'checkout.session.completed',
-          data: {
-            object: {
-              id: 'cs_test_123',
-              customer: 'cus_test_webhook_456',
-              client_reference_id: testUser.id,
-              mode: 'subscription',
-              customer_email: 'webhook-test@example.com',
-            },
+    const request = new MockWebhookRequest(
+      'http://localhost:3000/api/webhooks/stripe',
+      {
+        id: 'evt_test_checkout_123',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_test_123',
+            customer: 'cus_test_webhook_456',
+            client_reference_id: testUser.id,
+            mode: 'subscription',
+            customer_email: 'webhook-test@example.com',
           },
-        }),
-      ),
-    } as unknown;
+        },
+      },
+    );
 
     // Process webhook
     const response = await POST(request);
@@ -150,21 +150,20 @@ describe('Stripe Webhook Integration', () => {
     });
 
     // Create mock request
-    const request = {
-      text: jest.fn().mockResolvedValue(
-        JSON.stringify({
-          id: 'evt_test_duplicate_789',
-          type: 'checkout.session.completed',
-          data: {
-            object: {
-              id: 'cs_test_duplicate',
-              customer: 'cus_test_duplicate',
-              client_reference_id: testUser.id,
-            },
+    const request = new MockWebhookRequest(
+      'http://localhost:3000/api/webhooks/stripe',
+      {
+        id: 'evt_test_duplicate_789',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_test_duplicate',
+            customer: 'cus_test_duplicate',
+            client_reference_id: testUser.id,
           },
-        }),
-      ),
-    } as unknown;
+        },
+      },
+    );
 
     // Process webhook
     const response = await POST(request);
@@ -203,22 +202,21 @@ describe('Stripe Webhook Integration', () => {
     });
 
     // Create mock request
-    const request = {
-      text: jest.fn().mockResolvedValue(
-        JSON.stringify({
-          id: 'evt_customer_created_123',
-          type: 'customer.created',
-          data: {
-            object: {
-              id: 'cus_test_new_customer_123',
-              object: 'customer',
-              email: 'webhook-test@example.com',
-              created: Math.floor(Date.now() / 1000),
-            },
+    const request = new MockWebhookRequest(
+      'http://localhost:3000/api/webhooks/stripe',
+      {
+        id: 'evt_customer_created_123',
+        type: 'customer.created',
+        data: {
+          object: {
+            id: 'cus_test_new_customer_123',
+            object: 'customer',
+            email: 'webhook-test@example.com',
+            created: Math.floor(Date.now() / 1000),
           },
-        }),
-      ),
-    } as unknown;
+        },
+      },
+    );
 
     // Process webhook
     const response = await POST(request);
@@ -250,14 +248,13 @@ describe('Stripe Webhook Integration', () => {
     });
 
     // Create mock request
-    const request = {
-      text: jest.fn().mockResolvedValue(
-        JSON.stringify({
-          id: 'evt_test_no_sig',
-          type: 'checkout.session.completed',
-        }),
-      ),
-    } as unknown;
+    const request = new MockWebhookRequest(
+      'http://localhost:3000/api/webhooks/stripe',
+      {
+        id: 'evt_test_no_sig',
+        type: 'checkout.session.completed',
+      },
+    );
 
     // Process webhook
     const response = await POST(request);
@@ -273,14 +270,13 @@ describe('Stripe Webhook Integration', () => {
     billingService.verifyWebhookSignature.mockReturnValue(false);
 
     // Create mock request
-    const request = {
-      text: jest.fn().mockResolvedValue(
-        JSON.stringify({
-          id: 'evt_test_invalid_sig',
-          type: 'checkout.session.completed',
-        }),
-      ),
-    } as unknown;
+    const request = new MockWebhookRequest(
+      'http://localhost:3000/api/webhooks/stripe',
+      {
+        id: 'evt_test_invalid_sig',
+        type: 'checkout.session.completed',
+      },
+    );
 
     // Process webhook
     const response = await POST(request);

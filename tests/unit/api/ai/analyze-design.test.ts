@@ -10,8 +10,9 @@ class MockNextRequest extends NextRequest {
   private _formData: FormData;
 
   constructor(url: string, init: RequestInit & { formData?: FormData } = {}) {
-    super(url, init);
-    this._formData = init.formData || new FormData();
+    const { formData, signal, ...requestInit } = init;
+    super(url, { ...requestInit, signal: signal ?? undefined });
+    this._formData = formData || new FormData();
   }
 
   formData(): Promise<FormData> {
@@ -26,7 +27,7 @@ jest.mock('@clerk/nextjs/server', () => ({
 
 // Get the mocked auth function
 import { auth } from '@clerk/nextjs/server';
-const mockAuth = auth as jest.Mock;
+const mockAuth = auth as unknown as jest.Mock;
 
 // Helper functions for auth mocking
 const mockAuthenticatedUser = (user: { id: string }) => {
@@ -123,7 +124,7 @@ describe('POST /api/ai/analyze-design', () => {
       // Mock database responses
       (db.query.users.findFirst as jest.Mock).mockResolvedValue({
         id: user.id,
-        email: user.emailAddresses[0].emailAddress,
+        email: (user as any).emailAddresses[0].emailAddress,
       });
 
       (db.query.userApiKeys.findFirst as jest.Mock).mockResolvedValue({
@@ -162,7 +163,7 @@ describe('POST /api/ai/analyze-design', () => {
 
       (db.query.users.findFirst as jest.Mock).mockResolvedValue({
         id: user.id,
-        email: user.emailAddresses[0].emailAddress,
+        email: (user as any).emailAddresses[0].emailAddress,
       });
 
       (db.query.userApiKeys.findFirst as jest.Mock).mockResolvedValue({

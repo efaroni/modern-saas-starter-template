@@ -11,7 +11,11 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript', 'plugin:jsx-a11y/recommended'),
+  ...compat.extends(
+    'next/core-web-vitals',
+    'next/typescript',
+    'plugin:jsx-a11y/recommended',
+  ),
   {
     // Global ignores - files and directories to exclude from linting
     ignores: [
@@ -103,7 +107,7 @@ const eslintConfig = [
       'jsx-a11y/lang': 'error',
       'jsx-a11y/heading-has-content': 'error',
       'jsx-a11y/control-has-associated-label': 'error',
-      
+
       // Warnings - sometimes intentionally broken for specific UX needs
       'jsx-a11y/no-autofocus': 'warn',
       'jsx-a11y/click-events-have-key-events': 'warn',
